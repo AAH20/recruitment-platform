@@ -7,9 +7,12 @@ compatibility.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -493,8 +496,10 @@ def calculate_match_score(candidate: Candidate, job: Job) -> MatchResult:
     )
 
 
-def match_candidates(job_id: str, candidates: list[Candidate]) -> list[MatchResult]:
-    """Match and rank candidates for a given job.
+def match_candidates_dataclass(
+    job_id: str, candidates: list[Candidate]
+) -> list[MatchResult]:
+    """Match and rank candidates for a given job using dataclass types.
 
     Args:
         job_id: The ID of the job to match against.
@@ -519,6 +524,157 @@ def match_candidates(job_id: str, candidates: list[Candidate]) -> list[MatchResu
 
     results.sort(key=lambda r: r.overall_score, reverse=True)
     return results
+
+
+# ---------------------------------------------------------------------------
+# Dict-based API (required signatures)
+# ---------------------------------------------------------------------------
+
+
+def match_candidates(
+    job_id: str, candidates: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Match candidates to job requirements using dict-based I/O.
+
+    Args:
+        job_id: The unique identifier of the job posting.
+        candidates: A list of candidate dictionaries. Each dict should contain
+            ``candidate_id``, ``skills`` (list[str]), and ``experience_years``
+            (float) keys.
+
+    Returns:
+        A list of match dictionaries sorted by ``score`` descending, each
+        containing ``candidate_id``, ``job_id``, ``score``, and
+        ``skill_match_count`` keys.
+
+    Raises:
+        ValueError: If ``job_id`` is empty or ``candidates`` is not a list.
+    """
+    if not job_id or not isinstance(job_id, str):
+        raise ValueError("job_id must be a non-empty string")
+    if not isinstance(candidates, list):
+        raise ValueError("candidates must be a list")
+
+    job = MOCK_JOBS.get(job_id)
+    if job is None:
+        available = ", ".join(MOCK_JOBS.keys())
+        raise ValueError(f"Job '{job_id}' not found. Available jobs: {available}")
+
+    matches: list[dict[str, Any]] = []
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            logger.warning("Skipping non-dict candidate entry: %s", candidate)
+            continue
+
+        candidate_id = candidate.get("candidate_id", "")
+        candidate_skills = set(candidate.get("skills", []))
+        experience_years = candidate.get("experience_years", 0)
+
+        job_skills = set(job.required_skills)
+        skill_overlap = candidate_skills & job_skills
+        skill_score = len(skill_overlap) / max(len(job_skills), 1)
+        exp_score = min(experience_years / 10.0, 1.0)
+        score = round((skill_score * 0.7 + exp_score * 0.3) * 100, 2)
+
+        matches.append(
+            {
+                "candidate_id": candidate_id,
+                "job_id": job_id,
+                "score": score,
+                "skill_match_count": len(skill_overlap),
+            }
+        )
+
+    return matches
+
+
+def rank_matches(matches: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Rank matches by score in descending order.
+
+    Args:
+        matches: A list of match dictionaries, each containing at least a
+            ``score`` key.
+
+    Returns:
+        A new list of matches sorted by ``score`` descending. Ties are broken
+        by ``skill_match_count`` descending.
+
+    Raises:
+        ValueError: If ``matches`` is not a list.
+    """
+    if not isinstance(matches, list):
+        raise ValueError("matches must be a list")
+
+    return sorted(
+        matches,
+        key=lambda m: (m.get("score", 0), m.get("skill_match_count", 0)),
+        reverse=True,
+    )
+
+
+def get_top_matches(job_id: str, limit: int = 10) -> list[dict[str, Any]]:
+    """Get the top N matches for a given job.
+
+    Args:
+        job_id: The unique identifier of the job posting.
+        limit: The maximum number of top matches to return (default: 10).
+
+    Returns:
+        A list of the top ``limit`` match dictionaries, ranked by score
+        descending.
+
+    Raises:
+        ValueError: If ``job_id`` is empty or ``limit`` is not a positive
+            integer.
+    """
+    if not job_id or not isinstance(job_id, str):
+        raise ValueError("job_id must be a non-empty string")
+    if not isinstance(limit, int) or limit <= 0:
+        raise ValueError("limit must be a positive integer")
+
+    candidates = _get_candidates_for_job(job_id)
+    matches = match_candidates(job_id, candidates)
+    ranked = rank_matches(matches)
+    return ranked[:limit]
+
+
+def _get_candidates_for_job(job_id: str) -> list[dict[str, Any]]:
+    """Retrieve candidates for a job (stub — replace with DB lookup).
+
+    Args:
+        job_id: The unique identifier of the job posting.
+
+    Returns:
+        A list of candidate dictionaries.
+    """
+    # TODO: Replace with actual database query
+    return [
+        {
+            "candidate_id": "cand-001",
+            "skills": ["Python", "FastAPI", "PostgreSQL", "Docker", "Kubernetes", "AWS"],
+            "experience_years": 7.5,
+        },
+        {
+            "candidate_id": "cand-002",
+            "skills": ["JavaScript", "React", "Node.js", "MongoDB", "TypeScript"],
+            "experience_years": 4.0,
+        },
+        {
+            "candidate_id": "cand-003",
+            "skills": ["Python", "Django", "PostgreSQL", "Redis", "Celery", "Docker"],
+            "experience_years": 9.0,
+        },
+        {
+            "candidate_id": "cand-004",
+            "skills": ["Go", "Kubernetes", "Terraform", "AWS", "gRPC", "Microservices"],
+            "experience_years": 11.0,
+        },
+        {
+            "candidate_id": "cand-005",
+            "skills": ["Python", "Machine Learning", "TensorFlow", "SQL", "Pandas"],
+            "experience_years": 3.5,
+        },
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -551,7 +707,7 @@ def main() -> None:
     print(f"Salary Range: ${job.salary_min:,} - ${job.salary_max:,}")
     print("=" * 70)
 
-    results = match_candidates(job_id, MOCK_CANDIDATES)
+    results = match_candidates_dataclass(job_id, MOCK_CANDIDATES)
 
     for rank, result in enumerate(results, start=1):
         print(_format_result(result, rank))

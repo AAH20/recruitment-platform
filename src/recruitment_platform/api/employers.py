@@ -522,3 +522,60 @@ async def create_employer(employer: EmployerCreate) -> Employer:
     MOCK_EMPLOYERS.append(new_employer)
 
     return Employer(**new_employer)
+
+
+@router.get(
+    "/{employer_id}",
+    response_model=Employer,
+    summary="Get employer by ID",
+    description="Retrieve a single employer by their unique identifier.",
+)
+async def get_employer(employer_id: str) -> Employer:
+    """Get a single employer by ID."""
+    for emp in MOCK_EMPLOYERS:
+        if emp["id"] == employer_id:
+            return _employer_to_response(emp)
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Employer with id '{employer_id}' not found.",
+    )
+
+
+@router.put(
+    "/{employer_id}",
+    response_model=Employer,
+    summary="Update employer",
+    description="Update an existing employer's information.",
+)
+async def update_employer(employer_id: str, updates: EmployerUpdate) -> Employer:
+    """Update an existing employer."""
+    for i, emp in enumerate(MOCK_EMPLOYERS):
+        if emp["id"] == employer_id:
+            update_data = updates.model_dump(exclude_unset=True)
+            MOCK_EMPLOYERS[i].update(update_data)
+            MOCK_EMPLOYERS[i]["updated_at"] = datetime.utcnow().strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
+            return _employer_to_response(MOCK_EMPLOYERS[i])
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Employer with id '{employer_id}' not found.",
+    )
+
+
+@router.delete(
+    "/{employer_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete employer",
+    description="Remove an employer from the platform.",
+)
+async def delete_employer(employer_id: str) -> None:
+    """Delete an employer by ID."""
+    for i, emp in enumerate(MOCK_EMPLOYERS):
+        if emp["id"] == employer_id:
+            MOCK_EMPLOYERS.pop(i)
+            return None
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Employer with id '{employer_id}' not found.",
+    )

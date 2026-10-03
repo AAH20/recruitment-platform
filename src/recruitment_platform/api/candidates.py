@@ -466,3 +466,112 @@ async def create_candidate(payload: CandidateCreate) -> CandidateResponse:
     _MOCK_CANDIDATES.append(new_candidate)
 
     return CandidateResponse(**new_candidate)
+
+
+# ---------------------------------------------------------------------------
+# GET /candidates/{candidate_id} — retrieve a single candidate
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/{candidate_id}",
+    response_model=CandidateResponse,
+    summary="Get candidate by ID",
+    description="Retrieve a single candidate by their unique identifier.",
+)
+async def get_candidate(candidate_id: str) -> CandidateResponse:
+    """Return a single candidate by ID or raise 404."""
+    for candidate in _MOCK_CANDIDATES:
+        if candidate["id"] == candidate_id:
+            return CandidateResponse(**candidate)
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Candidate with id '{candidate_id}' not found.",
+    )
+
+
+# ---------------------------------------------------------------------------
+# PUT /candidates/{candidate_id} — update a candidate
+# ---------------------------------------------------------------------------
+
+class CandidateUpdate(BaseModel):
+    """Payload for updating an existing candidate — all fields optional."""
+
+    first_name: Optional[str] = Field(None, min_length=1, max_length=50)
+    last_name: Optional[str] = Field(None, min_length=1, max_length=50)
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = Field(None, max_length=20)
+    role_applied: Optional[str] = Field(None, min_length=1, max_length=120)
+    years_experience: Optional[int] = Field(None, ge=0, le=60)
+    experience_level: Optional[ExperienceLevel] = None
+    skills: Optional[List[str]] = Field(None, max_length=30)
+    expected_salary: Optional[int] = Field(None, ge=0)
+    currency: Optional[str] = Field(None, pattern="^[A-Z]{3}$")
+    location: Optional[str] = Field(None, max_length=120)
+    remote_ok: Optional[bool] = None
+    linkedin_url: Optional[str] = Field(None, max_length=255)
+    notes: Optional[str] = Field(None, max_length=2000)
+    status: Optional[CandidateStatus] = None
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        digits = "".join(c for c in v if c.isdigit() or c == "+")
+        if len(digits) < 7:
+            raise ValueError("Phone number must contain at least 7 digits")
+        return v
+
+    @field_validator("skills")
+    @classmethod
+    def validate_skills(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None:
+            return v
+        return [s.strip().lower() for s in v if s.strip()]
+
+
+@router.put(
+    "/{candidate_id}",
+    response_model=CandidateResponse,
+    summary="Update candidate",
+    description="Update an existing candidate. Only provided fields are modified.",
+)
+async def update_candidate(candidate_id: str, payload: CandidateUpdate) -> CandidateResponse:
+    """Update a candidate by ID. Only fields present in the payload are changed."""
+    for i, candidate in enumerate(_MOCK_CANDIDATES):
+        if candidate["id"] == candidate_id:
+            update_data = payload.model_dump(exclude_unset=True)
+            # Convert enum values to their string representation
+            if "experience_level" in update_data and update_data["experience_level"] is not None:
+                update_data["experience_level"] = update_data["experience_level"].value
+            if "status" in update_data and update_data["status"] is not None:
+                update_data["status"] = update_data["status"].value
+            _MOCK_CANDIDATES[i].update(update_data)
+            _MOCK_CANDIDATES[i]["updated_at"] = _now_iso()
+            return CandidateResponse(**_MOCK_CANDIDATES[i])
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Candidate with id '{candidate_id}' not found.",
+    )
+
+
+# ---------------------------------------------------------------------------
+# DELETE /candidates/{candidate_id} — delete a candidate
+# ---------------------------------------------------------------------------
+
+@router.delete(
+    "/{candidate_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete candidate",
+    description="Permanently delete a candidate by their unique identifier.",
+)
+async def delete_candidate(candidate_id: str) -> None:
+    """Delete a candidate by ID or raise 404."""
+    for i, candidate in enumerate(_MOCK_CANDIDATES):
+        if candidate["id"] == candidate_id:
+            _MOCK_CANDIDATES.pop(i)
+            return None
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Candidate with id '{candidate_id}' not found.",
+    )

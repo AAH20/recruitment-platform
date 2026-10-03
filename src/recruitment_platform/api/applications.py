@@ -306,3 +306,50 @@ async def create_application(payload: ApplicationCreate):
     MOCK_APPLICATIONS.append(new_application)
 
     return ApplicationResponse(**new_application)
+
+
+@router.get("/{application_id}", response_model=ApplicationResponse)
+async def get_application(application_id: str):
+    """Get a single application by its ID."""
+    for app in MOCK_APPLICATIONS:
+        if app["id"] == application_id:
+            return ApplicationResponse(**app)
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Application {application_id} not found",
+    )
+
+
+@router.put("/{application_id}", response_model=ApplicationResponse)
+async def update_application(application_id: str, status_update: str):
+    """Update the status of an existing application."""
+    if status_update not in VALID_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Invalid status. Must be one of: {', '.join(sorted(VALID_STATUSES))}",
+        )
+
+    for app in MOCK_APPLICATIONS:
+        if app["id"] == application_id:
+            app["status"] = status_update
+            return ApplicationResponse(**app)
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Application {application_id} not found",
+    )
+
+
+@router.delete("/{application_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_application(application_id: str):
+    """Delete an application by its ID."""
+    for i, app in enumerate(MOCK_APPLICATIONS):
+        if app["id"] == application_id:
+            MOCK_APPLICATIONS.pop(i)
+            return None
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Application {application_id} not found",
+    )

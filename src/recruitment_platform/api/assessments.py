@@ -326,3 +326,54 @@ async def create_assessment(assessment: AssessmentCreate):
     MOCK_ASSESSMENTS.append(new_assessment)
 
     return AssessmentResponse(**new_assessment)
+
+
+@router.get("/{assessment_id}", response_model=AssessmentResponse)
+async def get_assessment(assessment_id: str):
+    """
+    Retrieve a single assessment by its ID.
+    """
+    for assessment in MOCK_ASSESSMENTS:
+        if assessment["id"] == assessment_id:
+            return AssessmentResponse(**assessment)
+
+    raise HTTPException(
+        status_code=404,
+        detail=f"Assessment with id '{assessment_id}' not found",
+    )
+
+
+@router.put("/{assessment_id}", response_model=AssessmentResponse)
+async def update_assessment(assessment_id: str, updates: AssessmentUpdate):
+    """
+    Update an existing assessment (partial updates supported).
+    """
+    for i, assessment in enumerate(MOCK_ASSESSMENTS):
+        if assessment["id"] == assessment_id:
+            update_data = updates.model_dump(exclude_unset=True)
+            for field, value in update_data.items():
+                assessment[field] = value
+            assessment["updated_at"] = _get_timestamp()
+            MOCK_ASSESSMENTS[i] = assessment
+            return AssessmentResponse(**assessment)
+
+    raise HTTPException(
+        status_code=404,
+        detail=f"Assessment with id '{assessment_id}' not found",
+    )
+
+
+@router.delete("/{assessment_id}", status_code=204)
+async def delete_assessment(assessment_id: str):
+    """
+    Delete an assessment by its ID.
+    """
+    for i, assessment in enumerate(MOCK_ASSESSMENTS):
+        if assessment["id"] == assessment_id:
+            MOCK_ASSESSMENTS.pop(i)
+            return None
+
+    raise HTTPException(
+        status_code=404,
+        detail=f"Assessment with id '{assessment_id}' not found",
+    )

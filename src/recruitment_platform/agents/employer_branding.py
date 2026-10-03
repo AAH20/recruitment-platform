@@ -6,10 +6,13 @@ for employers using the recruitment platform.
 
 from __future__ import annotations
 
+import logging
 import random
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -623,9 +626,362 @@ def _estimate_reach_increase(score: float, num_recommendations: int) -> str:
 # Module-level convenience
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Dict-based API (company_data / brand_analysis)
+# ---------------------------------------------------------------------------
+
+
+def analyze_employer_brand(company_data: dict) -> dict:
+    """Analyze employer brand based on company data.
+
+    Evaluates various aspects of the company's employer brand including
+    online presence, employee satisfaction signals, and market positioning.
+
+    Args:
+        company_data: Dictionary containing company information such as
+            name, industry, size, ratings, reviews, benefits, etc.
+
+    Returns:
+        Dictionary containing brand analysis results with keys:
+            - brand_score: Overall brand score (0-100)
+            - strengths: List of identified brand strengths
+            - weaknesses: List of identified brand weaknesses
+            - market_position: Market positioning assessment
+            - recommendations: High-level recommendations
+
+    Raises:
+        ValueError: If company_data is empty or missing required fields.
+        TypeError: If company_data is not a dictionary.
+    """
+    if not isinstance(company_data, dict):
+        raise TypeError("company_data must be a dictionary")
+
+    if not company_data:
+        raise ValueError("company_data cannot be empty")
+
+    required_fields = ["name"]
+    missing = [f for f in required_fields if f not in company_data]
+    if missing:
+        raise ValueError(f"Missing required fields: {', '.join(missing)}")
+
+    analysis: dict[str, Any] = {
+        "brand_score": 0,
+        "strengths": [],
+        "weaknesses": [],
+        "market_position": "unknown",
+        "recommendations": [],
+    }
+
+    # Calculate base brand score from available data
+    score = 50  # Base score
+
+    # Factor in company rating if available
+    rating = company_data.get("rating")
+    if rating is not None:
+        try:
+            rating_val = float(rating)
+            if 0 <= rating_val <= 5:
+                score += int((rating_val / 5) * 20)
+                if rating_val >= 4.0:
+                    analysis["strengths"].append("High overall rating")
+                elif rating_val < 3.0:
+                    analysis["weaknesses"].append("Low overall rating")
+        except (ValueError, TypeError):
+            logger.warning("Invalid rating value: %s", rating)
+
+    # Factor in number of reviews
+    review_count = company_data.get("review_count", 0)
+    try:
+        rc = int(review_count)
+        if rc > 100:
+            score += 10
+            analysis["strengths"].append("Strong review presence")
+        elif rc < 10:
+            analysis["weaknesses"].append("Limited review presence")
+    except (ValueError, TypeError):
+        logger.warning("Invalid review_count value: %s", review_count)
+
+    # Factor in benefits
+    benefits = company_data.get("benefits", [])
+    if isinstance(benefits, list) and len(benefits) >= 5:
+        score += 10
+        analysis["strengths"].append("Comprehensive benefits package")
+    elif isinstance(benefits, list) and len(benefits) < 3:
+        analysis["weaknesses"].append("Limited benefits offered")
+
+    # Factor in online presence
+    online_presence = company_data.get("online_presence", {})
+    if isinstance(online_presence, dict):
+        if online_presence.get("website"):
+            score += 5
+        if online_presence.get("linkedin"):
+            score += 5
+        if online_presence.get("glassdoor"):
+            score += 5
+        if not any(online_presence.values()):
+            analysis["weaknesses"].append("Weak online presence")
+
+    # Factor in industry reputation
+    industry = company_data.get("industry", "")
+    if industry:
+        analysis["market_position"] = f"Positioned in {industry}"
+
+    # Cap score at 100
+    analysis["brand_score"] = min(score, 100)
+
+    # Generate high-level recommendations
+    if analysis["brand_score"] < 60:
+        analysis["recommendations"].append("Improve online presence across platforms")
+        analysis["recommendations"].append("Enhance employee benefits package")
+    if analysis["brand_score"] < 40:
+        analysis["recommendations"].append("Consider employer branding campaign")
+
+    return analysis
+
+
+def generate_employer_profile(company_data: dict) -> dict:
+    """Generate a comprehensive employer profile from company data.
+
+    Creates a structured profile suitable for display on recruitment
+    platforms, including company overview, culture, benefits, and
+    value proposition.
+
+    Args:
+        company_data: Dictionary containing company information such as
+            name, description, industry, size, location, benefits,
+            culture, mission, etc.
+
+    Returns:
+        Dictionary containing employer profile with keys:
+            - company_name: Company name
+            - tagline: Generated tagline
+            - overview: Company overview text
+            - culture_summary: Culture description
+            - benefits_highlights: Key benefits highlights
+            - value_proposition: Employer value proposition
+            - profile_completeness: Profile completeness score (0-100)
+
+    Raises:
+        ValueError: If company_data is empty or missing required fields.
+        TypeError: If company_data is not a dictionary.
+    """
+    if not isinstance(company_data, dict):
+        raise TypeError("company_data must be a dictionary")
+
+    if not company_data:
+        raise ValueError("company_data cannot be empty")
+
+    required_fields = ["name"]
+    missing = [f for f in required_fields if f not in company_data]
+    if missing:
+        raise ValueError(f"Missing required fields: {', '.join(missing)}")
+
+    profile: dict[str, Any] = {
+        "company_name": company_data["name"],
+        "tagline": "",
+        "overview": "",
+        "culture_summary": "",
+        "benefits_highlights": [],
+        "value_proposition": "",
+        "profile_completeness": 0,
+    }
+
+    # Build overview
+    description = company_data.get("description", "")
+    industry = company_data.get("industry", "")
+    size = company_data.get("size", "")
+    location = company_data.get("location", "")
+
+    overview_parts = []
+    if industry:
+        overview_parts.append(f"A {industry} company")
+    if size:
+        overview_parts.append(f"with {size} employees")
+    if location:
+        overview_parts.append(f"based in {location}")
+    if description:
+        overview_parts.append(f". {description}")
+
+    profile["overview"] = " ".join(overview_parts).strip()
+
+    # Generate tagline
+    mission = company_data.get("mission", "")
+    if mission:
+        profile["tagline"] = mission
+    elif industry:
+        profile["tagline"] = f"Building the future of {industry}"
+    else:
+        profile["tagline"] = "Join our team"
+
+    # Culture summary
+    culture = company_data.get("culture", "")
+    values = company_data.get("values", [])
+    if culture:
+        profile["culture_summary"] = culture
+    elif values:
+        profile["culture_summary"] = f"Our core values: {', '.join(values)}"
+    else:
+        profile["culture_summary"] = "A collaborative and innovative workplace"
+
+    # Benefits highlights
+    benefits = company_data.get("benefits", [])
+    if isinstance(benefits, list):
+        profile["benefits_highlights"] = benefits[:5]  # Top 5 benefits
+
+    # Value proposition
+    value_props = []
+    if company_data.get("remote_friendly"):
+        value_props.append("Remote-friendly")
+    if company_data.get("growth_opportunities"):
+        value_props.append("Strong growth opportunities")
+    if company_data.get("work_life_balance"):
+        value_props.append("Excellent work-life balance")
+    if company_data.get("competitive_salary"):
+        value_props.append("Competitive compensation")
+    if not value_props:
+        value_props.append("A great place to work")
+
+    profile["value_proposition"] = " | ".join(value_props)
+
+    # Calculate profile completeness
+    fields_to_check = [
+        "name", "description", "industry", "size", "location",
+        "benefits", "culture", "mission", "values",
+    ]
+    filled = sum(1 for f in fields_to_check if company_data.get(f))
+    profile["profile_completeness"] = int((filled / len(fields_to_check)) * 100)
+
+    return profile
+
+
+def suggest_brand_improvements(brand_analysis: dict) -> list[str]:
+    """Suggest brand improvements based on brand analysis results.
+
+    Analyzes the output of analyze_employer_brand and provides
+    actionable recommendations for improving the employer brand.
+
+    Args:
+        brand_analysis: Dictionary containing brand analysis results
+            (typically from analyze_employer_brand).
+
+    Returns:
+        List of improvement suggestion strings.
+
+    Raises:
+        ValueError: If brand_analysis is empty.
+        TypeError: If brand_analysis is not a dictionary.
+    """
+    if not isinstance(brand_analysis, dict):
+        raise TypeError("brand_analysis must be a dictionary")
+
+    if not brand_analysis:
+        raise ValueError("brand_analysis cannot be empty")
+
+    suggestions: list[str] = []
+
+    # Check brand score
+    score = brand_analysis.get("brand_score", 0)
+    try:
+        score_val = int(score)
+    except (ValueError, TypeError):
+        score_val = 0
+
+    if score_val < 40:
+        suggestions.append(
+            "Urgent: Conduct comprehensive employer brand audit"
+        )
+        suggestions.append(
+            "Develop employer value proposition (EVP) framework"
+        )
+    elif score_val < 60:
+        suggestions.append(
+            "Enhance employer brand strategy with targeted initiatives"
+        )
+    elif score_val < 80:
+        suggestions.append(
+            "Refine existing employer brand with focused improvements"
+        )
+    else:
+        suggestions.append(
+            "Maintain strong employer brand with continuous monitoring"
+        )
+
+    # Address weaknesses
+    weaknesses = brand_analysis.get("weaknesses", [])
+    if isinstance(weaknesses, list):
+        for weakness in weaknesses:
+            weakness_lower = str(weakness).lower()
+            if "rating" in weakness_lower:
+                suggestions.append(
+                    "Implement employee satisfaction improvement program"
+                )
+                suggestions.append(
+                    "Address negative review themes through action plans"
+                )
+            elif "review" in weakness_lower:
+                suggestions.append(
+                    "Increase review volume by encouraging employee feedback"
+                )
+                suggestions.append(
+                    "Optimize Glassdoor and similar platform presence"
+                )
+            elif "benefit" in weakness_lower:
+                suggestions.append(
+                    "Expand benefits package to match market standards"
+                )
+                suggestions.append(
+                    "Conduct benefits benchmarking against industry peers"
+                )
+            elif "online" in weakness_lower or "presence" in weakness_lower:
+                suggestions.append(
+                    "Develop comprehensive social media recruitment strategy"
+                )
+                suggestions.append(
+                    "Create engaging content calendar for employer brand"
+                )
+
+    # Leverage strengths
+    strengths = brand_analysis.get("strengths", [])
+    if isinstance(strengths, list):
+        for strength in strengths:
+            strength_lower = str(strength).lower()
+            if "rating" in strength_lower:
+                suggestions.append(
+                    "Leverage high ratings in recruitment marketing materials"
+                )
+            elif "benefit" in strength_lower:
+                suggestions.append(
+                    "Showcase comprehensive benefits in job postings"
+                )
+            elif "review" in strength_lower:
+                suggestions.append(
+                    "Feature positive reviews in employer branding campaigns"
+                )
+
+    # Market position based suggestions
+    market_position = brand_analysis.get("market_position", "")
+    if market_position and market_position != "unknown":
+        suggestions.append(
+            f"Tailor employer brand messaging for {market_position} context"
+        )
+
+    # Remove duplicates while preserving order
+    seen: set[str] = set()
+    unique_suggestions: list[str] = []
+    for s in suggestions:
+        if s not in seen:
+            seen.add(s)
+            unique_suggestions.append(s)
+
+    return unique_suggestions
+
+
 __all__ = [
     "analyze_brand",
     "generate_content_strategy",
+    "analyze_employer_brand",
+    "generate_employer_profile",
+    "suggest_brand_improvements",
     "BrandHealthScore",
     "BrandHealthTier",
     "BrandMetrics",

@@ -350,6 +350,29 @@ class InterviewSchedulerAgent:
         self.data_store.update_interview(interview)
         return interview
 
+    def cancel_interview(self, interview_id: str) -> bool:
+        """Cancel an existing interview.
+
+        Args:
+            interview_id: Unique identifier of the interview to cancel.
+
+        Returns:
+            True if the interview was successfully cancelled.
+
+        Raises:
+            ValueError: If the interview is not found or is already cancelled.
+        """
+        interview = self.data_store.get_interview(interview_id)
+        if interview is None:
+            raise ValueError(f"Interview not found: {interview_id}")
+        if interview.status == InterviewStatus.CANCELLED:
+            raise ValueError(f"Interview {interview_id} is already cancelled")
+
+        interview.status = InterviewStatus.CANCELLED
+        interview.metadata["cancelled_at"] = datetime.utcnow().isoformat()
+        self.data_store.update_interview(interview)
+        return True
+
     # ------------------------------------------------------------------
     # Scoring & Helpers
     # ------------------------------------------------------------------
@@ -497,3 +520,8 @@ def reschedule_interview(
         duration_minutes=duration_minutes,
         reason=reason,
     )
+
+
+def cancel_interview(interview_id: str) -> bool:
+    """Cancel an interview using the default agent instance."""
+    return _default_agent.cancel_interview(interview_id=interview_id)

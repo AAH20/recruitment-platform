@@ -10,7 +10,7 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
 
-router = APIRouter(prefix="/talent-pools", tags=["talent-pools"])
+router = APIRouter(prefix="/api/v1/talent-pools", tags=["talent-pools"])
 
 
 # ---------------------------------------------------------------------------

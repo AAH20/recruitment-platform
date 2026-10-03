@@ -1,236 +1,243 @@
-"""
-Reports API endpoints for the recruitment platform.
+"""Reports API endpoints for the recruitment platform."""
 
-Provides endpoints to list available reports and generate new reports.
-"""
+from __future__ import annotations
 
-from datetime import datetime, timedelta
-from typing import Any
+import uuid
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/reports", tags=["reports"])
+router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
 
 
-# ─── Models ──────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Pydantic models
+# ---------------------------------------------------------------------------
 
 
-class ReportInfo(BaseModel):
-    """Metadata describing an available report."""
+class ReportBase(BaseModel):
+    """Shared report attributes."""
 
-    id: str
-    name: str
-    description: str
-    category: str
-    format: str = "pdf"
-    estimated_runtime_seconds: int = Field(default=30, ge=1)
+    name: str = Field(..., min_length=1, max_length=255, description="Report name")
+    report_type: str = Field(
+        ...,
+        description="Type of report (e.g. 'pipeline', 'hiring', 'diversity')",
+    )
+    parameters: Optional[Dict[str, Any]] = Field(
+        default=None, description="Optional report generation parameters"
+    )
+
+
+class ReportCreate(ReportBase):
+    """Payload for generating a new report."""
+
+    pass
 
 
 class ReportSummary(BaseModel):
-    """Summary of a generated report instance."""
+    """Lightweight report representation for list views."""
+
+    id: str = Field(..., description="Unique report identifier")
+    name: str
+    report_type: str
+    status: str = Field(..., description="Report status: pending, ready, failed")
+    created_at: datetime
+    file_size: Optional[int] = Field(
+        default=None, description="File size in bytes (when ready)"
+    )
+
+
+class ReportDetail(ReportSummary):
+    """Full report representation."""
+
+    parameters: Optional[Dict[str, Any]] = None
+    generated_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+
+
+class ReportListResponse(BaseModel):
+    """Paginated list of reports."""
+
+    items: List[ReportSummary]
+    total: int = Field(..., description="Total number of reports available")
+    page: int = Field(..., description="Current page number (1-indexed)")
+    page_size: int = Field(..., description="Number of items per page")
+    pages: int = Field(..., description="Total number of pages")
+
+
+class ReportDownloadResponse(BaseModel):
+    """Metadata returned when a download is initiated."""
 
     report_id: str
-    name: str
-    status: str
-    created_at: str
-    completed_at: str | None = None
-    download_url: str | None = None
-    format: str = "pdf"
-    size_bytes: int | None = None
+    filename: str
+    content_type: str
+    file_size: int
 
 
-class GenerateReportRequest(BaseModel):
-    """Request body for generating a report."""
+# ---------------------------------------------------------------------------
+# In-memory store (replace with real persistence layer)
+# ---------------------------------------------------------------------------
 
-    report_type: str = Field(..., description="Type of report to generate")
-    start_date: str | None = Field(
-        default=None, description="Start date (ISO 8601) for the reporting period"
+_REPORTS: Dict[str, Dict[str, Any]] = {}
+
+
+def _generate_report_id() -> str:
+    return str(uuid.uuid4())
+
+
+# ---------------------------------------------------------------------------
+# Endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.get("", response_model=ReportListResponse, summary="List reports")
+async def list_reports(
+    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    report_type: Optional[str] = Query(None, description="Filter by report type"),
+) -> ReportListResponse:
+    """Return a paginated list of reports.
+
+    Args:
+        page: 1-indexed page number.
+        page_size: Maximum number of items per page (1-100).
+        report_type: Optional filter by report type.
+
+    Returns:
+        Paginated list of report summaries.
+
+    Raises:
+        HTTPException: 400 if pagination parameters are invalid.
+    """
+    all_reports: List[Dict[str, Any]] = list(_REPORTS.values())
+
+    if report_type:
+        all_reports = [r for r in all_reports if r["report_type"] == report_type]
+
+    total = len(all_reports)
+    pages = (total + page_size - 1) // page_size if total else 1
+
+    if page > pages and total > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Page {page} exceeds total pages ({pages})",
+        )
+
+    start = (page - 1) * page_size
+    end = start + page_size
+    items = all_reports[start:end]
+
+    return ReportListResponse(
+        items=[ReportSummary(**r) for r in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=pages,
     )
-    end_date: str | None = Field(
-        default=None, description="End date (ISO 8601) for the reporting period"
-    )
-    department: str | None = Field(
-        default=None, description="Filter by department"
-    )
-    format: str = Field(default="pdf", description="Output format (pdf, csv, xlsx)")
-    include_inactive: bool = Field(
-        default=False, description="Include inactive records"
-    )
-
-
-class GenerateReportResponse(BaseModel):
-    """Response returned after requesting report generation."""
-
-    success: bool
-    message: str
-    report: ReportSummary
-
-
-# ─── Mock Data ───────────────────────────────────────────────────────────────
-
-AVAILABLE_REPORTS: list[dict[str, Any]] = [
-    {
-        "id": "pipeline-summary",
-        "name": "Recruitment Pipeline Summary",
-        "description": "Overview of all open requisitions, candidates in each stage, and time-to-fill metrics.",
-        "category": "recruiting",
-        "format": "pdf",
-        "estimated_runtime_seconds": 25,
-    },
-    {
-        "id": "time-to-hire",
-        "name": "Time-to-Hire Analysis",
-        "description": "Detailed breakdown of time-to-hire by department, role seniority, and recruiter.",
-        "category": "metrics",
-        "format": "xlsx",
-        "estimated_runtime_seconds": 45,
-    },
-    {
-        "id": "source-effectiveness",
-        "name": "Source Effectiveness Report",
-        "description": "Comparison of candidate sources (job boards, referrals, agencies) by volume, quality, and cost-per-hire.",
-        "category": "sourcing",
-        "format": "pdf",
-        "estimated_runtime_seconds": 35,
-    },
-    {
-        "id": "diversity-metrics",
-        "name": "Diversity & Inclusion Metrics",
-        "description": "Workforce demographic breakdown across pipeline stages and hiring outcomes.",
-        "category": "compliance",
-        "format": "pdf",
-        "estimated_runtime_seconds": 40,
-    },
-    {
-        "id": "interviewer-performance",
-        "name": "Interviewer Performance",
-        "description": "Interviewer throughput, feedback completion rates, and candidate experience scores.",
-        "category": "metrics",
-        "format": "csv",
-        "estimated_runtime_seconds": 20,
-    },
-    {
-        "id": "offer-acceptance",
-        "name": "Offer Acceptance & Decline Analysis",
-        "description": "Offer acceptance rates, decline reasons, and compensation benchmarking.",
-        "category": "recruiting",
-        "format": "xlsx",
-        "estimated_runtime_seconds": 30,
-    },
-    {
-        "id": "requisition-aging",
-        "name": "Requisition Aging Report",
-        "description": "Open requisitions sorted by days open, highlighting stale or at-risk positions.",
-        "category": "recruiting",
-        "format": "pdf",
-        "estimated_runtime_seconds": 15,
-    },
-    {
-        "id": "cost-per-hire",
-        "name": "Cost-per-Hire Breakdown",
-        "description": "Total recruiting cost per hire by channel, including agency fees and job board spend.",
-        "category": "finance",
-        "format": "xlsx",
-        "estimated_runtime_seconds": 50,
-    },
-]
-
-
-# ─── Helpers ─────────────────────────────────────────────────────────────────
-
-
-def _generate_mock_report(
-    report_type: str,
-    fmt: str,
-    department: str | None,
-    start_date: str | None,
-    end_date: str | None,
-) -> dict[str, Any]:
-    """Build a realistic mock report summary."""
-    now = datetime.utcnow()
-    created_at = now.isoformat() + "Z"
-    # Simulate a short processing delay
-    completed_at = (now + timedelta(seconds=12)).isoformat() + "Z"
-
-    report_names = {
-        "pipeline-summary": "Recruitment Pipeline Summary",
-        "time-to-hire": "Time-to-Hire Analysis",
-        "source-effectiveness": "Source Effectiveness Report",
-        "diversity-metrics": "Diversity & Inclusion Metrics",
-        "interviewer-performance": "Interviewer Performance",
-        "offer-acceptance": "Offer Acceptance & Decline Analysis",
-        "requisition-aging": "Requisition Aging Report",
-        "cost-per-hire": "Cost-per-Hire Breakdown",
-    }
-
-    name = report_names.get(report_type, "Custom Report")
-    report_id = f"RPT-{now.strftime('%Y%m%d')}-{abs(hash(report_type + created_at)) % 100000:05d}"
-
-    size_map = {"pdf": 245_000, "csv": 89_000, "xlsx": 178_000}
-    size_bytes = size_map.get(fmt, 150_000)
-
-    return {
-        "report_id": report_id,
-        "name": name,
-        "status": "completed",
-        "created_at": created_at,
-        "completed_at": completed_at,
-        "download_url": f"/api/v1/reports/download/{report_id}.{fmt}",
-        "format": fmt,
-        "size_bytes": size_bytes,
-    }
-
-
-# ─── Endpoints ───────────────────────────────────────────────────────────────
-
-
-@router.get(
-    "",
-    response_model=list[ReportInfo],
-    summary="List available reports",
-    description="Returns a list of all report types available on the platform.",
-)
-async def list_reports() -> list[dict[str, Any]]:
-    """List all available report types."""
-    return AVAILABLE_REPORTS
 
 
 @router.post(
-    "/generate",
-    response_model=GenerateReportResponse,
+    "",
+    response_model=ReportDetail,
     status_code=status.HTTP_201_CREATED,
-    summary="Generate a report",
-    description="Request generation of a specific report. Returns a summary with a download URL once ready.",
+    summary="Generate a new report",
 )
-async def generate_report(request: GenerateReportRequest) -> dict[str, Any]:
-    """Generate a report based on the provided parameters."""
-    valid_types = {r["id"] for r in AVAILABLE_REPORTS}
-    if request.report_type not in valid_types:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown report type '{request.report_type}'. "
-            f"Valid types: {', '.join(sorted(valid_types))}",
-        )
+async def create_report(payload: ReportCreate) -> ReportDetail:
+    """Generate a new report.
 
-    valid_formats = {"pdf", "csv", "xlsx"}
-    if request.format not in valid_formats:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported format '{request.format}'. "
-            f"Valid formats: {', '.join(sorted(valid_formats))}",
-        )
+    Args:
+        payload: Report creation payload.
 
-    mock_report = _generate_mock_report(
-        report_type=request.report_type,
-        fmt=request.format,
-        department=request.department,
-        start_date=request.start_date,
-        end_date=request.end_date,
-    )
+    Returns:
+        The newly created report (status: pending).
 
-    return {
-        "success": True,
-        "message": f"Report '{mock_report['name']}' generated successfully.",
-        "report": mock_report,
+    Raises:
+        HTTPException: 422 if the payload fails validation (handled by FastAPI).
+    """
+    report_id = _generate_report_id()
+    now = datetime.utcnow()
+
+    report: Dict[str, Any] = {
+        "id": report_id,
+        "name": payload.name,
+        "report_type": payload.report_type,
+        "parameters": payload.parameters,
+        "status": "pending",
+        "created_at": now,
+        "generated_at": None,
+        "file_size": None,
+        "error_message": None,
     }
+
+    _REPORTS[report_id] = report
+
+    return ReportDetail(**report)
+
+
+@router.get("/{report_id}", response_model=ReportDetail, summary="Get report by ID")
+async def get_report(report_id: str) -> ReportDetail:
+    """Retrieve a single report by its ID.
+
+    Args:
+        report_id: The unique report identifier.
+
+    Returns:
+        The full report detail.
+
+    Raises:
+        HTTPException: 404 if the report is not found.
+    """
+    report = _REPORTS.get(report_id)
+    if report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Report '{report_id}' not found",
+        )
+
+    return ReportDetail(**report)
+
+
+@router.get(
+    "/{report_id}/download",
+    summary="Download report file",
+)
+async def download_report(report_id: str) -> StreamingResponse:
+    """Download the generated report file.
+
+    Args:
+        report_id: The unique report identifier.
+
+    Returns:
+        A streaming response with the report file content.
+
+    Raises:
+        HTTPException: 404 if the report is not found.
+        HTTPException: 409 if the report is not ready for download.
+    """
+    report = _REPORTS.get(report_id)
+    if report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Report '{report_id}' not found",
+        )
+
+    if report["status"] != "ready":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Report '{report_id}' is not ready for download (status: {report['status']})",
+        )
+
+    filename = f"{report['name'].replace(' ', '_')}_{report_id}.csv"
+    file_content = b"id,name,status\n"  # placeholder — replace with real file data
+
+    return StreamingResponse(
+        iter([file_content]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(file_content)),
+        },
+    )

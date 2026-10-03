@@ -6,7 +6,7 @@ from typing import Literal, Optional
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
 
-router = APIRouter(prefix="/skills", tags=["skills"])
+router = APIRouter(prefix="/api/v1/skills", tags=["skills"])
 
 # ---------------------------------------------------------------------------
 # Mock data store
@@ -298,3 +298,43 @@ async def create_skill(payload: SkillCreate) -> dict:
 
     _SKILLS_DB.append(new_skill)
     return new_skill
+
+
+@router.get("/{skill_id}", response_model=SkillResponse, summary="Get a skill by ID")
+async def get_skill(skill_id: int) -> dict:
+    """Return a single skill by its ID."""
+    for skill in _SKILLS_DB:
+        if skill["id"] == skill_id:
+            return skill
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Skill with id {skill_id} not found",
+    )
+
+
+@router.put("/{skill_id}", response_model=SkillResponse, summary="Update a skill")
+async def update_skill(skill_id: int, payload: SkillUpdate) -> dict:
+    """Update an existing skill. Only provided fields are modified."""
+    for skill in _SKILLS_DB:
+        if skill["id"] == skill_id:
+            update_data = payload.model_dump(exclude_unset=True)
+            skill.update(update_data)
+            skill["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            return skill
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Skill with id {skill_id} not found",
+    )
+
+
+@router.delete("/{skill_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a skill")
+async def delete_skill(skill_id: int) -> None:
+    """Delete a skill by its ID."""
+    for i, skill in enumerate(_SKILLS_DB):
+        if skill["id"] == skill_id:
+            _SKILLS_DB.pop(i)
+            return None
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Skill with id {skill_id} not found",
+    )

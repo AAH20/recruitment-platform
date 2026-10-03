@@ -1421,40 +1421,31 @@ def get_manager() -> TalentPoolManager:
     return _default_manager
 
 
-def add_to_pool(
-    candidate_id: str,
-    pool_id: str,
-    *,
-    added_by: Optional[str] = None,
-    status: CandidateStatus = CandidateStatus.NEW,
-    custom_fields: Optional[Dict[str, Any]] = None,
-) -> PoolMembership:
+def add_to_pool(pool_id: str, candidate_id: str) -> bool:
     """
     Add a candidate to a talent pool.
 
     Convenience function that uses the default manager instance.
 
     Args:
-        candidate_id: The unique identifier of the candidate to add.
         pool_id: The unique identifier of the target talent pool.
-        added_by: Optional identifier of the user adding the candidate.
-        status: Initial status of the candidate in the pool.
-        custom_fields: Optional custom field values for this membership.
+        candidate_id: The unique identifier of the candidate to add.
 
     Returns:
-        The created PoolMembership object.
+        True if the candidate was added, False if already in the pool.
 
     Raises:
-        ValueError: If the candidate_id or pool_id does not exist.
-        RuntimeError: If the candidate is already in the pool.
+        ValueError: If the pool_id or candidate_id does not exist.
     """
-    return get_manager().add_to_pool(
-        candidate_id,
-        pool_id,
-        added_by=added_by,
-        status=status,
-        custom_fields=custom_fields,
-    )
+    manager = get_manager()
+    if pool_id not in manager._pools:
+        raise ValueError(f"Talent pool '{pool_id}' does not exist")
+    if candidate_id not in manager._candidates:
+        raise ValueError(f"Candidate '{candidate_id}' does not exist")
+    if manager.is_candidate_in_pool(candidate_id, pool_id):
+        return False
+    manager.add_to_pool(candidate_id, pool_id)
+    return True
 
 
 def search_pools(
@@ -1474,3 +1465,143 @@ def search_pools(
         A list of PoolSearchResult objects sorted by match_score descending.
     """
     return get_manager().search_pools(query, filters)
+
+
+# ---------------------------------------------------------------------------
+# Required agent API functions
+# ---------------------------------------------------------------------------
+
+
+def create_talent_pool(name: str, criteria: dict) -> dict:
+    """Create a new talent pool.
+
+    Args:
+        name: Human-readable name for the talent pool.
+        criteria: Structured criteria describing the ideal candidate
+            (e.g. ``{"skills": ["python"], "experience_years": 5}``).
+
+    Returns:
+        A dict containing the created pool's metadata, including its
+        generated ``pool_id``.
+
+    Raises:
+        ValueError: If ``name`` is empty or ``criteria`` is not a dict.
+    """
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("name must be a non-empty string")
+    if not isinstance(criteria, dict):
+        raise ValueError("criteria must be a dict")
+
+    pool = get_manager().create_pool(name=name, criteria=criteria)
+    return {
+        "pool_id": pool.id,
+        "name": pool.name,
+        "description": pool.description,
+        "visibility": pool.visibility.value,
+        "owner_id": pool.owner_id,
+        "team_id": pool.team_id,
+        "tags": pool.tags,
+        "criteria": pool.criteria,
+        "created_at": pool.created_at.isoformat(),
+        "updated_at": pool.updated_at.isoformat(),
+        "is_archived": pool.is_archived,
+    }
+
+
+def add_to_pool(pool_id: str, candidate_id: str) -> bool:
+    """Add a candidate to an existing talent pool.
+
+    Args:
+        pool_id: Identifier of the target pool.
+        candidate_id: Identifier of the candidate to add.
+
+    Returns:
+        ``True`` if the candidate was added, ``False`` if the candidate
+        was already in the pool.
+
+    Raises:
+        ValueError: If ``pool_id`` or ``candidate_id`` is empty or does not exist.
+    """
+    if not isinstance(pool_id, str) or not pool_id.strip():
+        raise ValueError("pool_id must be a non-empty string")
+    if not isinstance(candidate_id, str) or not candidate_id.strip():
+        raise ValueError("candidate_id must be a non-empty string")
+
+    manager = get_manager()
+    if pool_id not in manager._pools:
+        raise ValueError(f"Talent pool '{pool_id}' does not exist")
+    if candidate_id not in manager._candidates:
+        raise ValueError(f"Candidate '{candidate_id}' does not exist")
+
+    if manager.is_candidate_in_pool(candidate_id, pool_id):
+        return False
+
+    manager.add_to_pool(candidate_id, pool_id)
+    return True
+
+
+def search_pool(pool_id: str, query: str) -> list[dict]:
+    """Search a talent pool for candidates matching *query*.
+
+    The query is matched (case-insensitive) against each candidate's
+    name, email, skills, title, company, location, and tags.
+
+    Args:
+        pool_id: Identifier of the pool to search.
+        query: Free-text search string.
+
+    Returns:
+        A list of matching candidate dicts (may be empty). Each dict
+        contains the candidate's ``candidate_id``, ``full_name``,
+        ``email``, ``skills``, ``experience_years``, ``current_title``,
+        ``current_company``, ``location``, ``rating``, and ``tags``.
+
+    Raises:
+        ValueError: If ``pool_id`` or ``query`` is empty.
+        KeyError: If ``pool_id`` does not exist.
+    """
+    if not isinstance(pool_id, str) or not pool_id.strip():
+        raise ValueError("pool_id must be a non-empty string")
+    if not isinstance(query, str) or not query.strip():
+        raise ValueError("query must be a non-empty string")
+
+    manager = get_manager()
+    if pool_id not in manager._pools:
+        raise KeyError(f"Talent pool '{pool_id}' not found")
+
+    pool = manager._pools[pool_id]
+    q = query.strip().lower()
+    results: list[dict] = []
+
+    for cand_id, membership in pool.memberships.items():
+        candidate = manager._candidates[cand_id]
+        searchable = " ".join(
+            [
+                candidate.full_name,
+                candidate.email,
+                " ".join(candidate.skills),
+                candidate.current_title or "",
+                candidate.current_company or "",
+                candidate.location or "",
+                " ".join(candidate.tags),
+            ]
+        ).lower()
+
+        if q in searchable:
+            results.append(
+                {
+                    "candidate_id": candidate.id,
+                    "full_name": candidate.full_name,
+                    "email": candidate.email,
+                    "skills": candidate.skills,
+                    "experience_years": candidate.experience_years,
+                    "current_title": candidate.current_title,
+                    "current_company": candidate.current_company,
+                    "location": candidate.location,
+                    "rating": candidate.rating,
+                    "tags": candidate.tags,
+                    "status": membership.status.value,
+                }
+            )
+
+    return results

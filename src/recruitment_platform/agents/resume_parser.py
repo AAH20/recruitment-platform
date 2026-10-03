@@ -241,6 +241,18 @@ def _extract_phone(text: str) -> str:
     return match.group(0) if match else ""
 
 
+def extract_skills(resume_text: str) -> list[str]:
+    """Extract skills from resume text using a predefined skill database.
+
+    Args:
+        resume_text: Raw text content of a resume.
+
+    Returns:
+        A sorted list of unique skill names found in the text.
+    """
+    return _extract_skills(resume_text)
+
+
 def _extract_skills(text: str) -> list[str]:
     """Extract skills from a skills section or scan for known tech keywords."""
     known_skills = {

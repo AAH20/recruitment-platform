@@ -1,317 +1,147 @@
-"""
-Jobs API endpoints for the recruitment platform.
+"""Job listing API endpoints."""
 
-Provides:
-  GET  /jobs  — list jobs with pagination and filtering
-  POST /jobs  — create a new job posting with validation
-"""
+from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query, status
-from pydantic import BaseModel, Field, field_validator
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, ConfigDict, Field
 
-router = APIRouter(prefix="/jobs", tags=["jobs"])
+router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
 
-# ---------------------------------------------------------------------------
-# Mock data store (in-memory; replace with DB in production)
-# ---------------------------------------------------------------------------
-
-MOCK_JOBS = [
-    {
-        "id": 1,
-        "title": "Senior Backend Engineer",
-        "department": "Engineering",
-        "location": "Remote",
-        "status": "open",
-        "description": "Design and build scalable backend services.",
-        "requirements": "5+ years Python, FastAPI, PostgreSQL, Redis.",
-        "salary_min": 120000,
-        "salary_max": 160000,
-        "posted_at": "2026-09-15T09:00:00Z",
-        "closing_date": "2026-11-15",
-    },
-    {
-        "id": 2,
-        "title": "Frontend Developer",
-        "department": "Engineering",
-        "location": "Cairo, Egypt",
-        "status": "open",
-        "description": "Build responsive web interfaces with React and TypeScript.",
-        "requirements": "3+ years React, TypeScript, CSS-in-JS.",
-        "salary_min": 80000,
-        "salary_max": 110000,
-        "posted_at": "2026-09-20T10:30:00Z",
-        "closing_date": "2026-10-30",
-    },
-    {
-        "id": 3,
-        "title": "Product Manager",
-        "department": "Product",
-        "location": "Dubai, UAE",
-        "status": "open",
-        "description": "Own product roadmap and coordinate cross-functional teams.",
-        "requirements": "4+ years product management, Agile, strong communication.",
-        "salary_min": 130000,
-        "salary_max": 170000,
-        "posted_at": "2026-09-10T08:00:00Z",
-        "closing_date": "2026-10-25",
-    },
-    {
-        "id": 4,
-        "title": "Data Analyst",
-        "department": "Data",
-        "location": "Remote",
-        "status": "draft",
-        "description": "Analyze business data and produce actionable insights.",
-        "requirements": "SQL, Python, Tableau, statistics background.",
-        "salary_min": 70000,
-        "salary_max": 95000,
-        "posted_at": "2026-10-01T14:00:00Z",
-        "closing_date": "2026-12-01",
-    },
-    {
-        "id": 5,
-        "title": "DevOps Engineer",
-        "department": "Engineering",
-        "location": "Riyadh, Saudi Arabia",
-        "status": "open",
-        "description": "Manage CI/CD pipelines, Kubernetes clusters, and cloud infra.",
-        "requirements": "AWS/GCP, Terraform, Docker, Kubernetes, CI/CD.",
-        "salary_min": 110000,
-        "salary_max": 150000,
-        "posted_at": "2026-09-25T11:00:00Z",
-        "closing_date": "2026-11-10",
-    },
-    {
-        "id": 6,
-        "title": "UX Designer",
-        "department": "Design",
-        "location": "Remote",
-        "status": "closed",
-        "description": "Design user-centered interfaces and conduct usability testing.",
-        "requirements": "Figma, user research, prototyping, design systems.",
-        "salary_min": 75000,
-        "salary_max": 100000,
-        "posted_at": "2026-08-01T09:00:00Z",
-        "closing_date": "2026-09-30",
-    },
-    {
-        "id": 7,
-        "title": "HR Specialist",
-        "department": "Human Resources",
-        "location": "Cairo, Egypt",
-        "status": "open",
-        "description": "Manage recruitment cycles, onboarding, and employee relations.",
-        "requirements": "3+ years HR, labor law knowledge, ATS experience.",
-        "salary_min": 60000,
-        "salary_max": 85000,
-        "posted_at": "2026-09-28T13:00:00Z",
-        "closing_date": "2026-10-28",
-    },
-    {
-        "id": 8,
-        "title": "Machine Learning Engineer",
-        "department": "Engineering",
-        "location": "Remote",
-        "status": "open",
-        "description": "Build and deploy ML models for recommendation systems.",
-        "requirements": "Python, PyTorch/TensorFlow, MLOps, 4+ years experience.",
-        "salary_min": 140000,
-        "salary_max": 190000,
-        "posted_at": "2026-10-02T07:00:00Z",
-        "closing_date": "2026-12-15",
-    },
-    {
-        "id": 9,
-        "title": "QA Engineer",
-        "department": "Engineering",
-        "location": "Dubai, UAE",
-        "status": "draft",
-        "description": "Develop automated test suites and ensure product quality.",
-        "requirements": "Selenium, Cypress, Python/JS, CI integration.",
-        "salary_min": 65000,
-        "salary_max": 90000,
-        "posted_at": "2026-09-22T16:00:00Z",
-        "closing_date": "2026-11-20",
-    },
-    {
-        "id": 10,
-        "title": "Technical Writer",
-        "department": "Product",
-        "location": "Remote",
-        "status": "open",
-        "description": "Create clear documentation for APIs, SDKs, and user guides.",
-        "requirements": "Excellent English, Markdown, API docs, Git.",
-        "salary_min": 55000,
-        "salary_max": 80000,
-        "posted_at": "2026-09-18T12:00:00Z",
-        "closing_date": "2026-10-18",
-    },
-    {
-        "id": 11,
-        "title": "Security Engineer",
-        "department": "Engineering",
-        "location": "Riyadh, Saudi Arabia",
-        "status": "open",
-        "description": "Conduct security audits, penetration testing, and incident response.",
-        "requirements": "OSCP/CISSP, network security, cloud security, 5+ years.",
-        "salary_min": 130000,
-        "salary_max": 175000,
-        "posted_at": "2026-09-12T10:00:00Z",
-        "closing_date": "2026-11-30",
-    },
-    {
-        "id": 12,
-        "title": "Marketing Manager",
-        "department": "Marketing",
-        "location": "Cairo, Egypt",
-        "status": "closed",
-        "description": "Lead digital marketing campaigns and brand strategy.",
-        "requirements": "5+ years marketing, SEO/SEM, analytics, team leadership.",
-        "salary_min": 90000,
-        "salary_max": 120000,
-        "posted_at": "2026-07-15T09:00:00Z",
-        "closing_date": "2026-09-15",
-    },
-]
 
 # ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
 
-JobStatus = Literal["draft", "open", "closed"]
+
+class JobBase(BaseModel):
+    """Shared fields for a job posting."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    title: str = Field(..., min_length=1, max_length=255)
+    description: str = Field(..., min_length=1)
+    location: str | None = Field(default=None, max_length=255)
+    salary_min: float | None = Field(default=None, ge=0)
+    salary_max: float | None = Field(default=None, ge=0)
+    is_active: bool = True
 
 
-class JobCreate(BaseModel):
-    """Payload for creating a new job posting."""
+class JobCreate(JobBase):
+    """Payload for creating a new job."""
 
-    title: str = Field(..., min_length=3, max_length=200)
-    department: str = Field(..., min_length=2, max_length=100)
-    location: str = Field(..., min_length=2, max_length=150)
-    status: JobStatus = "draft"
-    description: str = Field(..., min_length=10, max_length=5000)
-    requirements: str = Field(..., min_length=10, max_length=5000)
-    salary_min: int = Field(..., ge=0, le=10_000_000)
-    salary_max: int = Field(..., ge=0, le=10_000_000)
-    closing_date: Optional[str] = Field(
-        None,
-        pattern=r"^\d{4}-\d{2}-\d{2}$",
-        description="Closing date in YYYY-MM-DD format",
-    )
-
-    @field_validator("salary_max")
-    @classmethod
-    def salary_range_valid(cls, v: int, info) -> int:
-        """Ensure salary_max >= salary_min."""
-        if "salary_min" in info.data and v < info.data["salary_min"]:
-            raise ValueError("salary_max must be greater than or equal to salary_min")
-        return v
+    employer_id: int = Field(..., gt=0)
 
 
-class JobResponse(BaseModel):
-    """Job representation returned by the API."""
+class JobUpdate(BaseModel):
+    """Payload for updating an existing job — all fields optional."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = Field(default=None, min_length=1)
+    location: str | None = Field(default=None, max_length=255)
+    salary_min: float | None = Field(default=None, ge=0)
+    salary_max: float | None = Field(default=None, ge=0)
+    is_active: bool | None = None
+
+
+class JobResponse(JobBase):
+    """Response model for a single job."""
 
     id: int
-    title: str
-    department: str
-    location: str
-    status: JobStatus
-    description: str
-    requirements: str
-    salary_min: int
-    salary_max: int
-    posted_at: str
-    closing_date: Optional[str] = None
+    employer_id: int
 
 
 class JobListResponse(BaseModel):
-    """Paginated list response."""
+    """Paginated list of jobs."""
 
     items: list[JobResponse]
     total: int
     page: int
     page_size: int
-    total_pages: int
+    pages: int
 
 
 # ---------------------------------------------------------------------------
-# Endpoints
+# In-memory store (replace with real DB in production)
+# ---------------------------------------------------------------------------
+
+_jobs: dict[int, dict[str, Any]] = {}
+_next_id: int = 1
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _get_job_or_404(job_id: int) -> dict[str, Any]:
+    """Return the job dict or raise a 404."""
+    if job_id not in _jobs:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job {job_id} not found",
+        )
+    return _jobs[job_id]
+
+
+# ---------------------------------------------------------------------------
+# Routes
 # ---------------------------------------------------------------------------
 
 
 @router.get("", response_model=JobListResponse)
 async def list_jobs(
-    page: int = Query(1, ge=1, description="Page number (1-indexed)"),
-    page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    department: Optional[str] = Query(None, description="Filter by department"),
-    location: Optional[str] = Query(None, description="Filter by location"),
-    status: Optional[JobStatus] = Query(None, description="Filter by status"),
-) -> dict:
-    """
-    List job postings with pagination and optional filtering.
-
-    Filters are case-insensitive partial matches for department and location.
-    """
-    filtered = MOCK_JOBS.copy()
-
-    if department:
-        dept_lower = department.lower()
-        filtered = [j for j in filtered if dept_lower in j["department"].lower()]
-
-    if location:
-        loc_lower = location.lower()
-        filtered = [j for j in filtered if loc_lower in j["location"].lower()]
-
-    if status:
-        filtered = [j for j in filtered if j["status"] == status]
-
-    total = len(filtered)
-    total_pages = (total + page_size - 1) // page_size if total else 1
-
-    # Clamp page to valid range
-    if page > total_pages:
-        page = total_pages
-
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> JobListResponse:
+    """Return a paginated list of all jobs."""
+    all_jobs = list(_jobs.values())
+    total = len(all_jobs)
+    pages = (total + page_size - 1) // page_size if total else 0
     start = (page - 1) * page_size
     end = start + page_size
-    items = filtered[start:end]
-
-    return {
-        "items": items,
-        "total": total,
-        "page": page,
-        "page_size": page_size,
-        "total_pages": total_pages,
-    }
+    items = [JobResponse(**j) for j in all_jobs[start:end]]
+    return JobListResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=pages,
+    )
 
 
 @router.post("", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
-async def create_job(payload: JobCreate) -> dict:
-    """
-    Create a new job posting.
+async def create_job(payload: JobCreate) -> JobResponse:
+    """Create a new job posting."""
+    global _next_id
+    job = payload.model_dump()
+    job["id"] = _next_id
+    _jobs[_next_id] = job
+    _next_id += 1
+    return JobResponse(**job)
 
-    Returns the created job with an auto-generated ID and timestamp.
-    """
-    new_id = max((j["id"] for j in MOCK_JOBS), default=0) + 1
 
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+@router.get("/{job_id}", response_model=JobResponse)
+async def get_job(job_id: int) -> JobResponse:
+    """Return a single job by its ID."""
+    job = _get_job_or_404(job_id)
+    return JobResponse(**job)
 
-    new_job = {
-        "id": new_id,
-        "title": payload.title,
-        "department": payload.department,
-        "location": payload.location,
-        "status": payload.status,
-        "description": payload.description,
-        "requirements": payload.requirements,
-        "salary_min": payload.salary_min,
-        "salary_max": payload.salary_max,
-        "posted_at": now,
-        "closing_date": payload.closing_date,
-    }
 
-    MOCK_JOBS.append(new_job)
+@router.put("/{job_id}", response_model=JobResponse)
+async def update_job(job_id: int, payload: JobUpdate) -> JobResponse:
+    """Update an existing job. Only provided fields are changed."""
+    job = _get_job_or_404(job_id)
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        job[field] = value
+    return JobResponse(**job)
 
-    return new_job
+
+@router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_job(job_id: int) -> None:
+    """Delete a job by its ID."""
+    _get_job_or_404(job_id)
+    del _jobs[job_id]
