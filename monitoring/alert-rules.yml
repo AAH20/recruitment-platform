@@ -2,7 +2,6 @@ groups:
   - name: recruitment-platform-alerts
     interval: 30s
     rules:
-      # === API Availability ===
       - alert: APIDown
         expr: up{job="recruitment-api"} == 0
         for: 1m
@@ -39,7 +38,6 @@ groups:
           summary: "High API latency (p95 > 2s)"
           description: "Route {{ $labels.route }} p95 latency is {{ $value }}s."
 
-      # === Worker ===
       - alert: WorkerDown
         expr: up{job="recruitment-worker"} == 0
         for: 2m
@@ -73,7 +71,6 @@ groups:
           summary: "High worker job failure rate"
           description: "Failure rate is {{ $value | humanizePercentage }} over the last 10 minutes."
 
-      # === Database ===
       - alert: PostgreSQLDown
         expr: up{job="postgres-exporter"} == 0
         for: 1m
@@ -116,7 +113,6 @@ groups:
           summary: "Replication lag exceeds 30s"
           description: "Replica {{ $labels.instance }} is {{ $value }}s behind primary."
 
-      # === Redis ===
       - alert: RedisDown
         expr: up{job="redis-exporter"} == 0
         for: 1m
@@ -151,7 +147,6 @@ groups:
           summary: "Redis command latency high"
           description: "Average command duration is {{ $value }}s."
 
-      # === Infrastructure ===
       - alert: NodeHighCPU
         expr: |
           100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
@@ -186,7 +181,6 @@ groups:
           summary: "Disk space low"
           description: "Mount {{ $labels.mountpoint }} on {{ $labels.instance }} has {{ $value | humanizePercentage }} free."
 
-      # === Blackbox / External ===
       - alert: EndpointDown
         expr: probe_success == 0
         for: 1m
@@ -218,7 +212,6 @@ groups:
           summary: "SSL certificate expiring soon"
           description: "Certificate for {{ $labels.instance }} expires in {{ $value | humanizeDuration }}."
 
-      # === Business Metrics ===
       - alert: LowApplicationSubmissionRate
         expr: |
           rate(applications_submitted_total[1h]) < 10
