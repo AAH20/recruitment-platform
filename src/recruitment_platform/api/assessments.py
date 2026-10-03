@@ -5,7 +5,7 @@ Provides CRUD operations for candidate assessments in the recruitment platform.
 """
 
 from datetime import datetime, timezone
-from typing import Optional
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -14,10 +14,13 @@ router = APIRouter(prefix="/assessments", tags=["assessments"])
 
 # ─── Pydantic Schemas ────────────────────────────────────────────────────────
 
+
 class AssessmentBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
-    description: Optional[str] = Field(None, max_length=2000)
-    assessment_type: str = Field(..., pattern="^(technical|behavioral|cognitive|personality|coding)$")
+    description: str | None = Field(None, max_length=2000)
+    assessment_type: str = Field(
+        ..., pattern="^(technical|behavioral|cognitive|personality|coding)$"
+    )
     duration_minutes: int = Field(..., ge=5, le=480)
     passing_score: float = Field(default=70.0, ge=0, le=100)
     max_attempts: int = Field(default=1, ge=1, le=10)
@@ -29,13 +32,15 @@ class AssessmentCreate(AssessmentBase):
 
 
 class AssessmentUpdate(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = Field(None, max_length=2000)
-    assessment_type: Optional[str] = Field(None, pattern="^(technical|behavioral|cognitive|personality|coding)$")
-    duration_minutes: Optional[int] = Field(None, ge=5, le=480)
-    passing_score: Optional[float] = Field(None, ge=0, le=100)
-    max_attempts: Optional[int] = Field(None, ge=1, le=10)
-    is_active: Optional[bool] = None
+    title: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = Field(None, max_length=2000)
+    assessment_type: str | None = Field(
+        None, pattern="^(technical|behavioral|cognitive|personality|coding)$"
+    )
+    duration_minutes: int | None = Field(None, ge=5, le=480)
+    passing_score: float | None = Field(None, ge=0, le=100)
+    max_attempts: int | None = Field(None, ge=1, le=10)
+    is_active: bool | None = None
 
 
 class AssessmentResponse(AssessmentBase):
@@ -43,7 +48,7 @@ class AssessmentResponse(AssessmentBase):
     created_at: str
     updated_at: str
     question_count: int
-    average_score: Optional[float]
+    average_score: float | None
     total_attempts: int
 
     class Config:
@@ -246,6 +251,7 @@ MOCK_ASSESSMENTS = [
 
 # ─── Helper Functions ────────────────────────────────────────────────────────
 
+
 def _get_timestamp() -> str:
     """Return current UTC timestamp in ISO format."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -258,13 +264,16 @@ def _generate_id() -> str:
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
 
+
 @router.get("/", response_model=PaginatedAssessmentResponse)
 async def list_assessments(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    assessment_type: Optional[str] = Query(None, pattern="^(technical|behavioral|cognitive|personality|coding)$"),
-    is_active: Optional[bool] = Query(None),
-    search: Optional[str] = Query(None, description="Search by title or description"),
+    assessment_type: str | None = Query(
+        None, pattern="^(technical|behavioral|cognitive|personality|coding)$"
+    ),
+    is_active: bool | None = Query(None),
+    search: str | None = Query(None, description="Search by title or description"),
 ):
     """
     List all assessments with pagination and optional filtering.
@@ -280,8 +289,10 @@ async def list_assessments(
     if search:
         search_lower = search.lower()
         filtered = [
-            a for a in filtered
-            if search_lower in a["title"].lower() or search_lower in (a.get("description") or "").lower()
+            a
+            for a in filtered
+            if search_lower in a["title"].lower()
+            or search_lower in (a.get("description") or "").lower()
         ]
 
     total = len(filtered)
@@ -371,7 +382,7 @@ async def delete_assessment(assessment_id: str):
     for i, assessment in enumerate(MOCK_ASSESSMENTS):
         if assessment["id"] == assessment_id:
             MOCK_ASSESSMENTS.pop(i)
-            return None
+            return
 
     raise HTTPException(
         status_code=404,

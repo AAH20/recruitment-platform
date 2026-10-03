@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -26,15 +26,13 @@ class ReportBase(BaseModel):
         ...,
         description="Type of report (e.g. 'pipeline', 'hiring', 'diversity')",
     )
-    parameters: Optional[Dict[str, Any]] = Field(
+    parameters: dict[str, Any] | None = Field(
         default=None, description="Optional report generation parameters"
     )
 
 
 class ReportCreate(ReportBase):
     """Payload for generating a new report."""
-
-    pass
 
 
 class ReportSummary(BaseModel):
@@ -45,7 +43,7 @@ class ReportSummary(BaseModel):
     report_type: str
     status: str = Field(..., description="Report status: pending, ready, failed")
     created_at: datetime
-    file_size: Optional[int] = Field(
+    file_size: int | None = Field(
         default=None, description="File size in bytes (when ready)"
     )
 
@@ -53,15 +51,15 @@ class ReportSummary(BaseModel):
 class ReportDetail(ReportSummary):
     """Full report representation."""
 
-    parameters: Optional[Dict[str, Any]] = None
-    generated_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    parameters: dict[str, Any] | None = None
+    generated_at: datetime | None = None
+    error_message: str | None = None
 
 
 class ReportListResponse(BaseModel):
     """Paginated list of reports."""
 
-    items: List[ReportSummary]
+    items: list[ReportSummary]
     total: int = Field(..., description="Total number of reports available")
     page: int = Field(..., description="Current page number (1-indexed)")
     page_size: int = Field(..., description="Number of items per page")
@@ -81,7 +79,7 @@ class ReportDownloadResponse(BaseModel):
 # In-memory store (replace with real persistence layer)
 # ---------------------------------------------------------------------------
 
-_REPORTS: Dict[str, Dict[str, Any]] = {}
+_REPORTS: dict[str, dict[str, Any]] = {}
 
 
 def _generate_report_id() -> str:
@@ -97,7 +95,7 @@ def _generate_report_id() -> str:
 async def list_reports(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    report_type: Optional[str] = Query(None, description="Filter by report type"),
+    report_type: str | None = Query(None, description="Filter by report type"),
 ) -> ReportListResponse:
     """Return a paginated list of reports.
 
@@ -112,7 +110,7 @@ async def list_reports(
     Raises:
         HTTPException: 400 if pagination parameters are invalid.
     """
-    all_reports: List[Dict[str, Any]] = list(_REPORTS.values())
+    all_reports: list[dict[str, Any]] = list(_REPORTS.values())
 
     if report_type:
         all_reports = [r for r in all_reports if r["report_type"] == report_type]
@@ -160,7 +158,7 @@ async def create_report(payload: ReportCreate) -> ReportDetail:
     report_id = _generate_report_id()
     now = datetime.utcnow()
 
-    report: Dict[str, Any] = {
+    report: dict[str, Any] = {
         "id": report_id,
         "name": payload.name,
         "report_type": payload.report_type,

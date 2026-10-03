@@ -1,4 +1,5 @@
 """Application model for recruitment platform."""
+
 from __future__ import annotations
 
 import uuid

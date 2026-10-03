@@ -4,7 +4,7 @@ Provides CRUD operations for managing talent pools in the recruitment platform.
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -17,12 +17,13 @@ router = APIRouter(prefix="/api/v1/talent-pools", tags=["talent-pools"])
 # Pydantic Schemas
 # ---------------------------------------------------------------------------
 
+
 class TalentPoolCreate(BaseModel):
     """Schema for creating a new talent pool."""
 
     name: str = Field(..., min_length=1, max_length=200, description="Pool name")
-    description: Optional[str] = Field(None, max_length=2000)
-    tags: List[str] = Field(default_factory=list, max_length=50)
+    description: str | None = Field(None, max_length=2000)
+    tags: list[str] = Field(default_factory=list, max_length=50)
     is_active: bool = True
 
     @field_validator("name")
@@ -34,7 +35,7 @@ class TalentPoolCreate(BaseModel):
 
     @field_validator("tags")
     @classmethod
-    def tags_must_be_unique(cls, v: List[str]) -> List[str]:
+    def tags_must_be_unique(cls, v: list[str]) -> list[str]:
         seen = set()
         for tag in v:
             lowered = tag.strip().lower()
@@ -49,8 +50,8 @@ class TalentPoolResponse(BaseModel):
 
     id: str
     name: str
-    description: Optional[str]
-    tags: List[str]
+    description: str | None
+    tags: list[str]
     candidate_count: int
     is_active: bool
     created_at: str
@@ -60,7 +61,7 @@ class TalentPoolResponse(BaseModel):
 class PaginatedTalentPoolResponse(BaseModel):
     """Paginated response wrapper."""
 
-    items: List[TalentPoolResponse]
+    items: list[TalentPoolResponse]
     total: int
     page: int
     page_size: int
@@ -71,7 +72,7 @@ class PaginatedTalentPoolResponse(BaseModel):
 # Mock Data Store
 # ---------------------------------------------------------------------------
 
-MOCK_TALENT_POOLS: List[Dict[str, Any]] = [
+MOCK_TALENT_POOLS: list[dict[str, Any]] = [
     {
         "id": "tp-001",
         "name": "Senior Backend Engineers",
@@ -199,6 +200,7 @@ MOCK_TALENT_POOLS: List[Dict[str, Any]] = [
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.get(
     "",
     response_model=PaginatedTalentPoolResponse,
@@ -208,8 +210,8 @@ MOCK_TALENT_POOLS: List[Dict[str, Any]] = [
 async def list_talent_pools(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    search: Optional[str] = Query(None, description="Filter by name or tag"),
-    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    search: str | None = Query(None, description="Filter by name or tag"),
+    is_active: bool | None = Query(None, description="Filter by active status"),
 ) -> PaginatedTalentPoolResponse:
     """List talent pools with pagination and optional filters."""
     filtered = MOCK_TALENT_POOLS.copy()
@@ -217,7 +219,8 @@ async def list_talent_pools(
     if search:
         search_lower = search.lower()
         filtered = [
-            pool for pool in filtered
+            pool
+            for pool in filtered
             if search_lower in pool["name"].lower()
             or any(search_lower in tag.lower() for tag in pool["tags"])
         ]

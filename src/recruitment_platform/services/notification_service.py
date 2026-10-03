@@ -117,9 +117,7 @@ class NotificationService:
                     if notification["id"] == notification_id:
                         notification["read"] = True
                         return notification
-            raise LookupError(
-                f"Notification {notification_id} not found"
-            )
+            raise LookupError(f"Notification {notification_id} not found")
         except LookupError:
             raise
         except Exception as exc:
@@ -155,9 +153,7 @@ class NotificationService:
             raise NotificationError("No database session available")
         return self._db.query(user_id=user_id)
 
-    def _update_read_status(
-        self, notification_id: str, read: bool
-    ) -> dict[str, Any]:
+    def _update_read_status(self, notification_id: str, read: bool) -> dict[str, Any]:
         """Update the read status of a notification in the database."""
         if self._db is None:
             raise NotificationError("No database session available")

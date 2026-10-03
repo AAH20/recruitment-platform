@@ -55,9 +55,7 @@ def get_talent_pool(pool_id: str) -> dict:
     return pool
 
 
-def list_talent_pools(
-    filters: dict, page: int, page_size: int
-) -> list[dict]:
+def list_talent_pools(filters: dict, page: int, page_size: int) -> list[dict]:
     """List talent pools with optional filtering and pagination.
 
     Args:
@@ -226,9 +224,7 @@ def remove_candidate_from_pool(pool_id: str, candidate_id: str) -> bool:
         raise CandidateNotFoundError(f"Candidate '{candidate_id}' not found")
 
     if candidate_id not in pool["candidate_ids"]:
-        logger.warning(
-            "Candidate %s is not in pool %s", candidate_id, pool_id
-        )
+        logger.warning("Candidate %s is not in pool %s", candidate_id, pool_id)
         return False
 
     pool["candidate_ids"].remove(candidate_id)

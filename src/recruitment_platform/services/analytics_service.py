@@ -154,9 +154,7 @@ def get_pipeline_funnel(time_range: str) -> dict[str, Any]:
             "overall_conversion_rate": 0.0,
         }
 
-        logger.info(
-            "Retrieved pipeline funnel for period %s", time_range
-        )
+        logger.info("Retrieved pipeline funnel for period %s", time_range)
         return _format_response(funnel)
 
     except Exception as exc:
@@ -233,16 +231,12 @@ def get_source_effectiveness(time_range: str) -> dict[str, Any]:
             "most_effective_source": None,
         }
 
-        logger.info(
-            "Retrieved source effectiveness for period %s", time_range
-        )
+        logger.info("Retrieved source effectiveness for period %s", time_range)
         return _format_response(effectiveness)
 
     except Exception as exc:
         logger.error("Failed to get source effectiveness: %s", exc)
-        raise RuntimeError(
-            f"Failed to retrieve source effectiveness: {exc}"
-        ) from exc
+        raise RuntimeError(f"Failed to retrieve source effectiveness: {exc}") from exc
 
 
 def get_time_to_hire(time_range: str) -> dict[str, Any]:
@@ -287,13 +281,9 @@ def get_time_to_hire(time_range: str) -> dict[str, Any]:
             "sample_size": 0,
         }
 
-        logger.info(
-            "Retrieved time-to-hire metrics for period %s", time_range
-        )
+        logger.info("Retrieved time-to-hire metrics for period %s", time_range)
         return _format_response(time_to_hire)
 
     except Exception as exc:
         logger.error("Failed to get time-to-hire metrics: %s", exc)
-        raise RuntimeError(
-            f"Failed to retrieve time-to-hire metrics: {exc}"
-        ) from exc
+        raise RuntimeError(f"Failed to retrieve time-to-hire metrics: {exc}") from exc

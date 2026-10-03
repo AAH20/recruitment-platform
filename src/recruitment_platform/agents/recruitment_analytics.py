@@ -165,6 +165,4 @@ def get_source_effectiveness(time_range: str) -> dict[str, Any]:
         }
     except Exception as exc:
         logger.error("Failed to compute source effectiveness: %s", exc)
-        raise RuntimeError(
-            f"Failed to compute source effectiveness: {exc}"
-        ) from exc
+        raise RuntimeError(f"Failed to compute source effectiveness: {exc}") from exc

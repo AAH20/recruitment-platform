@@ -33,11 +33,13 @@ class Candidate(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
-    phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
-    skills: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    experience: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    education: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    email: Mapped[str] = mapped_column(
+        String(255), nullable=False, unique=True, index=True
+    )
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    skills: Mapped[str | None] = mapped_column(Text, nullable=True)
+    experience: Mapped[str | None] = mapped_column(Text, nullable=True)
+    education: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )
@@ -46,10 +48,10 @@ class Candidate(Base):
     )
 
     # Relationships
-    applications: Mapped[List["Application"]] = relationship(
+    applications: Mapped[list[Application]] = relationship(
         back_populates="candidate", cascade="all, delete-orphan"
     )
-    assessments: Mapped[List["Assessment"]] = relationship(
+    assessments: Mapped[list[Assessment]] = relationship(
         back_populates="candidate", cascade="all, delete-orphan"
     )
 
@@ -61,8 +63,8 @@ class Job(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    requirements: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    requirements: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="open")
     employer_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -73,7 +75,7 @@ class Job(Base):
     )
 
     # Relationships
-    applications: Mapped[List["Application"]] = relationship(
+    applications: Mapped[list[Application]] = relationship(
         back_populates="job", cascade="all, delete-orphan"
     )
 
@@ -99,9 +101,9 @@ class Application(Base):
     )
 
     # Relationships
-    candidate: Mapped["Candidate"] = relationship(back_populates="applications")
-    job: Mapped["Job"] = relationship(back_populates="applications")
-    interviews: Mapped[List["Interview"]] = relationship(
+    candidate: Mapped[Candidate] = relationship(back_populates="applications")
+    job: Mapped[Job] = relationship(back_populates="applications")
+    interviews: Mapped[list[Interview]] = relationship(
         back_populates="application", cascade="all, delete-orphan"
     )
 
@@ -126,7 +128,7 @@ class Interview(Base):
     )
 
     # Relationships
-    application: Mapped["Application"] = relationship(back_populates="interviews")
+    application: Mapped[Application] = relationship(back_populates="interviews")
 
 
 class Assessment(Base):
@@ -149,4 +151,4 @@ class Assessment(Base):
     )
 
     # Relationships
-    candidate: Mapped["Candidate"] = relationship(back_populates="assessments")
+    candidate: Mapped[Candidate] = relationship(back_populates="assessments")

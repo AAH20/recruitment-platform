@@ -11,8 +11,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
-
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -47,9 +46,9 @@ class TimeSlot:
 
     start_time: datetime
     end_time: datetime
-    interviewer_ids: List[str] = field(default_factory=list)
+    interviewer_ids: list[str] = field(default_factory=list)
 
-    def overlaps(self, other: "TimeSlot") -> bool:
+    def overlaps(self, other: TimeSlot) -> bool:
         """Check if this slot overlaps with another."""
         return self.start_time < other.end_time and other.start_time < self.end_time
 
@@ -68,7 +67,7 @@ class Interviewer:
     department: str
     role: str
     max_daily_interviews: int = 5
-    unavailable_slots: List[TimeSlot] = field(default_factory=list)
+    unavailable_slots: list[TimeSlot] = field(default_factory=list)
 
 
 @dataclass
@@ -82,12 +81,12 @@ class Interview:
     status: InterviewStatus
     scheduled_time: datetime
     duration_minutes: int
-    interviewer_ids: List[str]
+    interviewer_ids: list[str]
     location: str = "Video Call"
     notes: str = ""
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -99,23 +98,71 @@ class MockDataStore:
     """In-memory mock data store for interview scheduling."""
 
     def __init__(self) -> None:
-        self.interviews: Dict[str, Interview] = {}
-        self.interviewers: Dict[str, Interviewer] = {}
-        self.candidate_schedules: Dict[str, List[TimeSlot]] = {}
+        self.interviews: dict[str, Interview] = {}
+        self.interviewers: dict[str, Interviewer] = {}
+        self.candidate_schedules: dict[str, list[TimeSlot]] = {}
         self._seed_data()
 
     def _seed_data(self) -> None:
         """Seed the store with realistic mock data."""
         # Mock interviewers
         interviewers_data = [
-            ("int_001", "Sarah Chen", "sarah.chen@recruitment.io", "Engineering", "Senior Engineering Manager"),
-            ("int_002", "Marcus Johnson", "marcus.j@recruitment.io", "Engineering", "Staff Engineer"),
-            ("int_003", "Priya Patel", "priya.p@recruitment.io", "Product", "Product Director"),
-            ("int_004", "David Kim", "david.kim@recruitment.io", "Design", "Design Lead"),
-            ("int_005", "Elena Rodriguez", "elena.r@recruitment.io", "HR", "Talent Acquisition Lead"),
-            ("int_006", "James Wilson", "james.w@recruitment.io", "Engineering", "Principal Engineer"),
-            ("int_007", "Aisha Mohammed", "aisha.m@recruitment.io", "Data Science", "ML Engineering Manager"),
-            ("int_008", "Tom Baker", "tom.b@recruitment.io", "Engineering", "DevOps Lead"),
+            (
+                "int_001",
+                "Sarah Chen",
+                "sarah.chen@recruitment.io",
+                "Engineering",
+                "Senior Engineering Manager",
+            ),
+            (
+                "int_002",
+                "Marcus Johnson",
+                "marcus.j@recruitment.io",
+                "Engineering",
+                "Staff Engineer",
+            ),
+            (
+                "int_003",
+                "Priya Patel",
+                "priya.p@recruitment.io",
+                "Product",
+                "Product Director",
+            ),
+            (
+                "int_004",
+                "David Kim",
+                "david.kim@recruitment.io",
+                "Design",
+                "Design Lead",
+            ),
+            (
+                "int_005",
+                "Elena Rodriguez",
+                "elena.r@recruitment.io",
+                "HR",
+                "Talent Acquisition Lead",
+            ),
+            (
+                "int_006",
+                "James Wilson",
+                "james.w@recruitment.io",
+                "Engineering",
+                "Principal Engineer",
+            ),
+            (
+                "int_007",
+                "Aisha Mohammed",
+                "aisha.m@recruitment.io",
+                "Data Science",
+                "ML Engineering Manager",
+            ),
+            (
+                "int_008",
+                "Tom Baker",
+                "tom.b@recruitment.io",
+                "Engineering",
+                "DevOps Lead",
+            ),
         ]
         for iid, name, email, dept, role in interviewers_data:
             self.interviewers[iid] = Interviewer(
@@ -127,10 +174,14 @@ class MockDataStore:
         self.candidate_schedules = {
             "cand_001": [
                 TimeSlot(now + timedelta(hours=2), now + timedelta(hours=3)),
-                TimeSlot(now + timedelta(days=1, hours=10), now + timedelta(days=1, hours=11)),
+                TimeSlot(
+                    now + timedelta(days=1, hours=10), now + timedelta(days=1, hours=11)
+                ),
             ],
             "cand_002": [
-                TimeSlot(now + timedelta(hours=4), now + timedelta(hours=5, minutes=30)),
+                TimeSlot(
+                    now + timedelta(hours=4), now + timedelta(hours=5, minutes=30)
+                ),
             ],
             "cand_003": [],
         }
@@ -161,15 +212,15 @@ class MockDataStore:
         for ivw in existing:
             self.interviews[ivw.id] = ivw
 
-    def get_interviewer(self, interviewer_id: str) -> Optional[Interviewer]:
+    def get_interviewer(self, interviewer_id: str) -> Interviewer | None:
         return self.interviewers.get(interviewer_id)
 
-    def get_candidate_busy_slots(self, candidate_id: str) -> List[TimeSlot]:
+    def get_candidate_busy_slots(self, candidate_id: str) -> list[TimeSlot]:
         return self.candidate_schedules.get(candidate_id, [])
 
-    def get_interviewer_busy_slots(self, interviewer_id: str) -> List[TimeSlot]:
+    def get_interviewer_busy_slots(self, interviewer_id: str) -> list[TimeSlot]:
         """Get all time slots where the interviewer is already booked."""
-        busy: List[TimeSlot] = []
+        busy: list[TimeSlot] = []
         for ivw in self.interviews.values():
             if interviewer_id in ivw.interviewer_ids and ivw.status not in (
                 InterviewStatus.CANCELLED,
@@ -177,7 +228,8 @@ class MockDataStore:
                 busy.append(
                     TimeSlot(
                         start_time=ivw.scheduled_time,
-                        end_time=ivw.scheduled_time + timedelta(minutes=ivw.duration_minutes),
+                        end_time=ivw.scheduled_time
+                        + timedelta(minutes=ivw.duration_minutes),
                     )
                 )
         return busy
@@ -185,7 +237,7 @@ class MockDataStore:
     def add_interview(self, interview: Interview) -> None:
         self.interviews[interview.id] = interview
 
-    def get_interview(self, interview_id: str) -> Optional[Interview]:
+    def get_interview(self, interview_id: str) -> Interview | None:
         return self.interviews.get(interview_id)
 
     def update_interview(self, interview: Interview) -> None:
@@ -213,7 +265,7 @@ class InterviewSchedulerAgent:
     BUSINESS_HOURS_START: int = 9
     BUSINESS_HOURS_END: int = 17
 
-    def __init__(self, data_store: Optional[MockDataStore] = None) -> None:
+    def __init__(self, data_store: MockDataStore | None = None) -> None:
         self.data_store = data_store or MockDataStore()
 
     # ------------------------------------------------------------------
@@ -224,13 +276,13 @@ class InterviewSchedulerAgent:
         self,
         candidate_id: str,
         job_id: str,
-        interviewers: List[str],
-        time_slots: List[TimeSlot],
+        interviewers: list[str],
+        time_slots: list[TimeSlot],
         interview_type: InterviewType = InterviewType.TECHNICAL,
         duration_minutes: int = DEFAULT_DURATION_MINUTES,
         location: str = "Video Call",
         notes: str = "",
-    ) -> Tuple[Interview, TimeSlot]:
+    ) -> tuple[Interview, TimeSlot]:
         """
         Find the optimal time slot and schedule an interview.
 
@@ -252,7 +304,7 @@ class InterviewSchedulerAgent:
                 raise ValueError(f"Unknown interviewer: {iid}")
 
         # Score each slot
-        scored_slots: List[Tuple[float, TimeSlot]] = []
+        scored_slots: list[tuple[float, TimeSlot]] = []
         for slot in time_slots:
             score = self._score_slot(
                 slot=slot,
@@ -298,7 +350,7 @@ class InterviewSchedulerAgent:
         self,
         interview_id: str,
         new_time: datetime,
-        duration_minutes: Optional[int] = None,
+        duration_minutes: int | None = None,
         reason: str = "",
     ) -> Interview:
         """
@@ -334,9 +386,7 @@ class InterviewSchedulerAgent:
         # Check candidate availability
         for busy in self.data_store.get_candidate_busy_slots(interview.candidate_id):
             if new_slot.overlaps(busy):
-                raise ValueError(
-                    f"Candidate has a conflict at {new_time.isoformat()}"
-                )
+                raise ValueError(f"Candidate has a conflict at {new_time.isoformat()}")
 
         # Update the interview
         old_time = interview.scheduled_time
@@ -381,7 +431,7 @@ class InterviewSchedulerAgent:
         self,
         slot: TimeSlot,
         candidate_id: str,
-        interviewer_ids: List[str],
+        interviewer_ids: list[str],
         duration_minutes: int,
     ) -> float:
         """
@@ -456,14 +506,14 @@ class InterviewSchedulerAgent:
         self,
         interviewer_id: str,
         date: datetime.date,
-    ) -> List[TimeSlot]:
+    ) -> list[TimeSlot]:
         """Get free slots for an interviewer on a given date."""
         interviewer = self.data_store.get_interviewer(interviewer_id)
         if interviewer is None:
             return []
 
         busy = self.data_store.get_interviewer_busy_slots(interviewer_id)
-        free_slots: List[TimeSlot] = []
+        free_slots: list[TimeSlot] = []
 
         # Generate 1-hour slots within business hours
         for hour in range(self.BUSINESS_HOURS_START, self.BUSINESS_HOURS_END):
@@ -487,13 +537,13 @@ _default_agent = InterviewSchedulerAgent()
 def schedule_interview(
     candidate_id: str,
     job_id: str,
-    interviewers: List[str],
-    time_slots: List[TimeSlot],
+    interviewers: list[str],
+    time_slots: list[TimeSlot],
     interview_type: InterviewType = InterviewType.TECHNICAL,
     duration_minutes: int = 60,
     location: str = "Video Call",
     notes: str = "",
-) -> Tuple[Interview, TimeSlot]:
+) -> tuple[Interview, TimeSlot]:
     """Schedule an interview using the default agent instance."""
     return _default_agent.schedule_interview(
         candidate_id=candidate_id,
@@ -510,7 +560,7 @@ def schedule_interview(
 def reschedule_interview(
     interview_id: str,
     new_time: datetime,
-    duration_minutes: Optional[int] = None,
+    duration_minutes: int | None = None,
     reason: str = "",
 ) -> Interview:
     """Reschedule an interview using the default agent instance."""

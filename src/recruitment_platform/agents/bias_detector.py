@@ -10,23 +10,24 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Set, Tuple
-
 
 # ─── Data Structures ────────────────────────────────────────────────────────
+
 
 @dataclass
 class BiasResult:
     """Result of bias detection on a text."""
+
     score: float  # 0.0 (no bias) to 1.0 (high bias)
-    flagged_terms: List[str]
-    categories: List[str]
-    suggestions: Dict[str, List[str]] = field(default_factory=dict)
+    flagged_terms: list[str]
+    categories: list[str]
+    suggestions: dict[str, list[str]] = field(default_factory=dict)
 
 
 @dataclass
 class FlaggedTerm:
     """A single flagged biased term with metadata."""
+
     term: str
     category: str
     severity: float  # 0.0 to 1.0
@@ -36,7 +37,7 @@ class FlaggedTerm:
 # ─── Mock Bias Database ─────────────────────────────────────────────────────
 
 # Biased terms mapped to their category and severity
-BIAS_DATABASE: Dict[str, Tuple[str, float]] = {
+BIAS_DATABASE: dict[str, tuple[str, float]] = {
     # Gender bias
     "rockstar": ("gender", 0.6),
     "ninja": ("gender", 0.7),
@@ -56,7 +57,6 @@ BIAS_DATABASE: Dict[str, Tuple[str, float]] = {
     "guys": ("gender", 0.4),
     "bro": ("gender", 0.5),
     "dude": ("gender", 0.5),
-
     # Age bias
     "young": ("age", 0.5),
     "energetic": ("age", 0.3),
@@ -68,7 +68,6 @@ BIAS_DATABASE: Dict[str, Tuple[str, float]] = {
     "gen z": ("age", 0.5),
     "recent graduate": ("age", 0.4),
     "seasoned": ("age", 0.3),
-
     # Racial / Ethnic bias
     "native speaker": ("racial", 0.8),
     "fluent english": ("racial", 0.4),
@@ -77,7 +76,6 @@ BIAS_DATABASE: Dict[str, Tuple[str, float]] = {
     "articulate": ("racial", 0.6),
     "well-spoken": ("racial", 0.5),
     "cultural fit": ("racial", 0.6),
-
     # Disability bias
     "able-bodied": ("disability", 0.9),
     "physically fit": ("disability", 0.6),
@@ -93,7 +91,6 @@ BIAS_DATABASE: Dict[str, Tuple[str, float]] = {
     "deaf to": ("disability", 0.3),
     "suffers from": ("disability", 0.7),
     "wheelchair-bound": ("disability", 0.8),
-
     # Socioeconomic bias
     "prestigious university": ("socioeconomic", 0.6),
     "elite school": ("socioeconomic", 0.7),
@@ -103,7 +100,6 @@ BIAS_DATABASE: Dict[str, Tuple[str, float]] = {
     "well-bred": ("socioeconomic", 0.8),
     "ghetto": ("socioeconomic", 0.9),
     "trailer park": ("socioeconomic", 0.9),
-
     # LGBTQ+ bias
     "normal family": ("lgbtq", 0.6),
     "traditional family": ("lgbtq", 0.5),
@@ -111,7 +107,6 @@ BIAS_DATABASE: Dict[str, Tuple[str, float]] = {
     "wife": ("lgbtq", 0.3),
     "motherly": ("lgbtq", 0.4),
     "fatherly": ("lgbtq", 0.4),
-
     # Religious bias
     "christian values": ("religious", 0.7),
     "jewish holidays": ("religious", 0.5),
@@ -120,7 +115,7 @@ BIAS_DATABASE: Dict[str, Tuple[str, float]] = {
 }
 
 # Inclusive alternatives for flagged terms
-ALTERNATIVES_DATABASE: Dict[str, List[str]] = {
+ALTERNATIVES_DATABASE: dict[str, list[str]] = {
     "rockstar": ["skilled", "high-performing", "exceptional", "talented"],
     "ninja": ["expert", "specialist", "proficient", "adept"],
     "guru": ["expert", "authority", "specialist", "mentor"],
@@ -145,9 +140,17 @@ ALTERNATIVES_DATABASE: Dict[str, List[str]] = {
     "mature": ["experienced", "seasoned", "developed"],
     "experienced": ["skilled", "proficient", "knowledgeable"],
     "digital native": ["tech-savvy", "digitally fluent", "comfortable with technology"],
-    "millennial mindset": ["innovative mindset", "modern approach", "fresh perspective"],
+    "millennial mindset": [
+        "innovative mindset",
+        "modern approach",
+        "fresh perspective",
+    ],
     "gen z": ["early-career", "new professional", "emerging talent"],
-    "recent graduate": ["early-career professional", "new graduate", "entry-level candidate"],
+    "recent graduate": [
+        "early-career professional",
+        "new graduate",
+        "entry-level candidate",
+    ],
     "seasoned": ["experienced", "veteran", "long-tenured"],
     "native speaker": ["fluent", "proficient", "skilled in English"],
     "fluent english": ["strong English communication", "English proficiency"],
@@ -156,11 +159,16 @@ ALTERNATIVES_DATABASE: Dict[str, List[str]] = {
     "articulate": ["clear communicator", "effective communicator"],
     "well-spoken": ["clear communicator", "polished communicator"],
     "cultural fit": ["values alignment", "team compatibility", "shared mission"],
-    "able-bodied": ["able to perform essential functions", "capable of meeting physical requirements"],
+    "able-bodied": [
+        "able to perform essential functions",
+        "capable of meeting physical requirements",
+    ],
     "physically fit": ["able to meet physical requirements", "physically capable"],
     "must be able to lift": ["able to lift (with or without reasonable accommodation)"],
     "stand for long periods": ["able to stand as needed for the role"],
-    "no disabilities": ["able to perform essential job functions with or without accommodation"],
+    "no disabilities": [
+        "able to perform essential job functions with or without accommodation"
+    ],
     "handicap": ["disability", "accessibility need"],
     "crazy": ["intense", "unpredictable", "remarkable"],
     "insane": ["extraordinary", "incredible", "remarkable"],
@@ -193,6 +201,7 @@ ALTERNATIVES_DATABASE: Dict[str, List[str]] = {
 
 # ─── Agent Class ─────────────────────────────────────────────────────────────
 
+
 class BiasDetectorAgent:
     """
     Agent that detects biased language in recruitment text and suggests
@@ -201,8 +210,8 @@ class BiasDetectorAgent:
 
     def __init__(self) -> None:
         """Initialize the bias detector with mock databases."""
-        self.bias_db: Dict[str, Tuple[str, float]] = BIAS_DATABASE.copy()
-        self.alternatives_db: Dict[str, List[str]] = ALTERNATIVES_DATABASE.copy()
+        self.bias_db: dict[str, tuple[str, float]] = BIAS_DATABASE.copy()
+        self.alternatives_db: dict[str, list[str]] = ALTERNATIVES_DATABASE.copy()
 
     def detect_bias(self, text: str) -> BiasResult:
         """
@@ -217,16 +226,13 @@ class BiasDetectorAgent:
         """
         if not text or not text.strip():
             return BiasResult(
-                score=0.0,
-                flagged_terms=[],
-                categories=[],
-                suggestions={}
+                score=0.0, flagged_terms=[], categories=[], suggestions={}
             )
 
         text_lower = text.lower()
-        flagged: List[str] = []
-        categories: Set[str] = set()
-        suggestions: Dict[str, List[str]] = {}
+        flagged: list[str] = []
+        categories: set[str] = set()
+        suggestions: dict[str, list[str]] = {}
         total_severity: float = 0.0
         match_count: int = 0
 
@@ -236,7 +242,7 @@ class BiasDetectorAgent:
             if " " in term:
                 pattern = re.escape(term)
             else:
-                pattern = r'\b' + re.escape(term) + r'\b'
+                pattern = r"\b" + re.escape(term) + r"\b"
 
             matches = list(re.finditer(pattern, text_lower, re.IGNORECASE))
 
@@ -260,10 +266,10 @@ class BiasDetectorAgent:
             score=round(score, 3),
             flagged_terms=flagged,
             categories=sorted(categories),
-            suggestions=suggestions
+            suggestions=suggestions,
         )
 
-    def suggest_alternatives(self, flagged_terms: List[str]) -> Dict[str, List[str]]:
+    def suggest_alternatives(self, flagged_terms: list[str]) -> dict[str, list[str]]:
         """
         Suggest inclusive alternatives for flagged biased terms.
 
@@ -277,7 +283,7 @@ class BiasDetectorAgent:
         if not flagged_terms:
             return {}
 
-        result: Dict[str, List[str]] = {}
+        result: dict[str, list[str]] = {}
 
         for term in flagged_terms:
             term_lower = term.lower().strip()
@@ -294,7 +300,7 @@ class BiasDetectorAgent:
 
         return result
 
-    def analyze_job_description(self, text: str) -> Dict[str, object]:
+    def analyze_job_description(self, text: str) -> dict[str, object]:
         """
         Comprehensive analysis of a job description.
 
@@ -364,7 +370,7 @@ def detect_bias_as_result(text: str) -> BiasResult:
     return _default_agent.detect_bias(text)
 
 
-def suggest_alternatives(flagged_terms: List[str]) -> Dict[str, List[str]]:
+def suggest_alternatives(flagged_terms: list[str]) -> dict[str, list[str]]:
     """
     Suggest inclusive alternatives for flagged terms.
 
@@ -420,7 +426,7 @@ def detect_bias(job_description: str) -> dict:
         if " " in term:
             pattern = re.escape(term)
         else:
-            pattern = r'\b' + re.escape(term) + r'\b'
+            pattern = r"\b" + re.escape(term) + r"\b"
 
         matches = list(re.finditer(pattern, text_lower, re.IGNORECASE))
 
@@ -534,12 +540,14 @@ def suggest_improvements(bias_report: dict) -> list[str]:
             suggestions.extend(category_suggestions[category])
 
     # Add general suggestions
-    suggestions.extend([
-        "Review the job description with a diverse group of reviewers.",
-        "Use structured interviews with consistent questions for all candidates.",
-        "Focus on essential job functions and required competencies.",
-        "Consider using blind resume screening to reduce unconscious bias.",
-    ])
+    suggestions.extend(
+        [
+            "Review the job description with a diverse group of reviewers.",
+            "Use structured interviews with consistent questions for all candidates.",
+            "Focus on essential job functions and required competencies.",
+            "Consider using blind resume screening to reduce unconscious bias.",
+        ]
+    )
 
     # Remove duplicates while preserving order
     seen: set[str] = set()
@@ -588,17 +596,31 @@ def score_inclusivity(text: str) -> float:
         if " " in term:
             pattern = re.escape(term)
         else:
-            pattern = r'\b' + re.escape(term) + r'\b'
+            pattern = r"\b" + re.escape(term) + r"\b"
         biased_count += len(re.findall(pattern, text_lower, re.IGNORECASE))
 
     # Count inclusive terms
     inclusive_terms = [
-        "they", "them", "their", "theirs", "themselves",
-        "inclusive", "diversity", "equity", "belonging",
-        "accessible", "accommodation", "flexible",
-        "remote", "work-life balance", "parental leave",
-        "all backgrounds", "all genders", "all identities",
-        "underrepresented", "equal opportunity",
+        "they",
+        "them",
+        "their",
+        "theirs",
+        "themselves",
+        "inclusive",
+        "diversity",
+        "equity",
+        "belonging",
+        "accessible",
+        "accommodation",
+        "flexible",
+        "remote",
+        "work-life balance",
+        "parental leave",
+        "all backgrounds",
+        "all genders",
+        "all identities",
+        "underrepresented",
+        "equal opportunity",
     ]
 
     inclusive_count = 0
@@ -606,7 +628,7 @@ def score_inclusivity(text: str) -> float:
         if " " in term:
             pattern = re.escape(term)
         else:
-            pattern = r'\b' + re.escape(term) + r'\b'
+            pattern = r"\b" + re.escape(term) + r"\b"
         inclusive_count += len(re.findall(pattern, text_lower, re.IGNORECASE))
 
     # Calculate score: start at 1.0, penalize for biased terms,

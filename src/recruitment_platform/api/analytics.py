@@ -1,9 +1,9 @@
 """Recruitment Analytics API Endpoints."""
 
+from datetime import date
+
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
-from typing import List, Optional
-from datetime import date
 
 router = APIRouter()
 
@@ -13,26 +13,38 @@ class PipelineStageMetrics(BaseModel):
 
     stage: str = Field(..., description="Pipeline stage name")
     count: int = Field(..., ge=0, description="Number of candidates in this stage")
-    conversion_rate: float = Field(..., ge=0, le=1, description="Conversion rate from previous stage")
-    avg_days_in_stage: float = Field(..., ge=0, description="Average days spent in this stage")
+    conversion_rate: float = Field(
+        ..., ge=0, le=1, description="Conversion rate from previous stage"
+    )
+    avg_days_in_stage: float = Field(
+        ..., ge=0, description="Average days spent in this stage"
+    )
 
 
 class PipelineMetricsResponse(BaseModel):
     """Response model for pipeline metrics."""
 
     total_candidates: int = Field(..., ge=0, description="Total candidates in pipeline")
-    stages: List[PipelineStageMetrics] = Field(..., description="Metrics per pipeline stage")
-    overall_conversion_rate: float = Field(..., ge=0, le=1, description="Overall pipeline conversion rate")
-    period_start: Optional[date] = Field(None, description="Start of reporting period")
-    period_end: Optional[date] = Field(None, description="End of reporting period")
+    stages: list[PipelineStageMetrics] = Field(
+        ..., description="Metrics per pipeline stage"
+    )
+    overall_conversion_rate: float = Field(
+        ..., ge=0, le=1, description="Overall pipeline conversion rate"
+    )
+    period_start: date | None = Field(None, description="Start of reporting period")
+    period_end: date | None = Field(None, description="End of reporting period")
 
 
 class TimeToHireMetrics(BaseModel):
     """Time-to-hire metrics for a role or department."""
 
     role: str = Field(..., description="Role or department name")
-    avg_days_to_hire: float = Field(..., ge=0, description="Average days from application to hire")
-    median_days_to_hire: float = Field(..., ge=0, description="Median days from application to hire")
+    avg_days_to_hire: float = Field(
+        ..., ge=0, description="Average days from application to hire"
+    )
+    median_days_to_hire: float = Field(
+        ..., ge=0, description="Median days from application to hire"
+    )
     min_days_to_hire: int = Field(..., ge=0, description="Minimum days to hire")
     max_days_to_hire: int = Field(..., ge=0, description="Maximum days to hire")
     hires_count: int = Field(..., ge=0, description="Number of hires in period")
@@ -41,32 +53,50 @@ class TimeToHireMetrics(BaseModel):
 class TimeToHireResponse(BaseModel):
     """Response model for time-to-hire metrics."""
 
-    overall_avg_days: float = Field(..., ge=0, description="Overall average days to hire")
-    overall_median_days: float = Field(..., ge=0, description="Overall median days to hire")
-    by_role: List[TimeToHireMetrics] = Field(..., description="Time-to-hire metrics grouped by role")
-    period_start: Optional[date] = Field(None, description="Start of reporting period")
-    period_end: Optional[date] = Field(None, description="End of reporting period")
+    overall_avg_days: float = Field(
+        ..., ge=0, description="Overall average days to hire"
+    )
+    overall_median_days: float = Field(
+        ..., ge=0, description="Overall median days to hire"
+    )
+    by_role: list[TimeToHireMetrics] = Field(
+        ..., description="Time-to-hire metrics grouped by role"
+    )
+    period_start: date | None = Field(None, description="Start of reporting period")
+    period_end: date | None = Field(None, description="End of reporting period")
 
 
 class SourceEffectivenessMetrics(BaseModel):
     """Effectiveness metrics for a single recruitment source."""
 
     source: str = Field(..., description="Recruitment source name")
-    candidates_sourced: int = Field(..., ge=0, description="Candidates sourced from this source")
-    candidates_hired: int = Field(..., ge=0, description="Candidates hired from this source")
+    candidates_sourced: int = Field(
+        ..., ge=0, description="Candidates sourced from this source"
+    )
+    candidates_hired: int = Field(
+        ..., ge=0, description="Candidates hired from this source"
+    )
     hire_rate: float = Field(..., ge=0, le=1, description="Hire rate for this source")
-    cost_per_hire: Optional[float] = Field(None, ge=0, description="Cost per hire for this source")
-    quality_score: Optional[float] = Field(None, ge=0, le=1, description="Quality score (0-1)")
+    cost_per_hire: float | None = Field(
+        None, ge=0, description="Cost per hire for this source"
+    )
+    quality_score: float | None = Field(
+        None, ge=0, le=1, description="Quality score (0-1)"
+    )
 
 
 class SourceEffectivenessResponse(BaseModel):
     """Response model for source effectiveness metrics."""
 
-    sources: List[SourceEffectivenessMetrics] = Field(..., description="Effectiveness metrics per source")
+    sources: list[SourceEffectivenessMetrics] = Field(
+        ..., description="Effectiveness metrics per source"
+    )
     total_sources: int = Field(..., ge=0, description="Total number of active sources")
-    top_source: Optional[str] = Field(None, description="Highest performing source by hire rate")
-    period_start: Optional[date] = Field(None, description="Start of reporting period")
-    period_end: Optional[date] = Field(None, description="End of reporting period")
+    top_source: str | None = Field(
+        None, description="Highest performing source by hire rate"
+    )
+    period_start: date | None = Field(None, description="Start of reporting period")
+    period_end: date | None = Field(None, description="End of reporting period")
 
 
 class AnalyticsDashboardResponse(BaseModel):
@@ -74,12 +104,18 @@ class AnalyticsDashboardResponse(BaseModel):
 
     total_active_jobs: int = Field(..., ge=0, description="Total active job postings")
     total_candidates: int = Field(..., ge=0, description="Total candidates in system")
-    total_hires_this_period: int = Field(..., ge=0, description="Total hires in current period")
+    total_hires_this_period: int = Field(
+        ..., ge=0, description="Total hires in current period"
+    )
     open_positions: int = Field(..., ge=0, description="Currently open positions")
-    avg_time_to_hire: float = Field(..., ge=0, description="Average time to hire in days")
-    offer_acceptance_rate: float = Field(..., ge=0, le=1, description="Offer acceptance rate")
-    period_start: Optional[date] = Field(None, description="Start of reporting period")
-    period_end: Optional[date] = Field(None, description="End of reporting period")
+    avg_time_to_hire: float = Field(
+        ..., ge=0, description="Average time to hire in days"
+    )
+    offer_acceptance_rate: float = Field(
+        ..., ge=0, le=1, description="Offer acceptance rate"
+    )
+    period_start: date | None = Field(None, description="Start of reporting period")
+    period_end: date | None = Field(None, description="End of reporting period")
 
 
 @router.get(
@@ -107,7 +143,7 @@ async def get_analytics_dashboard() -> AnalyticsDashboardResponse:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve analytics dashboard: {str(exc)}",
+            detail=f"Failed to retrieve analytics dashboard: {exc!s}",
         )
 
 
@@ -133,7 +169,7 @@ async def get_pipeline_metrics() -> PipelineMetricsResponse:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve pipeline metrics: {str(exc)}",
+            detail=f"Failed to retrieve pipeline metrics: {exc!s}",
         )
 
 
@@ -159,7 +195,7 @@ async def get_time_to_hire_metrics() -> TimeToHireResponse:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve time-to-hire metrics: {str(exc)}",
+            detail=f"Failed to retrieve time-to-hire metrics: {exc!s}",
         )
 
 
@@ -184,5 +220,5 @@ async def get_source_effectiveness_metrics() -> SourceEffectivenessResponse:
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve source effectiveness metrics: {str(exc)}",
+            detail=f"Failed to retrieve source effectiveness metrics: {exc!s}",
         )

@@ -3,13 +3,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from recruitment_platform.models.employer import Employer
-from recruitment_platform.schemas.employer import EmployerCreate, EmployerUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +47,7 @@ def _get_db() -> Session:
     """
     try:
         from recruitment_platform.database import SessionLocal
+
         return SessionLocal()
     except Exception as e:
         logger.error(f"Failed to create database session: {e}")
@@ -75,8 +74,12 @@ def _employer_to_dict(employer: Employer) -> dict:
         "location": employer.location,
         "description": employer.description,
         "is_active": employer.is_active,
-        "created_at": employer.created_at.isoformat() if hasattr(employer, "created_at") and employer.created_at else None,
-        "updated_at": employer.updated_at.isoformat() if hasattr(employer, "updated_at") and employer.updated_at else None,
+        "created_at": employer.created_at.isoformat()
+        if hasattr(employer, "created_at") and employer.created_at
+        else None,
+        "updated_at": employer.updated_at.isoformat()
+        if hasattr(employer, "updated_at") and employer.updated_at
+        else None,
     }
 
 
@@ -128,15 +131,17 @@ def list_employers(filters: dict, page: int, page_size: int) -> list[dict]:
 
         # Apply filters
         if filters:
-            if "name" in filters and filters["name"]:
+            if filters.get("name"):
                 query = query.filter(Employer.name.ilike(f"%{filters['name']}%"))
-            if "industry" in filters and filters["industry"]:
+            if filters.get("industry"):
                 query = query.filter(Employer.industry == filters["industry"])
-            if "location" in filters and filters["location"]:
-                query = query.filter(Employer.location.ilike(f"%{filters['location']}%"))
+            if filters.get("location"):
+                query = query.filter(
+                    Employer.location.ilike(f"%{filters['location']}%")
+                )
             if "is_active" in filters and filters["is_active"] is not None:
                 query = query.filter(Employer.is_active == filters["is_active"])
-            if "size" in filters and filters["size"]:
+            if filters.get("size"):
                 query = query.filter(Employer.size == filters["size"])
 
         # Apply pagination
@@ -175,9 +180,11 @@ def create_employer(data: dict) -> dict:
             raise EmployerValidationError("Employer email is required")
 
         # Check for duplicate email
-        existing = db.query(Employer).filter(
-            Employer.email == str(data["email"]).strip()
-        ).first()
+        existing = (
+            db.query(Employer)
+            .filter(Employer.email == str(data["email"]).strip())
+            .first()
+        )
         if existing:
             raise EmployerValidationError(
                 f"Employer with email {data['email']} already exists"
@@ -249,10 +256,14 @@ def update_employer(employer_id: str, data: dict) -> dict:
             if not str(data["email"]).strip():
                 raise EmployerValidationError("Employer email cannot be empty")
             # Check for duplicate email
-            existing = db.query(Employer).filter(
-                Employer.email == str(data["email"]).strip(),
-                Employer.id != employer_id,
-            ).first()
+            existing = (
+                db.query(Employer)
+                .filter(
+                    Employer.email == str(data["email"]).strip(),
+                    Employer.id != employer_id,
+                )
+                .first()
+            )
             if existing:
                 raise EmployerValidationError(
                     f"Employer with email {data['email']} already exists"

@@ -25,12 +25,20 @@ class Candidate(Base):
     )
     first_name: Mapped[str] = mapped_column(String(255), nullable=False)
     last_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
+    email: Mapped[str] = mapped_column(
+        String(255), nullable=False, unique=True, index=True
+    )
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     resume_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    skills: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(JSON, nullable=True)
-    experience: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(JSON, nullable=True)
-    education: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(JSON, nullable=True)
+    skills: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(
+        JSON, nullable=True
+    )
+    experience: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(
+        JSON, nullable=True
+    )
+    education: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(
+        JSON, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

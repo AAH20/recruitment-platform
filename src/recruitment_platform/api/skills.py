@@ -1,7 +1,7 @@
 """Skills API endpoints for the recruitment platform."""
 
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
@@ -159,7 +159,13 @@ _SKILLS_DB: list[dict] = [
     },
 ]
 
-_VALID_CATEGORIES = {"technical", "soft_skill", "management", "creative", "domain_specific"}
+_VALID_CATEGORIES = {
+    "technical",
+    "soft_skill",
+    "management",
+    "creative",
+    "domain_specific",
+}
 _VALID_PROFICIENCY_LEVELS = {"beginner", "intermediate", "advanced", "expert"}
 
 
@@ -167,9 +173,12 @@ _VALID_PROFICIENCY_LEVELS = {"beginner", "intermediate", "advanced", "expert"}
 # Pydantic schemas
 # ---------------------------------------------------------------------------
 
+
 class SkillBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
-    category: Literal["technical", "soft_skill", "management", "creative", "domain_specific"]
+    category: Literal[
+        "technical", "soft_skill", "management", "creative", "domain_specific"
+    ]
     description: str = Field(..., min_length=10, max_length=1000)
     proficiency_levels: list[str] = Field(default_factory=list)
     years_experience_required: int = Field(default=0, ge=0, le=50)
@@ -181,7 +190,9 @@ class SkillBase(BaseModel):
     def validate_proficiency_levels(cls, v: list[str]) -> list[str]:
         invalid = [lvl for lvl in v if lvl not in _VALID_PROFICIENCY_LEVELS]
         if invalid:
-            raise ValueError(f"Invalid proficiency levels: {invalid}. Must be one of {_VALID_PROFICIENCY_LEVELS}")
+            raise ValueError(
+                f"Invalid proficiency levels: {invalid}. Must be one of {_VALID_PROFICIENCY_LEVELS}"
+            )
         return v
 
     @field_validator("name")
@@ -197,13 +208,16 @@ class SkillCreate(SkillBase):
 
 
 class SkillUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
-    category: Optional[Literal["technical", "soft_skill", "management", "creative", "domain_specific"]] = None
-    description: Optional[str] = Field(default=None, min_length=10, max_length=1000)
-    proficiency_levels: Optional[list[str]] = None
-    years_experience_required: Optional[int] = Field(default=None, ge=0, le=50)
-    certifications: Optional[list[str]] = None
-    is_active: Optional[bool] = None
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    category: (
+        Literal["technical", "soft_skill", "management", "creative", "domain_specific"]
+        | None
+    ) = None
+    description: str | None = Field(default=None, min_length=10, max_length=1000)
+    proficiency_levels: list[str] | None = None
+    years_experience_required: int | None = Field(default=None, ge=0, le=50)
+    certifications: list[str] | None = None
+    is_active: bool | None = None
 
 
 class SkillResponse(SkillBase):
@@ -226,15 +240,26 @@ class SkillListResponse(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
-@router.get("", response_model=SkillListResponse, summary="List skills with pagination and category filtering")
+
+@router.get(
+    "",
+    response_model=SkillListResponse,
+    summary="List skills with pagination and category filtering",
+)
 async def list_skills(
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=10, ge=1, le=100, description="Items per page"),
-    category: Optional[Literal["technical", "soft_skill", "management", "creative", "domain_specific"]] = Query(
-        default=None, description="Filter by skill category"
+    category: Literal[
+        "technical", "soft_skill", "management", "creative", "domain_specific"
+    ]
+    | None = Query(default=None, description="Filter by skill category"),
+    is_active: bool | None = Query(default=None, description="Filter by active status"),
+    search: str | None = Query(
+        default=None,
+        min_length=1,
+        max_length=100,
+        description="Search by name or description",
     ),
-    is_active: Optional[bool] = Query(default=None, description="Filter by active status"),
-    search: Optional[str] = Query(default=None, min_length=1, max_length=100, description="Search by name or description"),
 ) -> dict:
     """Return a paginated list of skills, optionally filtered by category, status, or search term."""
     filtered = _SKILLS_DB.copy()
@@ -248,7 +273,8 @@ async def list_skills(
     if search:
         term = search.lower()
         filtered = [
-            s for s in filtered
+            s
+            for s in filtered
             if term in s["name"].lower() or term in s["description"].lower()
         ]
 
@@ -268,7 +294,12 @@ async def list_skills(
     }
 
 
-@router.post("", response_model=SkillResponse, status_code=status.HTTP_201_CREATED, summary="Create a new skill")
+@router.post(
+    "",
+    response_model=SkillResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new skill",
+)
 async def create_skill(payload: SkillCreate) -> dict:
     """Create a new skill entry. Returns the created skill with generated ID and timestamps."""
     # Check for duplicate name (case-insensitive)
@@ -319,7 +350,9 @@ async def update_skill(skill_id: int, payload: SkillUpdate) -> dict:
         if skill["id"] == skill_id:
             update_data = payload.model_dump(exclude_unset=True)
             skill.update(update_data)
-            skill["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            skill["updated_at"] = datetime.now(timezone.utc).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
             return skill
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -327,13 +360,15 @@ async def update_skill(skill_id: int, payload: SkillUpdate) -> dict:
     )
 
 
-@router.delete("/{skill_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a skill")
+@router.delete(
+    "/{skill_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a skill"
+)
 async def delete_skill(skill_id: int) -> None:
     """Delete a skill by its ID."""
     for i, skill in enumerate(_SKILLS_DB):
         if skill["id"] == skill_id:
             _SKILLS_DB.pop(i)
-            return None
+            return
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Skill with id {skill_id} not found",

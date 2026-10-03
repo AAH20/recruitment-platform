@@ -17,14 +17,16 @@ logger = logging.getLogger(__name__)
 _onboarding_sessions: dict[str, dict[str, Any]] = {}
 
 # Valid onboarding steps
-VALID_STEPS: frozenset[str] = frozenset({
-    "personal_info",
-    "document_verification",
-    "background_check",
-    "employment_contract",
-    "it_setup",
-    "orientation",
-})
+VALID_STEPS: frozenset[str] = frozenset(
+    {
+        "personal_info",
+        "document_verification",
+        "background_check",
+        "employment_contract",
+        "it_setup",
+        "orientation",
+    }
+)
 
 
 class OnboardingError(Exception):
@@ -178,11 +180,7 @@ def complete_onboarding_step(candidate_id: str, step: str) -> bool:
     if all(latest["steps"].values()):
         latest["status"] = "completed"
         latest["completed_at"] = _utc_now_iso()
-        logger.info(
-            "Onboarding completed for candidate=%s", candidate_id
-        )
+        logger.info("Onboarding completed for candidate=%s", candidate_id)
 
-    logger.info(
-        "Step '%s' completed for candidate=%s", step, candidate_id
-    )
+    logger.info("Step '%s' completed for candidate=%s", step, candidate_id)
     return True

@@ -288,11 +288,17 @@ def _identify_strengths(metrics: BrandMetrics) -> list[str]:
     if metrics.response_rate >= 0.75:
         strengths.append(f"High review response rate ({metrics.response_rate:.0%})")
     if metrics.engagement_rate >= 0.04:
-        strengths.append(f"Above-average social engagement ({metrics.engagement_rate:.1%})")
+        strengths.append(
+            f"Above-average social engagement ({metrics.engagement_rate:.1%})"
+        )
     if metrics.application_completion_rate >= 0.70:
-        strengths.append(f"High application completion ({metrics.application_completion_rate:.0%})")
+        strengths.append(
+            f"High application completion ({metrics.application_completion_rate:.0%})"
+        )
     if metrics.offer_acceptance_rate >= 0.70:
-        strengths.append(f"Strong offer acceptance rate ({metrics.offer_acceptance_rate:.0%})")
+        strengths.append(
+            f"Strong offer acceptance rate ({metrics.offer_acceptance_rate:.0%})"
+        )
     if metrics.employee_advocacy_score >= 0.70:
         strengths.append("Strong employee advocacy program")
     if metrics.time_to_fill_days <= 30:
@@ -310,11 +316,17 @@ def _identify_weaknesses(metrics: BrandMetrics) -> list[str]:
     if metrics.response_rate < 0.50:
         weaknesses.append(f"Low review response rate ({metrics.response_rate:.0%})")
     if metrics.engagement_rate < 0.025:
-        weaknesses.append(f"Below-average social engagement ({metrics.engagement_rate:.1%})")
+        weaknesses.append(
+            f"Below-average social engagement ({metrics.engagement_rate:.1%})"
+        )
     if metrics.application_completion_rate < 0.55:
-        weaknesses.append(f"Low application completion ({metrics.application_completion_rate:.0%})")
+        weaknesses.append(
+            f"Low application completion ({metrics.application_completion_rate:.0%})"
+        )
     if metrics.offer_acceptance_rate < 0.50:
-        weaknesses.append(f"Low offer acceptance rate ({metrics.offer_acceptance_rate:.0%})")
+        weaknesses.append(
+            f"Low offer acceptance rate ({metrics.offer_acceptance_rate:.0%})"
+        )
     if metrics.employee_advocacy_score < 0.50:
         weaknesses.append("Weak employee advocacy")
     if metrics.time_to_fill_days > 50:
@@ -324,9 +336,7 @@ def _identify_weaknesses(metrics: BrandMetrics) -> list[str]:
     return weaknesses
 
 
-def _compute_benchmark_percentile(
-    metrics: BrandMetrics, industry: str
-) -> float:
+def _compute_benchmark_percentile(metrics: BrandMetrics, industry: str) -> float:
     """Compute percentile vs industry peers (simulated)."""
     benchmarks = _INDUSTRY_BENCHMARKS.get(industry)
     if benchmarks is None:
@@ -586,9 +596,7 @@ def generate_content_strategy(
     )
 
 
-def _derive_target_audience(
-    metrics: BrandMetrics, tier: BrandHealthTier
-) -> list[str]:
+def _derive_target_audience(metrics: BrandMetrics, tier: BrandHealthTier) -> list[str]:
     """Derive target audience segments from brand metrics."""
     audience: list[str] = ["Active job seekers", "Passive candidates"]
 
@@ -845,8 +853,15 @@ def generate_employer_profile(company_data: dict) -> dict:
 
     # Calculate profile completeness
     fields_to_check = [
-        "name", "description", "industry", "size", "location",
-        "benefits", "culture", "mission", "values",
+        "name",
+        "description",
+        "industry",
+        "size",
+        "location",
+        "benefits",
+        "culture",
+        "mission",
+        "values",
     ]
     filled = sum(1 for f in fields_to_check if company_data.get(f))
     profile["profile_completeness"] = int((filled / len(fields_to_check)) * 100)
@@ -887,24 +902,14 @@ def suggest_brand_improvements(brand_analysis: dict) -> list[str]:
         score_val = 0
 
     if score_val < 40:
-        suggestions.append(
-            "Urgent: Conduct comprehensive employer brand audit"
-        )
-        suggestions.append(
-            "Develop employer value proposition (EVP) framework"
-        )
+        suggestions.append("Urgent: Conduct comprehensive employer brand audit")
+        suggestions.append("Develop employer value proposition (EVP) framework")
     elif score_val < 60:
-        suggestions.append(
-            "Enhance employer brand strategy with targeted initiatives"
-        )
+        suggestions.append("Enhance employer brand strategy with targeted initiatives")
     elif score_val < 80:
-        suggestions.append(
-            "Refine existing employer brand with focused improvements"
-        )
+        suggestions.append("Refine existing employer brand with focused improvements")
     else:
-        suggestions.append(
-            "Maintain strong employer brand with continuous monitoring"
-        )
+        suggestions.append("Maintain strong employer brand with continuous monitoring")
 
     # Address weaknesses
     weaknesses = brand_analysis.get("weaknesses", [])
@@ -922,13 +927,9 @@ def suggest_brand_improvements(brand_analysis: dict) -> list[str]:
                 suggestions.append(
                     "Increase review volume by encouraging employee feedback"
                 )
-                suggestions.append(
-                    "Optimize Glassdoor and similar platform presence"
-                )
+                suggestions.append("Optimize Glassdoor and similar platform presence")
             elif "benefit" in weakness_lower:
-                suggestions.append(
-                    "Expand benefits package to match market standards"
-                )
+                suggestions.append("Expand benefits package to match market standards")
                 suggestions.append(
                     "Conduct benefits benchmarking against industry peers"
                 )
@@ -950,9 +951,7 @@ def suggest_brand_improvements(brand_analysis: dict) -> list[str]:
                     "Leverage high ratings in recruitment marketing materials"
                 )
             elif "benefit" in strength_lower:
-                suggestions.append(
-                    "Showcase comprehensive benefits in job postings"
-                )
+                suggestions.append("Showcase comprehensive benefits in job postings")
             elif "review" in strength_lower:
                 suggestions.append(
                     "Feature positive reviews in employer branding campaigns"
@@ -977,16 +976,16 @@ def suggest_brand_improvements(brand_analysis: dict) -> list[str]:
 
 
 __all__ = [
-    "analyze_brand",
-    "generate_content_strategy",
-    "analyze_employer_brand",
-    "generate_employer_profile",
-    "suggest_brand_improvements",
     "BrandHealthScore",
     "BrandHealthTier",
     "BrandMetrics",
-    "ContentRecommendation",
-    "ContentStrategy",
     "ContentChannel",
     "ContentFormat",
+    "ContentRecommendation",
+    "ContentStrategy",
+    "analyze_brand",
+    "analyze_employer_brand",
+    "generate_content_strategy",
+    "generate_employer_profile",
+    "suggest_brand_improvements",
 ]

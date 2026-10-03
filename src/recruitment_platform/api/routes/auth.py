@@ -1,15 +1,13 @@
 """Authentication routes for recruitment-platform."""
+
 from __future__ import annotations
 
 import os
 import sqlite3
-import uuid
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, status
-from jose import jwt
 from pydantic import BaseModel
+
 from recruitment_platform.security.auth import (
     create_access_token,
     get_password_hash,

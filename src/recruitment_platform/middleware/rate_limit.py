@@ -6,7 +6,8 @@ Uses Redis for distributed rate limiting with a token bucket algorithm.
 
 import functools
 import time
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import redis
 from fastapi import HTTPException, Request, Response
@@ -76,7 +77,9 @@ class TokenBucket:
         end
         """
 
-        result = self.redis.eval(lua_script, 1, key, self.capacity, self.refill_rate, tokens, now)
+        result = self.redis.eval(
+            lua_script, 1, key, self.capacity, self.refill_rate, tokens, now
+        )
         return bool(result)
 
     def get_remaining(self, identifier: str) -> float:
@@ -105,8 +108,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         app: Any,
         redis_url: str = "redis://localhost:6379/0",
         requests_per_minute: int = 60,
-        key_func: Optional[Callable[[Request], str]] = None,
-        exclude_paths: Optional[list[str]] = None,
+        key_func: Callable[[Request], str] | None = None,
+        exclude_paths: list[str] | None = None,
     ):
         super().__init__(app)
         self.redis_client = redis.from_url(redis_url, decode_responses=True)
@@ -170,7 +173,7 @@ def rate_limit(requests: int, window: int):
         @functools.wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             # Extract request from args/kwargs
-            request: Optional[Request] = None
+            request: Request | None = None
             for arg in args:
                 if isinstance(arg, Request):
                     request = arg
@@ -183,7 +186,7 @@ def rate_limit(requests: int, window: int):
                 return await func(*args, **kwargs)
 
             # Get Redis client from app state or create one
-            redis_client: Optional[redis.Redis] = getattr(request.app.state, "redis", None)
+            redis_client: redis.Redis | None = getattr(request.app.state, "redis", None)
             if redis_client is None:
                 redis_client = redis.from_url(
                     getattr(request.app.state, "redis_url", "redis://localhost:6379/0"),
@@ -199,7 +202,9 @@ def rate_limit(requests: int, window: int):
                 if forwarded:
                     identifier = f"ip:{forwarded.split(',')[0].strip()}"
                 else:
-                    identifier = f"ip:{request.client.host if request.client else 'unknown'}"
+                    identifier = (
+                        f"ip:{request.client.host if request.client else 'unknown'}"
+                    )
 
             # Create bucket for this specific rate limit
             bucket = TokenBucket(

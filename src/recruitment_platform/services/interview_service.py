@@ -55,9 +55,7 @@ class InterviewService:
                 f"Failed to retrieve interview '{interview_id}'."
             ) from exc
 
-    def list_interviews(
-        self, filters: dict, page: int, page_size: int
-    ) -> list[dict]:
+    def list_interviews(self, filters: dict, page: int, page_size: int) -> list[dict]:
         """List interviews with optional filters and pagination.
 
         Args:

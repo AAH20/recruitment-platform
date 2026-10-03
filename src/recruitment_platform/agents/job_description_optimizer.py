@@ -10,7 +10,6 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Data models
 # ---------------------------------------------------------------------------
@@ -284,7 +283,9 @@ def analyze_description(job_description: str) -> DescriptionMetrics:
     exclusive_terms = _detect_exclusive_language(job_description)
     power_words = _detect_power_words(job_description)
 
-    inclusivity_score = max(0.0, 100.0 - len(gendered_terms) * 10 - len(exclusive_terms) * 8)
+    inclusivity_score = max(
+        0.0, 100.0 - len(gendered_terms) * 10 - len(exclusive_terms) * 8
+    )
     inclusivity_score = round(inclusivity_score + len(power_words) * 2, 2)
     inclusivity_score = min(inclusivity_score, 100.0)
 
@@ -417,16 +418,12 @@ def suggest_improvements(description: str) -> list[str]:
     # Check for buzzwords
     buzzwords = _detect_buzzwords(description)
     for word in buzzwords:
-        suggestions.append(
-            f"Remove buzzword '{word}' to improve SEO effectiveness."
-        )
+        suggestions.append(f"Remove buzzword '{word}' to improve SEO effectiveness.")
 
     # Check for missing sections
     missing_sections = _detect_missing_sections(description)
     for section in missing_sections:
-        suggestions.append(
-            f"Add a '{section}' section for better structure."
-        )
+        suggestions.append(f"Add a '{section}' section for better structure.")
 
     # Check for power words
     power_words = _detect_power_words(description)

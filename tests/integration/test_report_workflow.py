@@ -11,7 +11,7 @@ import pytest
 from datetime import datetime, timedelta
 from typing import Any, Dict, Generator
 
-from recruitment_platform import create_app
+from recruitment_platform.main import create_app
 from recruitment_platform.extensions import db
 
 

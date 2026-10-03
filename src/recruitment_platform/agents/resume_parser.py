@@ -11,10 +11,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Data models
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class ExperienceEntry:
@@ -75,8 +75,14 @@ _MOCK_RESUMES: dict[str, dict[str, Any]] = {
         "email": "alice.chen@email.com",
         "phone": "+1-415-555-0101",
         "skills": [
-            "Python", "Machine Learning", "TensorFlow", "SQL",
-            "AWS", "Docker", "Kubernetes", "Data Pipelines",
+            "Python",
+            "Machine Learning",
+            "TensorFlow",
+            "SQL",
+            "AWS",
+            "Docker",
+            "Kubernetes",
+            "Data Pipelines",
         ],
         "experience": [
             {
@@ -107,8 +113,14 @@ _MOCK_RESUMES: dict[str, dict[str, Any]] = {
         "email": "bob.martinez@email.com",
         "phone": "+1-206-555-0202",
         "skills": [
-            "Java", "Spring Boot", "Microservices", "PostgreSQL",
-            "Redis", "Kafka", "CI/CD", "Terraform",
+            "Java",
+            "Spring Boot",
+            "Microservices",
+            "PostgreSQL",
+            "Redis",
+            "Kafka",
+            "CI/CD",
+            "Terraform",
         ],
         "experience": [
             {
@@ -139,8 +151,14 @@ _MOCK_RESUMES: dict[str, dict[str, Any]] = {
         "email": "carol.williams@email.com",
         "phone": "+1-312-555-0303",
         "skills": [
-            "Product Management", "Agile", "Scrum", "Jira",
-            "User Research", "A/B Testing", "SQL", "Roadmapping",
+            "Product Management",
+            "Agile",
+            "Scrum",
+            "Jira",
+            "User Research",
+            "A/B Testing",
+            "SQL",
+            "Roadmapping",
         ],
         "experience": [
             {
@@ -171,8 +189,14 @@ _MOCK_RESUMES: dict[str, dict[str, Any]] = {
         "email": "david.kim@email.com",
         "phone": "+1-646-555-0404",
         "skills": [
-            "React", "TypeScript", "Node.js", "GraphQL",
-            "Next.js", "Tailwind CSS", "Figma", "Accessibility",
+            "React",
+            "TypeScript",
+            "Node.js",
+            "GraphQL",
+            "Next.js",
+            "Tailwind CSS",
+            "Figma",
+            "Accessibility",
         ],
         "experience": [
             {
@@ -256,20 +280,83 @@ def extract_skills(resume_text: str) -> list[str]:
 def _extract_skills(text: str) -> list[str]:
     """Extract skills from a skills section or scan for known tech keywords."""
     known_skills = {
-        "python", "java", "javascript", "typescript", "c++", "c#", "go", "rust",
-        "ruby", "php", "swift", "kotlin", "scala", "r", "matlab",
-        "react", "angular", "vue", "svelte", "next.js", "node.js", "express",
-        "django", "flask", "fastapi", "spring boot", "rails",
-        "tensorflow", "pytorch", "scikit-keras", "machine learning", "deep learning",
-        "nlp", "computer vision", "data science", "data engineering",
-        "aws", "azure", "gcp", "docker", "kubernetes", "terraform", "ansible",
-        "ci/cd", "jenkins", "github actions", "gitlab ci",
-        "sql", "postgresql", "mysql", "mongodb", "redis", "elasticsearch",
-        "kafka", "rabbitmq", "spark", "hadoop", "airflow", "dbt",
-        "agile", "scrum", "kanban", "jira", "confluence",
-        "product management", "roadmapping", "user research", "a/b testing",
-        "figma", "sketch", "adobe xd", "accessibility", "tailwind css",
-        "graphql", "rest api", "microservices", "serverless",
+        "python",
+        "java",
+        "javascript",
+        "typescript",
+        "c++",
+        "c#",
+        "go",
+        "rust",
+        "ruby",
+        "php",
+        "swift",
+        "kotlin",
+        "scala",
+        "r",
+        "matlab",
+        "react",
+        "angular",
+        "vue",
+        "svelte",
+        "next.js",
+        "node.js",
+        "express",
+        "django",
+        "flask",
+        "fastapi",
+        "spring boot",
+        "rails",
+        "tensorflow",
+        "pytorch",
+        "scikit-keras",
+        "machine learning",
+        "deep learning",
+        "nlp",
+        "computer vision",
+        "data science",
+        "data engineering",
+        "aws",
+        "azure",
+        "gcp",
+        "docker",
+        "kubernetes",
+        "terraform",
+        "ansible",
+        "ci/cd",
+        "jenkins",
+        "github actions",
+        "gitlab ci",
+        "sql",
+        "postgresql",
+        "mysql",
+        "mongodb",
+        "redis",
+        "elasticsearch",
+        "kafka",
+        "rabbitmq",
+        "spark",
+        "hadoop",
+        "airflow",
+        "dbt",
+        "agile",
+        "scrum",
+        "kanban",
+        "jira",
+        "confluence",
+        "product management",
+        "roadmapping",
+        "user research",
+        "a/b testing",
+        "figma",
+        "sketch",
+        "adobe xd",
+        "accessibility",
+        "tailwind css",
+        "graphql",
+        "rest api",
+        "microservices",
+        "serverless",
     }
 
     text_lower = text.lower()
@@ -345,8 +432,19 @@ def _extract_education(text: str) -> list[EducationEntry]:
     """Parse education entries using degree keywords and year patterns."""
     entries: list[EducationEntry] = []
     degree_keywords = [
-        "ph.d", "phd", "master", "bachelor", "mba", "m.s.", "b.s.",
-        "m.sc", "b.sc", "b.a.", "m.a.", "b.tech", "m.tech",
+        "ph.d",
+        "phd",
+        "master",
+        "bachelor",
+        "mba",
+        "m.s.",
+        "b.s.",
+        "m.sc",
+        "b.sc",
+        "b.a.",
+        "m.a.",
+        "b.tech",
+        "m.tech",
     ]
 
     lines = text.splitlines()
@@ -382,6 +480,7 @@ def _extract_education(text: str) -> list[EducationEntry]:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def parse_resume(file_path: str | Path) -> ResumeData:
     """Parse a resume file and extract structured candidate data.
@@ -530,6 +629,7 @@ def score_resume(
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _read_pdf(path: Path) -> str:
     """Extract text from a PDF file using PyPDF2 or pdfplumber."""
     try:
@@ -573,12 +673,8 @@ def _read_docx(path: Path) -> str:
 
 def _resume_from_mock(mock: dict[str, Any]) -> ResumeData:
     """Build ResumeData from a mock dictionary."""
-    experience = [
-        ExperienceEntry(**exp) for exp in mock.get("experience", [])
-    ]
-    education = [
-        EducationEntry(**edu) for edu in mock.get("education", [])
-    ]
+    experience = [ExperienceEntry(**exp) for exp in mock.get("experience", [])]
+    education = [EducationEntry(**edu) for edu in mock.get("education", [])]
     return ResumeData(
         name=mock.get("name", ""),
         email=mock.get("email", ""),

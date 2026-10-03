@@ -1,7 +1,7 @@
 """Applications API endpoints for the recruitment platform."""
 
 from datetime import datetime, timezone
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr, Field
@@ -184,20 +184,30 @@ MOCK_APPLICATIONS = [
 ]
 
 VALID_STATUSES = {"applied", "screening", "interview", "offer", "hired", "rejected"}
-VALID_SOURCES = {"linkedin", "indeed", "referral", "company_website", "glassdoor", "other"}
+VALID_SOURCES = {
+    "linkedin",
+    "indeed",
+    "referral",
+    "company_website",
+    "glassdoor",
+    "other",
+}
 
 # ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
+
 
 class ApplicationCreate(BaseModel):
     candidate_name: str = Field(..., min_length=1, max_length=200)
     candidate_email: EmailStr
     position_id: str = Field(..., min_length=1, max_length=50)
     position_title: str = Field(..., min_length=1, max_length=200)
-    resume_url: Optional[str] = Field(None, max_length=500)
-    cover_letter: Optional[str] = Field(None, max_length=5000)
-    source: Literal["linkedin", "indeed", "referral", "company_website", "glassdoor", "other"] = "other"
+    resume_url: str | None = Field(None, max_length=500)
+    cover_letter: str | None = Field(None, max_length=5000)
+    source: Literal[
+        "linkedin", "indeed", "referral", "company_website", "glassdoor", "other"
+    ] = "other"
     years_experience: int = Field(0, ge=0, le=60)
     skills: list[str] = Field(default_factory=list)
 
@@ -210,8 +220,8 @@ class ApplicationResponse(BaseModel):
     position_title: str
     status: str
     applied_at: str
-    resume_url: Optional[str] = None
-    cover_letter: Optional[str] = None
+    resume_url: str | None = None
+    cover_letter: str | None = None
     source: str
     years_experience: int
     skills: list[str]
@@ -229,15 +239,17 @@ class PaginatedApplications(BaseModel):
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.get("/", response_model=PaginatedApplications)
 async def list_applications(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    status_filter: Optional[Literal["applied", "screening", "interview", "offer", "hired", "rejected"]] = Query(
-        None, alias="status", description="Filter by application status"
-    ),
-    position_id: Optional[str] = Query(None, description="Filter by position ID"),
-    search: Optional[str] = Query(None, description="Search by candidate name or email"),
+    status_filter: Literal[
+        "applied", "screening", "interview", "offer", "hired", "rejected"
+    ]
+    | None = Query(None, alias="status", description="Filter by application status"),
+    position_id: str | None = Query(None, description="Filter by position ID"),
+    search: str | None = Query(None, description="Search by candidate name or email"),
 ):
     """List applications with pagination and optional filtering."""
     filtered = MOCK_APPLICATIONS.copy()
@@ -251,7 +263,8 @@ async def list_applications(
     if search:
         search_lower = search.lower()
         filtered = [
-            a for a in filtered
+            a
+            for a in filtered
             if search_lower in a["candidate_name"].lower()
             or search_lower in a["candidate_email"].lower()
         ]
@@ -271,7 +284,9 @@ async def list_applications(
     )
 
 
-@router.post("/", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=ApplicationResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_application(payload: ApplicationCreate):
     """Create a new job application."""
     # Check for duplicate application (same email + position)
@@ -347,7 +362,7 @@ async def delete_application(application_id: str):
     for i, app in enumerate(MOCK_APPLICATIONS):
         if app["id"] == application_id:
             MOCK_APPLICATIONS.pop(i)
-            return None
+            return
 
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,

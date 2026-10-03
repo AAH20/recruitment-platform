@@ -1,10 +1,9 @@
 """Interview API endpoints for the recruitment platform."""
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/interviews", tags=["interviews"])
@@ -14,6 +13,7 @@ router = APIRouter(prefix="/api/v1/interviews", tags=["interviews"])
 # Pydantic models
 # ---------------------------------------------------------------------------
 
+
 class InterviewBase(BaseModel):
     """Shared fields for an interview."""
 
@@ -22,29 +22,29 @@ class InterviewBase(BaseModel):
     interviewer_id: UUID
     scheduled_at: datetime
     duration_minutes: int = Field(default=60, ge=15, le=480)
-    location: Optional[str] = None
-    meeting_link: Optional[str] = None
-    notes: Optional[str] = None
+    location: str | None = None
+    meeting_link: str | None = None
+    notes: str | None = None
 
 
 class InterviewCreate(InterviewBase):
     """Payload for scheduling a new interview."""
 
-    pass
-
 
 class InterviewUpdate(BaseModel):
     """Payload for updating an existing interview (all fields optional)."""
 
-    candidate_id: Optional[UUID] = None
-    job_id: Optional[UUID] = None
-    interviewer_id: Optional[UUID] = None
-    scheduled_at: Optional[datetime] = None
-    duration_minutes: Optional[int] = Field(default=None, ge=15, le=480)
-    location: Optional[str] = None
-    meeting_link: Optional[str] = None
-    notes: Optional[str] = None
-    status: Optional[str] = Field(default=None, pattern="^(scheduled|completed|cancelled|no_show)$")
+    candidate_id: UUID | None = None
+    job_id: UUID | None = None
+    interviewer_id: UUID | None = None
+    scheduled_at: datetime | None = None
+    duration_minutes: int | None = Field(default=None, ge=15, le=480)
+    location: str | None = None
+    meeting_link: str | None = None
+    notes: str | None = None
+    status: str | None = Field(
+        default=None, pattern="^(scheduled|completed|cancelled|no_show)$"
+    )
 
 
 class InterviewStatusUpdate(BaseModel):
@@ -86,13 +86,18 @@ _interviews: dict[UUID, Interview] = {}
 # Endpoints
 # ---------------------------------------------------------------------------
 
+
 @router.get("", response_model=InterviewListResponse)
 async def list_interviews(
     page: int = Query(default=1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
-    status_filter: Optional[str] = Query(default=None, alias="status", pattern="^(scheduled|completed|cancelled|no_show)$"),
-    candidate_id: Optional[UUID] = None,
-    job_id: Optional[UUID] = None,
+    status_filter: str | None = Query(
+        default=None,
+        alias="status",
+        pattern="^(scheduled|completed|cancelled|no_show)$",
+    ),
+    candidate_id: UUID | None = None,
+    job_id: UUID | None = None,
 ) -> InterviewListResponse:
     """List interviews with optional filtering and pagination."""
     items = list(_interviews.values())

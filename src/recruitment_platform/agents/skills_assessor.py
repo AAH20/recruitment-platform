@@ -10,7 +10,6 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-
 # In-memory store for assessments (replace with database in production)
 _assessments: dict[str, dict[str, Any]] = {}
 
@@ -53,12 +52,14 @@ def assess_skills(candidate_id: str, skills: list[str]) -> dict:
 
     for skill in skills:
         proficiency = _evaluate_skill_proficiency(candidate_id, skill)
-        assessed_skills.append({
-            "skill": skill,
-            "proficiency": proficiency["level"],
-            "score": proficiency["score"],
-            "evidence": proficiency["evidence"],
-        })
+        assessed_skills.append(
+            {
+                "skill": skill,
+                "proficiency": proficiency["level"],
+                "score": proficiency["score"],
+                "evidence": proficiency["evidence"],
+            }
+        )
         total_score += proficiency["score"]
 
     overall_score = round(total_score / len(skills), 2) if skills else 0
@@ -165,9 +166,11 @@ def score_assessment(assessment_id: str) -> dict:
         raise ValueError(f"Assessment '{assessment_id}' has already been scored")
 
     scores = _calculate_scores(assessment)
-    total_score = round(
-        sum(s["score"] for s in scores.values()) / len(scores), 2
-    ) if scores else 0
+    total_score = (
+        round(sum(s["score"] for s in scores.values()) / len(scores), 2)
+        if scores
+        else 0
+    )
 
     feedback = _generate_feedback(scores, total_score)
 
@@ -227,13 +230,15 @@ def _generate_questions(skills: list[str]) -> list[dict]:
     """Generate assessment questions for each skill."""
     questions = []
     for skill in skills:
-        questions.append({
-            "question_id": str(uuid.uuid4()),
-            "skill": skill,
-            "type": "practical",
-            "prompt": f"Demonstrate proficiency in {skill}",
-            "max_score": 100,
-        })
+        questions.append(
+            {
+                "question_id": str(uuid.uuid4()),
+                "skill": skill,
+                "type": "practical",
+                "prompt": f"Demonstrate proficiency in {skill}",
+                "max_score": 100,
+            }
+        )
     return questions
 
 

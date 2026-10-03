@@ -54,9 +54,7 @@ class AssessmentService:
                 return result
 
             if assessment_id not in self._assessments:
-                raise AssessmentNotFoundError(
-                    f"Assessment '{assessment_id}' not found"
-                )
+                raise AssessmentNotFoundError(f"Assessment '{assessment_id}' not found")
             return self._assessments[assessment_id]
         except AssessmentNotFoundError:
             raise
@@ -66,9 +64,7 @@ class AssessmentService:
                 f"Failed to fetch assessment '{assessment_id}'"
             ) from exc
 
-    def list_assessments(
-        self, filters: dict, page: int, page_size: int
-    ) -> list[dict]:
+    def list_assessments(self, filters: dict, page: int, page_size: int) -> list[dict]:
         """List assessments with optional filters and pagination.
 
         Args:
@@ -177,12 +173,14 @@ class AssessmentService:
                 earned = q_score if is_correct else 0
                 total_score += earned
 
-                details.append({
-                    "question_id": q_id,
-                    "correct": is_correct,
-                    "earned": earned,
-                    "max": q_score,
-                })
+                details.append(
+                    {
+                        "question_id": q_id,
+                        "correct": is_correct,
+                        "earned": earned,
+                        "max": q_score,
+                    }
+                )
 
             percentage = (total_score / max_score * 100) if max_score > 0 else 0.0
 
@@ -227,9 +225,7 @@ class AssessmentService:
                 return True
 
             if assessment_id not in self._assessments:
-                raise AssessmentNotFoundError(
-                    f"Assessment '{assessment_id}' not found"
-                )
+                raise AssessmentNotFoundError(f"Assessment '{assessment_id}' not found")
             del self._assessments[assessment_id]
             return True
         except AssessmentNotFoundError:

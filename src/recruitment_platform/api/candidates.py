@@ -11,7 +11,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -22,6 +22,7 @@ router = APIRouter(prefix="/candidates", tags=["candidates"])
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
+
 
 class CandidateStatus(str, Enum):
     NEW = "new"
@@ -44,27 +45,28 @@ class ExperienceLevel(str, Enum):
 # Pydantic models
 # ---------------------------------------------------------------------------
 
+
 class CandidateCreate(BaseModel):
     """Payload for creating a new candidate."""
 
     first_name: str = Field(..., min_length=1, max_length=50)
     last_name: str = Field(..., min_length=1, max_length=50)
     email: EmailStr
-    phone: Optional[str] = Field(None, max_length=20)
+    phone: str | None = Field(None, max_length=20)
     role_applied: str = Field(..., min_length=1, max_length=120)
     years_experience: int = Field(..., ge=0, le=60)
     experience_level: ExperienceLevel
-    skills: List[str] = Field(default_factory=list, max_length=30)
-    expected_salary: Optional[int] = Field(None, ge=0)
+    skills: list[str] = Field(default_factory=list, max_length=30)
+    expected_salary: int | None = Field(None, ge=0)
     currency: str = Field(default="USD", pattern="^[A-Z]{3}$")
-    location: Optional[str] = Field(None, max_length=120)
+    location: str | None = Field(None, max_length=120)
     remote_ok: bool = True
-    linkedin_url: Optional[str] = Field(None, max_length=255)
-    notes: Optional[str] = Field(None, max_length=2000)
+    linkedin_url: str | None = Field(None, max_length=255)
+    notes: str | None = Field(None, max_length=2000)
 
     @field_validator("phone")
     @classmethod
-    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+    def validate_phone(cls, v: str | None) -> str | None:
         if v is None:
             return v
         digits = "".join(c for c in v if c.isdigit() or c == "+")
@@ -74,7 +76,7 @@ class CandidateCreate(BaseModel):
 
     @field_validator("skills")
     @classmethod
-    def validate_skills(cls, v: List[str]) -> List[str]:
+    def validate_skills(cls, v: list[str]) -> list[str]:
         return [s.strip().lower() for s in v if s.strip()]
 
 
@@ -85,17 +87,17 @@ class CandidateResponse(BaseModel):
     first_name: str
     last_name: str
     email: str
-    phone: Optional[str]
+    phone: str | None
     role_applied: str
     years_experience: int
     experience_level: ExperienceLevel
-    skills: List[str]
-    expected_salary: Optional[int]
+    skills: list[str]
+    expected_salary: int | None
     currency: str
-    location: Optional[str]
+    location: str | None
     remote_ok: bool
-    linkedin_url: Optional[str]
-    notes: Optional[str]
+    linkedin_url: str | None
+    notes: str | None
     status: CandidateStatus
     created_at: str
     updated_at: str
@@ -104,7 +106,7 @@ class CandidateResponse(BaseModel):
 class PaginatedCandidates(BaseModel):
     """Paginated list response."""
 
-    data: List[CandidateResponse]
+    data: list[CandidateResponse]
     total: int
     page: int
     page_size: int
@@ -115,11 +117,12 @@ class PaginatedCandidates(BaseModel):
 # In-memory mock store (replace with real DB in production)
 # ---------------------------------------------------------------------------
 
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-_MOCK_CANDIDATES: List[Dict[str, Any]] = [
+_MOCK_CANDIDATES: list[dict[str, Any]] = [
     {
         "id": str(uuid.uuid4()),
         "first_name": "Amara",
@@ -327,6 +330,7 @@ _MOCK_CANDIDATES: List[Dict[str, Any]] = [
 # GET /candidates — list with pagination, filtering, sorting
 # ---------------------------------------------------------------------------
 
+
 @router.get(
     "",
     response_model=PaginatedCandidates,
@@ -336,21 +340,35 @@ _MOCK_CANDIDATES: List[Dict[str, Any]] = [
 async def list_candidates(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    status: Optional[CandidateStatus] = Query(None, description="Filter by status"),
-    experience_level: Optional[ExperienceLevel] = Query(None, description="Filter by experience level"),
-    role: Optional[str] = Query(None, description="Filter by role applied (partial match)"),
-    location: Optional[str] = Query(None, description="Filter by location (partial match)"),
-    remote_ok: Optional[bool] = Query(None, description="Filter by remote availability"),
-    min_years: Optional[int] = Query(None, ge=0, description="Minimum years of experience"),
-    max_years: Optional[int] = Query(None, ge=0, description="Maximum years of experience"),
-    skills: Optional[str] = Query(None, description="Comma-separated skills to filter by"),
-    search: Optional[str] = Query(None, description="Full-text search across name, email, role"),
+    status: CandidateStatus | None = Query(None, description="Filter by status"),
+    experience_level: ExperienceLevel | None = Query(
+        None, description="Filter by experience level"
+    ),
+    role: str | None = Query(
+        None, description="Filter by role applied (partial match)"
+    ),
+    location: str | None = Query(
+        None, description="Filter by location (partial match)"
+    ),
+    remote_ok: bool | None = Query(None, description="Filter by remote availability"),
+    min_years: int | None = Query(
+        None, ge=0, description="Minimum years of experience"
+    ),
+    max_years: int | None = Query(
+        None, ge=0, description="Maximum years of experience"
+    ),
+    skills: str | None = Query(None, description="Comma-separated skills to filter by"),
+    search: str | None = Query(
+        None, description="Full-text search across name, email, role"
+    ),
     sort_by: str = Query(
         "created_at",
         pattern="^(created_at|updated_at|last_name|years_experience|expected_salary)$",
         description="Field to sort by",
     ),
-    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort direction"),
+    sort_order: str = Query(
+        "desc", pattern="^(asc|desc)$", description="Sort direction"
+    ),
 ) -> PaginatedCandidates:
     """
     Return a paginated, filtered, and sorted list of candidates.
@@ -362,7 +380,9 @@ async def list_candidates(
         filtered = [c for c in filtered if c["status"] == status.value]
 
     if experience_level is not None:
-        filtered = [c for c in filtered if c["experience_level"] == experience_level.value]
+        filtered = [
+            c for c in filtered if c["experience_level"] == experience_level.value
+        ]
 
     if role:
         role_lower = role.lower()
@@ -370,7 +390,9 @@ async def list_candidates(
 
     if location:
         loc_lower = location.lower()
-        filtered = [c for c in filtered if c["location"] and loc_lower in c["location"].lower()]
+        filtered = [
+            c for c in filtered if c["location"] and loc_lower in c["location"].lower()
+        ]
 
     if remote_ok is not None:
         filtered = [c for c in filtered if c["remote_ok"] == remote_ok]
@@ -420,6 +442,7 @@ async def list_candidates(
 # POST /candidates — create with validation
 # ---------------------------------------------------------------------------
 
+
 @router.post(
     "",
     response_model=CandidateResponse,
@@ -442,7 +465,7 @@ async def create_candidate(payload: CandidateCreate) -> CandidateResponse:
             )
 
     now = _now_iso()
-    new_candidate: Dict[str, Any] = {
+    new_candidate: dict[str, Any] = {
         "id": str(uuid.uuid4()),
         "first_name": payload.first_name,
         "last_name": payload.last_name,
@@ -472,6 +495,7 @@ async def create_candidate(payload: CandidateCreate) -> CandidateResponse:
 # GET /candidates/{candidate_id} — retrieve a single candidate
 # ---------------------------------------------------------------------------
 
+
 @router.get(
     "/{candidate_id}",
     response_model=CandidateResponse,
@@ -493,28 +517,29 @@ async def get_candidate(candidate_id: str) -> CandidateResponse:
 # PUT /candidates/{candidate_id} — update a candidate
 # ---------------------------------------------------------------------------
 
+
 class CandidateUpdate(BaseModel):
     """Payload for updating an existing candidate — all fields optional."""
 
-    first_name: Optional[str] = Field(None, min_length=1, max_length=50)
-    last_name: Optional[str] = Field(None, min_length=1, max_length=50)
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = Field(None, max_length=20)
-    role_applied: Optional[str] = Field(None, min_length=1, max_length=120)
-    years_experience: Optional[int] = Field(None, ge=0, le=60)
-    experience_level: Optional[ExperienceLevel] = None
-    skills: Optional[List[str]] = Field(None, max_length=30)
-    expected_salary: Optional[int] = Field(None, ge=0)
-    currency: Optional[str] = Field(None, pattern="^[A-Z]{3}$")
-    location: Optional[str] = Field(None, max_length=120)
-    remote_ok: Optional[bool] = None
-    linkedin_url: Optional[str] = Field(None, max_length=255)
-    notes: Optional[str] = Field(None, max_length=2000)
-    status: Optional[CandidateStatus] = None
+    first_name: str | None = Field(None, min_length=1, max_length=50)
+    last_name: str | None = Field(None, min_length=1, max_length=50)
+    email: EmailStr | None = None
+    phone: str | None = Field(None, max_length=20)
+    role_applied: str | None = Field(None, min_length=1, max_length=120)
+    years_experience: int | None = Field(None, ge=0, le=60)
+    experience_level: ExperienceLevel | None = None
+    skills: list[str] | None = Field(None, max_length=30)
+    expected_salary: int | None = Field(None, ge=0)
+    currency: str | None = Field(None, pattern="^[A-Z]{3}$")
+    location: str | None = Field(None, max_length=120)
+    remote_ok: bool | None = None
+    linkedin_url: str | None = Field(None, max_length=255)
+    notes: str | None = Field(None, max_length=2000)
+    status: CandidateStatus | None = None
 
     @field_validator("phone")
     @classmethod
-    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+    def validate_phone(cls, v: str | None) -> str | None:
         if v is None:
             return v
         digits = "".join(c for c in v if c.isdigit() or c == "+")
@@ -524,7 +549,7 @@ class CandidateUpdate(BaseModel):
 
     @field_validator("skills")
     @classmethod
-    def validate_skills(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+    def validate_skills(cls, v: list[str] | None) -> list[str] | None:
         if v is None:
             return v
         return [s.strip().lower() for s in v if s.strip()]
@@ -536,19 +561,24 @@ class CandidateUpdate(BaseModel):
     summary="Update candidate",
     description="Update an existing candidate. Only provided fields are modified.",
 )
-async def update_candidate(candidate_id: str, payload: CandidateUpdate) -> CandidateResponse:
+async def update_candidate(
+    candidate_id: str, payload: CandidateUpdate
+) -> CandidateResponse:
     """Update a candidate by ID. Only fields present in the payload are changed."""
     for i, candidate in enumerate(_MOCK_CANDIDATES):
         if candidate["id"] == candidate_id:
             update_data = payload.model_dump(exclude_unset=True)
             # Convert enum values to their string representation
-            if "experience_level" in update_data and update_data["experience_level"] is not None:
+            if (
+                "experience_level" in update_data
+                and update_data["experience_level"] is not None
+            ):
                 update_data["experience_level"] = update_data["experience_level"].value
             if "status" in update_data and update_data["status"] is not None:
                 update_data["status"] = update_data["status"].value
-            _MOCK_CANDIDATES[i].update(update_data)
+            candidate.update(update_data)
             _MOCK_CANDIDATES[i]["updated_at"] = _now_iso()
-            return CandidateResponse(**_MOCK_CANDIDATES[i])
+            return CandidateResponse(**candidate)
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Candidate with id '{candidate_id}' not found.",
@@ -558,6 +588,7 @@ async def update_candidate(candidate_id: str, payload: CandidateUpdate) -> Candi
 # ---------------------------------------------------------------------------
 # DELETE /candidates/{candidate_id} — delete a candidate
 # ---------------------------------------------------------------------------
+
 
 @router.delete(
     "/{candidate_id}",
@@ -570,7 +601,7 @@ async def delete_candidate(candidate_id: str) -> None:
     for i, candidate in enumerate(_MOCK_CANDIDATES):
         if candidate["id"] == candidate_id:
             _MOCK_CANDIDATES.pop(i)
-            return None
+            return
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Candidate with id '{candidate_id}' not found.",

@@ -1,7 +1,6 @@
 """Employers API endpoints for the recruitment platform."""
 
 from datetime import datetime
-from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr, Field
@@ -15,7 +14,9 @@ router = APIRouter(prefix="/employers", tags=["employers"])
 class EmployerBase(BaseModel):
     """Shared employer fields."""
 
-    name: str = Field(..., min_length=2, max_length=120, description="Company legal name")
+    name: str = Field(
+        ..., min_length=2, max_length=120, description="Company legal name"
+    )
     slug: str = Field(
         ...,
         min_length=2,
@@ -24,37 +25,35 @@ class EmployerBase(BaseModel):
         description="URL-friendly unique identifier",
     )
     industry: str = Field(..., min_length=2, max_length=80)
-    website: Optional[str] = Field(None, max_length=255)
+    website: str | None = Field(None, max_length=255)
     contact_email: EmailStr
-    contact_phone: Optional[str] = Field(None, max_length=30)
-    company_size: Optional[str] = Field(
+    contact_phone: str | None = Field(None, max_length=30)
+    company_size: str | None = Field(
         None,
         pattern=r"^(1-10|11-50|51-200|211-500|501-1000|1001-5000|5001\+)$",
     )
-    founded_year: Optional[int] = Field(None, ge=1800, le=datetime.now().year)
-    description: Optional[str] = Field(None, max_length=2000)
-    logo_url: Optional[str] = Field(None, max_length=500)
+    founded_year: int | None = Field(None, ge=1800, le=datetime.now().year)
+    description: str | None = Field(None, max_length=2000)
+    logo_url: str | None = Field(None, max_length=500)
     is_active: bool = True
 
 
 class EmployerCreate(EmployerBase):
     """Schema for creating a new employer."""
 
-    pass
-
 
 class EmployerUpdate(BaseModel):
     """Schema for partial employer updates."""
 
-    name: Optional[str] = Field(None, min_length=2, max_length=120)
-    industry: Optional[str] = Field(None, min_length=2, max_length=80)
-    website: Optional[str] = Field(None, max_length=255)
-    contact_email: Optional[EmailStr] = None
-    contact_phone: Optional[str] = Field(None, max_length=30)
-    company_size: Optional[str] = None
-    description: Optional[str] = Field(None, max_length=2000)
-    logo_url: Optional[str] = Field(None, max_length=500)
-    is_active: Optional[bool] = None
+    name: str | None = Field(None, min_length=2, max_length=120)
+    industry: str | None = Field(None, min_length=2, max_length=80)
+    website: str | None = Field(None, max_length=255)
+    contact_email: EmailStr | None = None
+    contact_phone: str | None = Field(None, max_length=30)
+    company_size: str | None = None
+    description: str | None = Field(None, max_length=2000)
+    logo_url: str | None = Field(None, max_length=500)
+    is_active: bool | None = None
 
 
 class Address(BaseModel):
@@ -62,7 +61,7 @@ class Address(BaseModel):
 
     street: str
     city: str
-    state: Optional[str] = None
+    state: str | None = None
     postal_code: str
     country: str = Field(default="US", min_length=2, max_length=2)
 
@@ -71,7 +70,7 @@ class Employer(EmployerBase):
     """Full employer representation returned by the API."""
 
     id: str
-    hq_address: Optional[Address] = None
+    hq_address: Address | None = None
     created_at: datetime
     updated_at: datetime
     total_jobs: int = 0
@@ -84,7 +83,7 @@ class Employer(EmployerBase):
 class EmployerListResponse(BaseModel):
     """Paginated list of employers."""
 
-    data: List[Employer]
+    data: list[Employer]
     total: int
     page: int
     page_size: int
@@ -93,7 +92,7 @@ class EmployerListResponse(BaseModel):
 
 # ─── Mock Data Store ─────────────────────────────────────────────────────────
 
-MOCK_EMPLOYERS: List[dict] = [
+MOCK_EMPLOYERS: list[dict] = [
     {
         "id": "emp_001",
         "name": "Acme Corporation",
@@ -429,10 +428,10 @@ def _employer_to_response(emp: dict) -> Employer:
 async def list_employers(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    industry: Optional[str] = Query(None, description="Filter by industry"),
-    company_size: Optional[str] = Query(None, description="Filter by company size"),
-    is_active: Optional[bool] = Query(None, description="Filter by active status"),
-    search: Optional[str] = Query(None, description="Search by name or description"),
+    industry: str | None = Query(None, description="Filter by industry"),
+    company_size: str | None = Query(None, description="Filter by company size"),
+    is_active: bool | None = Query(None, description="Filter by active status"),
+    search: str | None = Query(None, description="Search by name or description"),
 ) -> EmployerListResponse:
     """
     List employers with pagination and optional filtering.
@@ -461,8 +460,7 @@ async def list_employers(
     total_pages = (total + page_size - 1) // page_size if total > 0 else 1
 
     # Clamp page to valid range
-    if page > total_pages:
-        page = total_pages
+    page = min(page, total_pages)
 
     start = (page - 1) * page_size
     end = start + page_size
@@ -552,11 +550,11 @@ async def update_employer(employer_id: str, updates: EmployerUpdate) -> Employer
     for i, emp in enumerate(MOCK_EMPLOYERS):
         if emp["id"] == employer_id:
             update_data = updates.model_dump(exclude_unset=True)
-            MOCK_EMPLOYERS[i].update(update_data)
+            emp.update(update_data)
             MOCK_EMPLOYERS[i]["updated_at"] = datetime.utcnow().strftime(
                 "%Y-%m-%dT%H:%M:%SZ"
             )
-            return _employer_to_response(MOCK_EMPLOYERS[i])
+            return _employer_to_response(emp)
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Employer with id '{employer_id}' not found.",
@@ -574,7 +572,7 @@ async def delete_employer(employer_id: str) -> None:
     for i, emp in enumerate(MOCK_EMPLOYERS):
         if emp["id"] == employer_id:
             MOCK_EMPLOYERS.pop(i)
-            return None
+            return
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Employer with id '{employer_id}' not found.",

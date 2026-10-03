@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -16,15 +16,15 @@ logger = logging.getLogger(__name__)
 class SearchFilters:
     """Common filters applicable to search queries."""
 
-    location: Optional[str] = None
-    skills: List[str] = field(default_factory=list)
-    experience_min: Optional[int] = None
-    experience_max: Optional[int] = None
-    salary_min: Optional[int] = None
-    salary_max: Optional[int] = None
-    status: Optional[str] = None
-    date_from: Optional[str] = None
-    date_to: Optional[str] = None
+    location: str | None = None
+    skills: list[str] = field(default_factory=list)
+    experience_min: int | None = None
+    experience_max: int | None = None
+    salary_min: int | None = None
+    salary_max: int | None = None
+    status: str | None = None
+    date_from: str | None = None
+    date_to: str | None = None
     limit: int = 20
     offset: int = 0
 
@@ -39,7 +39,7 @@ class SearchFilters:
 class SearchResult:
     """Generic search result container."""
 
-    items: List[Dict[str, Any]]
+    items: list[dict[str, Any]]
     total: int
     query: str
     filters: SearchFilters
@@ -62,7 +62,7 @@ class SearchService:
     def search_candidates(
         self,
         query: str,
-        filters: Optional[SearchFilters] = None,
+        filters: SearchFilters | None = None,
     ) -> SearchResult:
         """Full-text search for candidates.
 
@@ -93,7 +93,7 @@ class SearchService:
     def search_jobs(
         self,
         query: str,
-        filters: Optional[SearchFilters] = None,
+        filters: SearchFilters | None = None,
     ) -> SearchResult:
         """Full-text search for jobs.
 
@@ -121,7 +121,7 @@ class SearchService:
 
         return SearchResult(items=items, total=total, query=query, filters=filters)
 
-    def get_search_suggestions(self, query: str) -> List[str]:
+    def get_search_suggestions(self, query: str) -> list[str]:
         """Return autocomplete suggestions for a partial query.
 
         Args:
@@ -150,7 +150,7 @@ class SearchService:
 
     def _execute_candidate_search(
         self, query: str, filters: SearchFilters
-    ) -> tuple[List[Dict[str, Any]], int]:
+    ) -> tuple[list[dict[str, Any]], int]:
         """Execute candidate search against the backend.
 
         Replace with actual DB / search-engine call.
@@ -160,7 +160,7 @@ class SearchService:
 
     def _execute_job_search(
         self, query: str, filters: SearchFilters
-    ) -> tuple[List[Dict[str, Any]], int]:
+    ) -> tuple[list[dict[str, Any]], int]:
         """Execute job search against the backend.
 
         Replace with actual DB / search-engine call.
@@ -168,7 +168,7 @@ class SearchService:
         # Placeholder: integrate with ORM or search engine here
         return [], 0
 
-    def _fetch_suggestions(self, query: str) -> List[str]:
+    def _fetch_suggestions(self, query: str) -> list[str]:
         """Fetch autocomplete suggestions from the backend.
 
         Replace with actual DB / search-engine call.
@@ -182,20 +182,16 @@ class SearchService:
 _default_service = SearchService()
 
 
-def search_candidates(
-    query: str, filters: Optional[SearchFilters] = None
-) -> SearchResult:
+def search_candidates(query: str, filters: SearchFilters | None = None) -> SearchResult:
     """Convenience wrapper around SearchService.search_candidates."""
     return _default_service.search_candidates(query, filters)
 
 
-def search_jobs(
-    query: str, filters: Optional[SearchFilters] = None
-) -> SearchResult:
+def search_jobs(query: str, filters: SearchFilters | None = None) -> SearchResult:
     """Convenience wrapper around SearchService.search_jobs."""
     return _default_service.search_jobs(query, filters)
 
 
-def get_search_suggestions(query: str) -> List[str]:
+def get_search_suggestions(query: str) -> list[str]:
     """Convenience wrapper around SearchService.get_search_suggestions."""
     return _default_service.get_search_suggestions(query)

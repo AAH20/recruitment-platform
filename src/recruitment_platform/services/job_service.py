@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import logging
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -32,21 +32,21 @@ class Job:
     description: str
     company: str
     location: str
-    salary_min: Optional[float] = None
-    salary_max: Optional[float] = None
+    salary_min: float | None = None
+    salary_max: float | None = None
     employment_type: str = "full-time"
     status: str = "open"
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
-    tags: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    tags: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # In-memory store for demonstration
-_jobs: Dict[str, Job] = {}
+_jobs: dict[str, Job] = {}
 
 
-def _validate_job_data(data: Dict[str, Any]) -> None:
+def _validate_job_data(data: dict[str, Any]) -> None:
     """Validate job data before creation or update.
 
     Args:
@@ -58,9 +58,7 @@ def _validate_job_data(data: Dict[str, Any]) -> None:
     required_fields = ["title", "description", "company", "location"]
     missing = [f for f in required_fields if not data.get(f)]
     if missing:
-        raise JobValidationError(
-            f"Missing required fields: {', '.join(missing)}"
-        )
+        raise JobValidationError(f"Missing required fields: {', '.join(missing)}")
 
     if data.get("salary_min") is not None and data.get("salary_max") is not None:
         if data["salary_min"] > data["salary_max"]:
@@ -73,7 +71,7 @@ def _validate_job_data(data: Dict[str, Any]) -> None:
         )
 
 
-def _job_to_dict(job: Job) -> Dict[str, Any]:
+def _job_to_dict(job: Job) -> dict[str, Any]:
     """Convert a Job instance to a dictionary.
 
     Args:
@@ -85,7 +83,7 @@ def _job_to_dict(job: Job) -> Dict[str, Any]:
     return asdict(job)
 
 
-def get_job(job_id: str) -> Dict[str, Any]:
+def get_job(job_id: str) -> dict[str, Any]:
     """Get a job by its ID.
 
     Args:
@@ -111,8 +109,8 @@ def get_job(job_id: str) -> Dict[str, Any]:
 
 
 def list_jobs(
-    filters: Dict[str, Any], page: int, page_size: int
-) -> List[Dict[str, Any]]:
+    filters: dict[str, Any], page: int, page_size: int
+) -> list[dict[str, Any]]:
     """List jobs with optional filters and pagination.
 
     Args:
@@ -134,17 +132,23 @@ def list_jobs(
         raise ValueError("page_size must be >= 1")
 
     try:
-        results: List[Job] = list(_jobs.values())
+        results: list[Job] = list(_jobs.values())
 
         # Apply filters
         if filters.get("company"):
-            results = [j for j in results if j.company.lower() == filters["company"].lower()]
+            results = [
+                j for j in results if j.company.lower() == filters["company"].lower()
+            ]
         if filters.get("location"):
-            results = [j for j in results if j.location.lower() == filters["location"].lower()]
+            results = [
+                j for j in results if j.location.lower() == filters["location"].lower()
+            ]
         if filters.get("status"):
             results = [j for j in results if j.status == filters["status"]]
         if filters.get("employment_type"):
-            results = [j for j in results if j.employment_type == filters["employment_type"]]
+            results = [
+                j for j in results if j.employment_type == filters["employment_type"]
+            ]
         if filters.get("tags"):
             tag_set = set(filters["tags"])
             results = [j for j in results if tag_set.issubset(set(j.tags))]
@@ -162,7 +166,7 @@ def list_jobs(
         raise JobServiceError(f"Failed to list jobs: {e}") from e
 
 
-def create_job(data: Dict[str, Any]) -> Dict[str, Any]:
+def create_job(data: dict[str, Any]) -> dict[str, Any]:
     """Create a new job posting.
 
     Args:
@@ -210,7 +214,7 @@ def create_job(data: Dict[str, Any]) -> Dict[str, Any]:
         raise JobServiceError(f"Failed to create job: {e}") from e
 
 
-def update_job(job_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+def update_job(job_id: str, data: dict[str, Any]) -> dict[str, Any]:
     """Update an existing job.
 
     Args:

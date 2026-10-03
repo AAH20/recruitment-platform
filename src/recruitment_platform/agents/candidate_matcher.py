@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 # Enums & Data Classes
 # ---------------------------------------------------------------------------
 
+
 class ExperienceLevel(str, Enum):
     JUNIOR = "junior"
     MID = "mid"
@@ -319,6 +320,7 @@ WEIGHTS: dict[str, float] = {
 # Helper Functions
 # ---------------------------------------------------------------------------
 
+
 def _normalize_skill(skill: str) -> str:
     """Normalize a skill name for comparison."""
     return skill.strip().lower().replace("-", "").replace("_", "").replace(" ", "")
@@ -367,7 +369,9 @@ def _education_score(candidate_edu: EducationLevel, min_edu: EducationLevel) -> 
     return 0.20
 
 
-def _location_score(candidate_location: str, job_location: str, remote_ok: bool, remote_pref: bool) -> float:
+def _location_score(
+    candidate_location: str, job_location: str, remote_ok: bool, remote_pref: bool
+) -> float:
     """Score based on location compatibility."""
     cand_loc = candidate_location.strip().lower()
     job_loc = job_location.strip().lower()
@@ -383,7 +387,9 @@ def _location_score(candidate_location: str, job_location: str, remote_ok: bool,
     return 0.10
 
 
-def _salary_score(desired: int | None, salary_min: int | None, salary_max: int | None) -> float:
+def _salary_score(
+    desired: int | None, salary_min: int | None, salary_max: int | None
+) -> float:
     """Score based on salary alignment."""
     if desired is None or salary_min is None or salary_max is None:
         return 0.50  # Neutral when data is missing
@@ -398,7 +404,9 @@ def _salary_score(desired: int | None, salary_min: int | None, salary_max: int |
     return 0.10
 
 
-def _certification_score(candidate_certs: list[str], required_certs: list[str]) -> float:
+def _certification_score(
+    candidate_certs: list[str], required_certs: list[str]
+) -> float:
     """Score based on required certifications held."""
     if not required_certs:
         return 1.0
@@ -411,6 +419,7 @@ def _certification_score(candidate_certs: list[str], required_certs: list[str]) 
 # ---------------------------------------------------------------------------
 # Core Matching Functions
 # ---------------------------------------------------------------------------
+
 
 def calculate_match_score(candidate: Candidate, job: Job) -> MatchResult:
     """Calculate a weighted match score between a candidate and a job.
@@ -461,7 +470,9 @@ def calculate_match_score(candidate: Candidate, job: Job) -> MatchResult:
     )
 
     # Certifications
-    cert_score = _certification_score(candidate.certifications, job.required_certifications)
+    cert_score = _certification_score(
+        candidate.certifications, job.required_certifications
+    )
 
     # Weighted overall score (0-100 scale)
     overall = (
@@ -651,7 +662,14 @@ def _get_candidates_for_job(job_id: str) -> list[dict[str, Any]]:
     return [
         {
             "candidate_id": "cand-001",
-            "skills": ["Python", "FastAPI", "PostgreSQL", "Docker", "Kubernetes", "AWS"],
+            "skills": [
+                "Python",
+                "FastAPI",
+                "PostgreSQL",
+                "Docker",
+                "Kubernetes",
+                "AWS",
+            ],
             "experience_years": 7.5,
         },
         {
@@ -681,6 +699,7 @@ def _get_candidates_for_job(job_id: str) -> list[dict[str, Any]]:
 # Demo / CLI
 # ---------------------------------------------------------------------------
 
+
 def _format_result(result: MatchResult, rank: int) -> str:
     """Format a MatchResult for display."""
     lines = [
@@ -703,7 +722,9 @@ def main() -> None:
     print(f"Location: {job.location} | Remote OK: {job.remote_ok}")
     print(f"Required Skills: {', '.join(job.required_skills)}")
     print(f"Preferred Skills: {', '.join(job.preferred_skills)}")
-    print(f"Min Experience: {job.min_years_experience} years | Min Education: {job.min_education.value}")
+    print(
+        f"Min Experience: {job.min_years_experience} years | Min Education: {job.min_education.value}"
+    )
     print(f"Salary Range: ${job.salary_min:,} - ${job.salary_max:,}")
     print("=" * 70)
 

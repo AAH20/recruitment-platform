@@ -188,21 +188,21 @@ class TestAgentBase:
     def test_agent_is_base_agent(self) -> None:
         """Test that all agents inherit from BaseAgent."""
         for agent_class in ALL_AGENTS:
-            assert issubclass(
-                agent_class, BaseAgent
-            ), f"{agent_class.__name__} must inherit from BaseAgent"
+            assert issubclass(agent_class, BaseAgent), (
+                f"{agent_class.__name__} must inherit from BaseAgent"
+            )
 
     def test_agent_has_name(self) -> None:
         """Test that all agents have a name."""
         for agent_class in ALL_AGENTS:
             instance = agent_class()
             assert hasattr(instance, "name"), f"{agent_class.__name__} must have a name"
-            assert isinstance(
-                instance.name, str
-            ), f"{agent_class.__name__} name must be a string"
-            assert (
-                len(instance.name) > 0
-            ), f"{agent_class.__name__} name must not be empty"
+            assert isinstance(instance.name, str), (
+                f"{agent_class.__name__} name must be a string"
+            )
+            assert len(instance.name) > 0, (
+                f"{agent_class.__name__} name must not be empty"
+            )
 
     @pytest.mark.asyncio
     async def test_agent_validate(self) -> None:

@@ -67,7 +67,7 @@ def verify_token(token: str) -> dict[str, Any]:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials | None = None,  # noqa: B008
+    credentials: HTTPAuthorizationCredentials | None = None,
 ) -> dict[str, Any]:
     """Get the current authenticated user from JWT token."""
     if credentials is None:
@@ -91,7 +91,7 @@ async def get_current_user(
 
 
 async def get_current_active_user(
-    current_user: dict[str, Any] | None = None,  # noqa: B008
+    current_user: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Get the current active user."""
     if not current_user.get("is_active", True):
@@ -106,7 +106,7 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
 
     async def __call__(
-        self, current_user: dict[str, Any] | None = None  # noqa: B008
+        self, current_user: dict[str, Any] | None = None
     ) -> dict[str, Any]:
         user_roles = current_user.get("roles", [])
         if not any(role in self.allowed_roles for role in user_roles):

@@ -33,25 +33,17 @@ class ReportStatus(str, Enum):
 class ReportError(Exception):
     """Base exception for report service errors."""
 
-    pass
-
 
 class ReportNotFoundError(ReportError):
     """Raised when a report is not found."""
-
-    pass
 
 
 class ReportGenerationError(ReportError):
     """Raised when report generation fails."""
 
-    pass
-
 
 class InvalidReportTypeError(ReportError):
     """Raised when an invalid report type is provided."""
-
-    pass
 
 
 class Report:
@@ -87,7 +79,9 @@ class Report:
             "data": self.data,
             "error_message": self.error_message,
             "created_at": self.created_at.isoformat(),
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "completed_at": self.completed_at.isoformat()
+            if self.completed_at
+            else None,
         }
 
 
@@ -274,7 +268,9 @@ class ReportService:
             "filters": params,
         }
 
-    def _build_source_effectiveness_report(self, params: dict[str, Any]) -> dict[str, Any]:
+    def _build_source_effectiveness_report(
+        self, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Build source effectiveness report data."""
         return {
             "title": "Source Effectiveness Report",
@@ -284,7 +280,9 @@ class ReportService:
             "filters": params,
         }
 
-    def _build_recruiter_performance_report(self, params: dict[str, Any]) -> dict[str, Any]:
+    def _build_recruiter_performance_report(
+        self, params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Build recruiter performance report data."""
         return {
             "title": "Recruiter Performance Report",

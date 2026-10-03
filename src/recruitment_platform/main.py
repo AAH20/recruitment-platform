@@ -30,7 +30,6 @@ async def lifespan(app: FastAPI):
     setup_tracing(service_name="recruitment-platform")
     yield
     # Shutdown
-    pass
 
 
 def create_app() -> FastAPI:

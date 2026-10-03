@@ -8,10 +8,10 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
+
 
 class BaseSchema(BaseModel):
     """Base configuration for all schemas."""
@@ -23,38 +23,39 @@ class BaseSchema(BaseModel):
 # Candidate
 # ---------------------------------------------------------------------------
 
+
 class CandidateCreate(BaseSchema):
     """Schema for creating a candidate."""
 
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     email: EmailStr
-    phone: Optional[str] = Field(None, max_length=20)
-    resume_url: Optional[str] = Field(None, max_length=500)
-    linkedin_url: Optional[str] = Field(None, max_length=500)
+    phone: str | None = Field(None, max_length=20)
+    resume_url: str | None = Field(None, max_length=500)
+    linkedin_url: str | None = Field(None, max_length=500)
     skills: list[str] = Field(default_factory=list)
-    experience_years: Optional[float] = Field(None, ge=0, le=60)
-    current_company: Optional[str] = Field(None, max_length=200)
-    current_title: Optional[str] = Field(None, max_length=200)
-    education: Optional[str] = Field(None, max_length=500)
-    notes: Optional[str] = Field(None, max_length=2000)
+    experience_years: float | None = Field(None, ge=0, le=60)
+    current_company: str | None = Field(None, max_length=200)
+    current_title: str | None = Field(None, max_length=200)
+    education: str | None = Field(None, max_length=500)
+    notes: str | None = Field(None, max_length=2000)
 
 
 class CandidateUpdate(BaseSchema):
     """Schema for updating a candidate — all fields optional."""
 
-    first_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    last_name: Optional[str] = Field(None, min_length=1, max_length=100)
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = Field(None, max_length=20)
-    resume_url: Optional[str] = Field(None, max_length=500)
-    linkedin_url: Optional[str] = Field(None, max_length=500)
-    skills: Optional[list[str]] = None
-    experience_years: Optional[float] = Field(None, ge=0, le=60)
-    current_company: Optional[str] = Field(None, max_length=200)
-    current_title: Optional[str] = Field(None, max_length=200)
-    education: Optional[str] = Field(None, max_length=500)
-    notes: Optional[str] = Field(None, max_length=2000)
+    first_name: str | None = Field(None, min_length=1, max_length=100)
+    last_name: str | None = Field(None, min_length=1, max_length=100)
+    email: EmailStr | None = None
+    phone: str | None = Field(None, max_length=20)
+    resume_url: str | None = Field(None, max_length=500)
+    linkedin_url: str | None = Field(None, max_length=500)
+    skills: list[str] | None = None
+    experience_years: float | None = Field(None, ge=0, le=60)
+    current_company: str | None = Field(None, max_length=200)
+    current_title: str | None = Field(None, max_length=200)
+    education: str | None = Field(None, max_length=500)
+    notes: str | None = Field(None, max_length=2000)
 
 
 class CandidateResponse(BaseSchema):
@@ -64,15 +65,15 @@ class CandidateResponse(BaseSchema):
     first_name: str
     last_name: str
     email: EmailStr
-    phone: Optional[str] = None
-    resume_url: Optional[str] = None
-    linkedin_url: Optional[str] = None
+    phone: str | None = None
+    resume_url: str | None = None
+    linkedin_url: str | None = None
     skills: list[str] = Field(default_factory=list)
-    experience_years: Optional[float] = None
-    current_company: Optional[str] = None
-    current_title: Optional[str] = None
-    education: Optional[str] = None
-    notes: Optional[str] = None
+    experience_years: float | None = None
+    current_company: str | None = None
+    current_title: str | None = None
+    education: str | None = None
+    notes: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -80,6 +81,7 @@ class CandidateResponse(BaseSchema):
 # ---------------------------------------------------------------------------
 # Job
 # ---------------------------------------------------------------------------
+
 
 class JobStatus(str, Enum):
     """Job posting status."""
@@ -98,32 +100,32 @@ class JobCreate(BaseSchema):
     department: str = Field(..., min_length=1, max_length=100)
     location: str = Field(..., min_length=1, max_length=200)
     employment_type: str = Field(..., min_length=1, max_length=50)
-    salary_min: Optional[float] = Field(None, ge=0)
-    salary_max: Optional[float] = Field(None, ge=0)
+    salary_min: float | None = Field(None, ge=0)
+    salary_max: float | None = Field(None, ge=0)
     currency: str = Field(default="USD", min_length=3, max_length=3)
     requirements: list[str] = Field(default_factory=list)
     responsibilities: list[str] = Field(default_factory=list)
-    hiring_manager_id: Optional[int] = None
-    recruiter_id: Optional[int] = None
+    hiring_manager_id: int | None = None
+    recruiter_id: int | None = None
     status: JobStatus = JobStatus.DRAFT
 
 
 class JobUpdate(BaseSchema):
     """Schema for updating a job posting — all fields optional."""
 
-    title: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = Field(None, min_length=1, max_length=10000)
-    department: Optional[str] = Field(None, min_length=1, max_length=100)
-    location: Optional[str] = Field(None, min_length=1, max_length=200)
-    employment_type: Optional[str] = Field(None, min_length=1, max_length=50)
-    salary_min: Optional[float] = Field(None, ge=0)
-    salary_max: Optional[float] = Field(None, ge=0)
-    currency: Optional[str] = Field(None, min_length=3, max_length=3)
-    requirements: Optional[list[str]] = None
-    responsibilities: Optional[list[str]] = None
-    hiring_manager_id: Optional[int] = None
-    recruiter_id: Optional[int] = None
-    status: Optional[JobStatus] = None
+    title: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = Field(None, min_length=1, max_length=10000)
+    department: str | None = Field(None, min_length=1, max_length=100)
+    location: str | None = Field(None, min_length=1, max_length=200)
+    employment_type: str | None = Field(None, min_length=1, max_length=50)
+    salary_min: float | None = Field(None, ge=0)
+    salary_max: float | None = Field(None, ge=0)
+    currency: str | None = Field(None, min_length=3, max_length=3)
+    requirements: list[str] | None = None
+    responsibilities: list[str] | None = None
+    hiring_manager_id: int | None = None
+    recruiter_id: int | None = None
+    status: JobStatus | None = None
 
 
 class JobResponse(BaseSchema):
@@ -135,13 +137,13 @@ class JobResponse(BaseSchema):
     department: str
     location: str
     employment_type: str
-    salary_min: Optional[float] = None
-    salary_max: Optional[float] = None
+    salary_min: float | None = None
+    salary_max: float | None = None
     currency: str
     requirements: list[str] = Field(default_factory=list)
     responsibilities: list[str] = Field(default_factory=list)
-    hiring_manager_id: Optional[int] = None
-    recruiter_id: Optional[int] = None
+    hiring_manager_id: int | None = None
+    recruiter_id: int | None = None
     status: JobStatus
     created_at: datetime
     updated_at: datetime
@@ -150,6 +152,7 @@ class JobResponse(BaseSchema):
 # ---------------------------------------------------------------------------
 # Application
 # ---------------------------------------------------------------------------
+
 
 class ApplicationStatus(str, Enum):
     """Application status."""
@@ -168,19 +171,19 @@ class ApplicationCreate(BaseSchema):
 
     candidate_id: int = Field(..., gt=0)
     job_id: int = Field(..., gt=0)
-    cover_letter: Optional[str] = Field(None, max_length=5000)
-    source: Optional[str] = Field(None, max_length=100)
-    referral: Optional[str] = Field(None, max_length=200)
+    cover_letter: str | None = Field(None, max_length=5000)
+    source: str | None = Field(None, max_length=100)
+    referral: str | None = Field(None, max_length=200)
 
 
 class ApplicationUpdate(BaseSchema):
     """Schema for updating an application — all fields optional."""
 
-    status: Optional[ApplicationStatus] = None
-    cover_letter: Optional[str] = Field(None, max_length=5000)
-    source: Optional[str] = Field(None, max_length=100)
-    referral: Optional[str] = Field(None, max_length=200)
-    notes: Optional[str] = Field(None, max_length=2000)
+    status: ApplicationStatus | None = None
+    cover_letter: str | None = Field(None, max_length=5000)
+    source: str | None = Field(None, max_length=100)
+    referral: str | None = Field(None, max_length=200)
+    notes: str | None = Field(None, max_length=2000)
 
 
 class ApplicationResponse(BaseSchema):
@@ -190,10 +193,10 @@ class ApplicationResponse(BaseSchema):
     candidate_id: int
     job_id: int
     status: ApplicationStatus
-    cover_letter: Optional[str] = None
-    source: Optional[str] = None
-    referral: Optional[str] = None
-    notes: Optional[str] = None
+    cover_letter: str | None = None
+    source: str | None = None
+    referral: str | None = None
+    notes: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -201,6 +204,7 @@ class ApplicationResponse(BaseSchema):
 # ---------------------------------------------------------------------------
 # Interview
 # ---------------------------------------------------------------------------
+
 
 class InterviewType(str, Enum):
     """Interview type."""
@@ -231,23 +235,23 @@ class InterviewCreate(BaseSchema):
     interview_type: InterviewType
     scheduled_at: datetime
     duration_minutes: int = Field(..., ge=15, le=480)
-    location: Optional[str] = Field(None, max_length=500)
-    meeting_link: Optional[str] = Field(None, max_length=500)
-    notes: Optional[str] = Field(None, max_length=2000)
+    location: str | None = Field(None, max_length=500)
+    meeting_link: str | None = Field(None, max_length=500)
+    notes: str | None = Field(None, max_length=2000)
 
 
 class InterviewUpdate(BaseSchema):
     """Schema for updating an interview — all fields optional."""
 
-    interviewer_id: Optional[int] = Field(None, gt=0)
-    interview_type: Optional[InterviewType] = None
-    scheduled_at: Optional[datetime] = None
-    duration_minutes: Optional[int] = Field(None, ge=15, le=480)
-    location: Optional[str] = Field(None, max_length=500)
-    meeting_link: Optional[str] = Field(None, max_length=500)
-    status: Optional[InterviewStatus] = None
-    notes: Optional[str] = Field(None, max_length=2000)
-    feedback: Optional[str] = Field(None, max_length=5000)
+    interviewer_id: int | None = Field(None, gt=0)
+    interview_type: InterviewType | None = None
+    scheduled_at: datetime | None = None
+    duration_minutes: int | None = Field(None, ge=15, le=480)
+    location: str | None = Field(None, max_length=500)
+    meeting_link: str | None = Field(None, max_length=500)
+    status: InterviewStatus | None = None
+    notes: str | None = Field(None, max_length=2000)
+    feedback: str | None = Field(None, max_length=5000)
 
 
 class InterviewResponse(BaseSchema):
@@ -259,11 +263,11 @@ class InterviewResponse(BaseSchema):
     interview_type: InterviewType
     scheduled_at: datetime
     duration_minutes: int
-    location: Optional[str] = None
-    meeting_link: Optional[str] = None
+    location: str | None = None
+    meeting_link: str | None = None
     status: InterviewStatus
-    notes: Optional[str] = None
-    feedback: Optional[str] = None
+    notes: str | None = None
+    feedback: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -271,6 +275,7 @@ class InterviewResponse(BaseSchema):
 # ---------------------------------------------------------------------------
 # Assessment
 # ---------------------------------------------------------------------------
+
 
 class AssessmentType(str, Enum):
     """Assessment type."""
@@ -297,28 +302,28 @@ class AssessmentCreate(BaseSchema):
     application_id: int = Field(..., gt=0)
     assessment_type: AssessmentType
     title: str = Field(..., min_length=1, max_length=200)
-    description: Optional[str] = Field(None, max_length=5000)
-    duration_minutes: Optional[int] = Field(None, ge=15, le=480)
-    max_score: Optional[float] = Field(None, gt=0)
-    passing_score: Optional[float] = Field(None, ge=0)
-    due_date: Optional[datetime] = None
-    external_url: Optional[str] = Field(None, max_length=500)
+    description: str | None = Field(None, max_length=5000)
+    duration_minutes: int | None = Field(None, ge=15, le=480)
+    max_score: float | None = Field(None, gt=0)
+    passing_score: float | None = Field(None, ge=0)
+    due_date: datetime | None = None
+    external_url: str | None = Field(None, max_length=500)
 
 
 class AssessmentUpdate(BaseSchema):
     """Schema for updating an assessment — all fields optional."""
 
-    assessment_type: Optional[AssessmentType] = None
-    title: Optional[str] = Field(None, min_length=1, max_length=200)
-    description: Optional[str] = Field(None, max_length=5000)
-    duration_minutes: Optional[int] = Field(None, ge=15, le=480)
-    max_score: Optional[float] = Field(None, gt=0)
-    passing_score: Optional[float] = Field(None, ge=0)
-    status: Optional[AssessmentStatus] = None
-    score: Optional[float] = Field(None, ge=0)
-    due_date: Optional[datetime] = None
-    external_url: Optional[str] = Field(None, max_length=500)
-    feedback: Optional[str] = Field(None, max_length=5000)
+    assessment_type: AssessmentType | None = None
+    title: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = Field(None, max_length=5000)
+    duration_minutes: int | None = Field(None, ge=15, le=480)
+    max_score: float | None = Field(None, gt=0)
+    passing_score: float | None = Field(None, ge=0)
+    status: AssessmentStatus | None = None
+    score: float | None = Field(None, ge=0)
+    due_date: datetime | None = None
+    external_url: str | None = Field(None, max_length=500)
+    feedback: str | None = Field(None, max_length=5000)
 
 
 class AssessmentResponse(BaseSchema):
@@ -328,14 +333,14 @@ class AssessmentResponse(BaseSchema):
     application_id: int
     assessment_type: AssessmentType
     title: str
-    description: Optional[str] = None
-    duration_minutes: Optional[int] = None
-    max_score: Optional[float] = None
-    passing_score: Optional[float] = None
+    description: str | None = None
+    duration_minutes: int | None = None
+    max_score: float | None = None
+    passing_score: float | None = None
     status: AssessmentStatus
-    score: Optional[float] = None
-    due_date: Optional[datetime] = None
-    external_url: Optional[str] = None
-    feedback: Optional[str] = None
+    score: float | None = None
+    due_date: datetime | None = None
+    external_url: str | None = None
+    feedback: str | None = None
     created_at: datetime
     updated_at: datetime

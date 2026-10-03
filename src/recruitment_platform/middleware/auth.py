@@ -8,8 +8,8 @@ Provides:
 """
 
 import logging
+from collections.abc import Callable
 from enum import Enum
-from typing import Callable, Optional, Set
 
 from fastapi import FastAPI, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -51,7 +51,7 @@ class JWTValidationMiddleware(BaseHTTPMiddleware):
         app: ASGIApp,
         secret_key: str,
         algorithm: str = "HS256",
-        exclude_paths: Optional[Set[str]] = None,
+        exclude_paths: set[str] | None = None,
     ) -> None:
         super().__init__(app)
         self.secret_key = secret_key
@@ -119,7 +119,7 @@ class JWTValidationMiddleware(BaseHTTPMiddleware):
         except jwt.ExpiredSignatureError:
             raise AuthError("Token has expired", status.HTTP_401_UNAUTHORIZED)
         except jwt.InvalidTokenError as exc:
-            raise AuthError(f"Invalid token: {str(exc)}", status.HTTP_401_UNAUTHORIZED)
+            raise AuthError(f"Invalid token: {exc!s}", status.HTTP_401_UNAUTHORIZED)
         except ImportError:
             raise AuthError(
                 "JWT library not available", status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -137,8 +137,8 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app: ASGIApp,
-        valid_api_keys: Optional[Set[str]] = None,
-        exclude_paths: Optional[Set[str]] = None,
+        valid_api_keys: set[str] | None = None,
+        exclude_paths: set[str] | None = None,
     ) -> None:
         super().__init__(app)
         self.valid_api_keys = valid_api_keys or set()
@@ -205,8 +205,8 @@ class RBACMiddleware(BaseHTTPMiddleware):
     def __init__(
         self,
         app: ASGIApp,
-        role_permissions: Optional[dict] = None,
-        exclude_paths: Optional[Set[str]] = None,
+        role_permissions: dict | None = None,
+        exclude_paths: set[str] | None = None,
         default_deny: bool = True,
     ) -> None:
         super().__init__(app)
@@ -231,9 +231,7 @@ class RBACMiddleware(BaseHTTPMiddleware):
         try:
             user_roles = self._get_user_roles(request)
             if not user_roles:
-                raise AuthError(
-                    "No roles found for user", status.HTTP_403_FORBIDDEN
-                )
+                raise AuthError("No roles found for user", status.HTTP_403_FORBIDDEN)
 
             if not self._has_permission(user_roles, request.url.path, request.method):
                 logger.warning(
@@ -254,7 +252,7 @@ class RBACMiddleware(BaseHTTPMiddleware):
 
         return await call_next(request)
 
-    def _get_user_roles(self, request: Request) -> Set[str]:
+    def _get_user_roles(self, request: Request) -> set[str]:
         """Extract user roles from request state (set by auth middleware)."""
         user = getattr(request.state, "user", None)
         if not user:
@@ -265,9 +263,7 @@ class RBACMiddleware(BaseHTTPMiddleware):
             return {roles}
         return set(roles)
 
-    def _has_permission(
-        self, user_roles: Set[str], path: str, method: str
-    ) -> bool:
+    def _has_permission(self, user_roles: set[str], path: str, method: str) -> bool:
         """Check if any of the user's roles has permission for the path/method."""
         for role in user_roles:
             allowed = self.role_permissions.get(role, {})
@@ -327,8 +323,8 @@ def setup_auth_middleware(
     app: FastAPI,
     jwt_secret_key: str,
     jwt_algorithm: str = "HS256",
-    api_keys: Optional[Set[str]] = None,
-    role_permissions: Optional[dict] = None,
+    api_keys: set[str] | None = None,
+    role_permissions: dict | None = None,
 ) -> None:
     """
     Configure and attach all authentication middleware to the FastAPI app.

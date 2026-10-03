@@ -1,6 +1,5 @@
 """WebSocket endpoints for real-time notifications and live analytics."""
 
-import asyncio
 import json
 import logging
 from typing import Any
@@ -67,9 +66,7 @@ async def websocket_analytics(websocket: WebSocket) -> None:
     """
     await websocket.accept()
     _analytics_connections.add(websocket)
-    logger.info(
-        "Analytics client connected (total: %d)", len(_analytics_connections)
-    )
+    logger.info("Analytics client connected (total: %d)", len(_analytics_connections))
     try:
         while True:
             # Keep connection alive; client may send ping/ack messages

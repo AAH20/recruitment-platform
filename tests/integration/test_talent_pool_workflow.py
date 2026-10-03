@@ -1,7 +1,7 @@
 """Integration tests for talent pool workflow."""
 
 import pytest
-from recruitment_platform import RecruitmentPlatform
+from recruitment_platform.main import create_app
 
 
 @pytest.fixture
