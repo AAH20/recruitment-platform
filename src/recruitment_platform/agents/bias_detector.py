@@ -351,7 +351,7 @@ class BiasDetectorAgent:
 _default_agent = BiasDetectorAgent()
 
 
-def detect_bias(text: str) -> BiasResult:
+def detect_bias_as_result(text: str) -> BiasResult:
     """
     Detect biased language in text.
 
@@ -375,6 +375,249 @@ def suggest_alternatives(flagged_terms: List[str]) -> Dict[str, List[str]]:
         Dictionary mapping terms to inclusive alternatives.
     """
     return _default_agent.suggest_alternatives(flagged_terms)
+
+
+# ─── Required Agent Functions ───────────────────────────────────────────────
+
+
+def detect_bias(job_description: str) -> dict:
+    """Detect biased language in a job description.
+
+    Analyzes the provided job description text for terms and phrases
+    associated with various bias categories (gender, age, race/ethnicity,
+    disability, LGBTQ+, socioeconomic status, religion).
+
+    Args:
+        job_description: The job description text to analyze.
+
+    Returns:
+        A dictionary containing:
+            - 'has_bias': bool indicating if any biased terms were found
+            - 'bias_categories': dict mapping category names to lists of
+              found biased terms
+            - 'biased_terms': flat list of all biased terms found
+            - 'suggestions': list of suggested inclusive alternatives
+            - 'bias_score': float from 0.0 (no bias) to 1.0 (high bias)
+
+    Raises:
+        TypeError: If job_description is not a string.
+        ValueError: If job_description is empty or contains only whitespace.
+    """
+    if not isinstance(job_description, str):
+        raise TypeError(
+            f"job_description must be a string, got {type(job_description).__name__}"
+        )
+
+    if not job_description.strip():
+        raise ValueError("job_description cannot be empty or whitespace only")
+
+    text_lower = job_description.lower()
+    bias_categories: dict[str, list[str]] = {}
+    all_biased_terms: list[str] = []
+    all_suggestions: list[str] = []
+
+    for term, (category, _severity) in BIAS_DATABASE.items():
+        if " " in term:
+            pattern = re.escape(term)
+        else:
+            pattern = r'\b' + re.escape(term) + r'\b'
+
+        matches = list(re.finditer(pattern, text_lower, re.IGNORECASE))
+
+        if matches:
+            if category not in bias_categories:
+                bias_categories[category] = []
+            bias_categories[category].append(term)
+            all_biased_terms.append(term)
+
+            if term in ALTERNATIVES_DATABASE:
+                all_suggestions.extend(ALTERNATIVES_DATABASE[term])
+
+    # Calculate bias score based on density of biased terms
+    word_count = len(job_description.split())
+    if word_count == 0:
+        bias_score = 0.0
+    else:
+        bias_score = min(1.0, len(all_biased_terms) / max(word_count * 0.05, 1.0))
+
+    return {
+        "has_bias": len(all_biased_terms) > 0,
+        "bias_categories": bias_categories,
+        "biased_terms": all_biased_terms,
+        "suggestions": list(set(all_suggestions)),
+        "bias_score": round(bias_score, 3),
+    }
+
+
+def suggest_improvements(bias_report: dict) -> list[str]:
+    """Suggest improvements to reduce bias based on a bias report.
+
+    Takes the output from detect_bias() and generates actionable
+    suggestions for making the job description more inclusive.
+
+    Args:
+        bias_report: A dictionary containing bias analysis results,
+            as returned by detect_bias().
+
+    Returns:
+        A list of strings, each containing a specific suggestion
+        for improving the job description's inclusivity.
+
+    Raises:
+        TypeError: If bias_report is not a dictionary.
+        ValueError: If bias_report is missing required keys.
+    """
+    if not isinstance(bias_report, dict):
+        raise TypeError(
+            f"bias_report must be a dictionary, got {type(bias_report).__name__}"
+        )
+
+    required_keys = {"has_bias", "bias_categories", "biased_terms", "suggestions"}
+    missing_keys = required_keys - set(bias_report.keys())
+    if missing_keys:
+        raise ValueError(f"bias_report missing required keys: {missing_keys}")
+
+    suggestions: list[str] = []
+
+    if not bias_report["has_bias"]:
+        suggestions.append(
+            "No biased language detected. Continue to review for "
+            "unconscious bias in requirements and qualifications."
+        )
+        return suggestions
+
+    # Category-specific suggestions
+    category_suggestions: dict[str, list[str]] = {
+        "gender": [
+            "Use gender-neutral language throughout the job description.",
+            "Replace gendered pronouns with 'they/them' or restructure sentences.",
+            "Use gender-neutral job titles (e.g., 'salesperson' instead of 'salesman').",
+            "Avoid terms like 'guys' or 'ladies'; use 'team' or 'everyone' instead.",
+        ],
+        "age": [
+            "Focus on skills and competencies rather than age-related terms.",
+            "Avoid terms like 'young', 'energetic', or 'digital native'.",
+            "Use 'early-career' or 'experienced' instead of age indicators.",
+            "Do not specify graduation years or age ranges.",
+        ],
+        "racial": [
+            "Avoid requiring 'native' language proficiency; specify required "
+            "proficiency level instead.",
+            "Remove 'cultural fit' requirements; focus on 'culture add'.",
+            "Avoid terms that may signal racial or ethnic bias.",
+        ],
+        "disability": [
+            "Focus on essential job functions and state that reasonable "
+            "accommodations are available.",
+            "Avoid physical requirements unless truly essential to the role.",
+            "Remove stigmatizing terms related to disability or mental health.",
+        ],
+        "lgbtq": [
+            "Use inclusive language that welcomes all gender identities "
+            "and sexual orientations.",
+            "Avoid assumptions about gender or family structure.",
+        ],
+        "socioeconomic": [
+            "Avoid requiring degrees from 'prestigious' or 'ivy league' "
+            "institutions unless truly necessary.",
+            "Focus on skills and competencies rather than school prestige.",
+            "Remove appearance-based requirements unless job-related.",
+        ],
+        "religious": [
+            "Avoid religious language unless it is a genuine occupational requirement.",
+            "Use 'shared values' or 'organizational values' instead of specific religious terms.",
+        ],
+    }
+
+    for category in bias_report.get("bias_categories", {}):
+        if category in category_suggestions:
+            suggestions.extend(category_suggestions[category])
+
+    # Add general suggestions
+    suggestions.extend([
+        "Review the job description with a diverse group of reviewers.",
+        "Use structured interviews with consistent questions for all candidates.",
+        "Focus on essential job functions and required competencies.",
+        "Consider using blind resume screening to reduce unconscious bias.",
+    ])
+
+    # Remove duplicates while preserving order
+    seen: set[str] = set()
+    unique_suggestions: list[str] = []
+    for s in suggestions:
+        if s not in seen:
+            seen.add(s)
+            unique_suggestions.append(s)
+
+    return unique_suggestions
+
+
+def score_inclusivity(text: str) -> float:
+    """Score the inclusivity of a given text.
+
+    Returns a score from 0.0 (not inclusive) to 1.0 (highly inclusive)
+    based on the presence of inclusive language and absence of biased terms.
+
+    Args:
+        text: The text to score for inclusivity.
+
+    Returns:
+        A float between 0.0 and 1.0 representing the inclusivity score.
+        Higher scores indicate more inclusive language.
+
+    Raises:
+        TypeError: If text is not a string.
+        ValueError: If text is empty or contains only whitespace.
+    """
+    if not isinstance(text, str):
+        raise TypeError(f"text must be a string, got {type(text).__name__}")
+
+    if not text.strip():
+        raise ValueError("text cannot be empty or whitespace only")
+
+    text_lower = text.lower()
+    words = text_lower.split()
+    total_words = len(words)
+
+    if total_words == 0:
+        return 0.0
+
+    # Count biased terms
+    biased_count = 0
+    for term, (_category, _severity) in BIAS_DATABASE.items():
+        if " " in term:
+            pattern = re.escape(term)
+        else:
+            pattern = r'\b' + re.escape(term) + r'\b'
+        biased_count += len(re.findall(pattern, text_lower, re.IGNORECASE))
+
+    # Count inclusive terms
+    inclusive_terms = [
+        "they", "them", "their", "theirs", "themselves",
+        "inclusive", "diversity", "equity", "belonging",
+        "accessible", "accommodation", "flexible",
+        "remote", "work-life balance", "parental leave",
+        "all backgrounds", "all genders", "all identities",
+        "underrepresented", "equal opportunity",
+    ]
+
+    inclusive_count = 0
+    for term in inclusive_terms:
+        if " " in term:
+            pattern = re.escape(term)
+        else:
+            pattern = r'\b' + re.escape(term) + r'\b'
+        inclusive_count += len(re.findall(pattern, text_lower, re.IGNORECASE))
+
+    # Calculate score: start at 1.0, penalize for biased terms,
+    # bonus for inclusive terms
+    bias_penalty = min(1.0, biased_count / max(total_words * 0.02, 1.0))
+    inclusive_bonus = min(0.3, inclusive_count / max(total_words * 0.02, 1.0))
+
+    score = 1.0 - bias_penalty + inclusive_bonus
+    score = max(0.0, min(1.0, score))
+
+    return round(score, 3)
 
 
 # ─── Example Usage ──────────────────────────────────────────────────────────

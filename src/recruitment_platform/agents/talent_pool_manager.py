@@ -1508,38 +1508,6 @@ def create_talent_pool(name: str, criteria: dict) -> dict:
     }
 
 
-def add_to_pool(pool_id: str, candidate_id: str) -> bool:
-    """Add a candidate to an existing talent pool.
-
-    Args:
-        pool_id: Identifier of the target pool.
-        candidate_id: Identifier of the candidate to add.
-
-    Returns:
-        ``True`` if the candidate was added, ``False`` if the candidate
-        was already in the pool.
-
-    Raises:
-        ValueError: If ``pool_id`` or ``candidate_id`` is empty or does not exist.
-    """
-    if not isinstance(pool_id, str) or not pool_id.strip():
-        raise ValueError("pool_id must be a non-empty string")
-    if not isinstance(candidate_id, str) or not candidate_id.strip():
-        raise ValueError("candidate_id must be a non-empty string")
-
-    manager = get_manager()
-    if pool_id not in manager._pools:
-        raise ValueError(f"Talent pool '{pool_id}' does not exist")
-    if candidate_id not in manager._candidates:
-        raise ValueError(f"Candidate '{candidate_id}' does not exist")
-
-    if manager.is_candidate_in_pool(candidate_id, pool_id):
-        return False
-
-    manager.add_to_pool(candidate_id, pool_id)
-    return True
-
-
 def search_pool(pool_id: str, query: str) -> list[dict]:
     """Search a talent pool for candidates matching *query*.
 
