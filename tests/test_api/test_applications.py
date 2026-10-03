@@ -13,8 +13,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.main import app, get_db
-from app.models import Base
+from recruitment_platform.main import app, get_db
+from recruitment_platform.models import Base
 
 
 # ── Test Database Setup ───────────────────────────────────────────────────────

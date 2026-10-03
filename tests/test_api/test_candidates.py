@@ -20,7 +20,7 @@ def client():
     """Return a TestClient bound to the FastAPI application."""
     # Import the app lazily so that import errors surface as test failures
     # rather than collection errors.
-    from app.main import app  # adjust import path to match your project layout
+    from recruitment_platform.main import app  # adjust import path to match your project layout
     return TestClient(app)
 
 

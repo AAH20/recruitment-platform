@@ -18,7 +18,7 @@ from fastapi.testclient import TestClient
 @pytest.fixture
 def client():
     """Return a TestClient for the application."""
-    from app.main import app
+    from recruitment_platform.main import recruitment_platform
 
     return TestClient(app)
 

@@ -21,7 +21,7 @@ from fastapi.testclient import TestClient
 def client():
     """Return a TestClient bound to the FastAPI app."""
     # Import lazily so collection does not fail if the app is not yet wired.
-    from app.main import app  # type: ignore
+    from recruitment_platform.main import app  # type: ignore
 
     return TestClient(app)
 

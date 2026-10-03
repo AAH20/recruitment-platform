@@ -21,7 +21,7 @@ def mock_db():
 @pytest.fixture
 def candidate_service(mock_db):
     """Fixture providing a CandidateService instance with mocked DB."""
-    from app.services.candidate_service import CandidateService
+    from recruitment_platform.services.candidate_service import CandidateService
     return CandidateService(db=mock_db)
 
 
