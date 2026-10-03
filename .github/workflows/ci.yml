@@ -16,6 +16,7 @@ jobs:
   backend-lint:
     name: Backend Lint & Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -44,6 +45,7 @@ jobs:
   frontend-lint:
     name: Frontend Lint & Type Check
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
@@ -69,6 +71,7 @@ jobs:
   backend-test:
     name: Backend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -119,6 +122,7 @@ jobs:
   frontend-test:
     name: Frontend Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
@@ -150,6 +154,7 @@ jobs:
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read
@@ -212,6 +217,7 @@ jobs:
   build-check:
     name: Build Verification
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [backend-lint, frontend-lint, backend-test, frontend-test]
     steps:
       - uses: actions/checkout@v4
