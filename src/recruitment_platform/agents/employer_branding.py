@@ -810,7 +810,7 @@ def generate_employer_profile(company_data: dict) -> dict:
     if description:
         overview_parts.append(f". {description}")
 
-    profile["overview"] = " ".join(overview_parts).strip()
+    (profile["overview"] = " ".join(overview_parts).strip())
 
     # Generate tagline
     mission = company_data.get("mission", "")

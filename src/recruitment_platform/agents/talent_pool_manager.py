@@ -19,7 +19,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 
-class PoolVisibility(str, Enum):
+class PoolVisibility(Enum):
     """Visibility level for a talent pool."""
 
     PRIVATE = "private"
@@ -27,7 +27,7 @@ class PoolVisibility(str, Enum):
     ORGANIZATION = "organization"
 
 
-class CandidateStatus(str, Enum):
+class CandidateStatus(Enum):
     """Status of a candidate within a talent pool."""
 
     NEW = "new"
@@ -39,7 +39,7 @@ class CandidateStatus(str, Enum):
     ARCHIVED = "archived"
 
 
-class PoolActivityType(str, Enum):
+class PoolActivityType(Enum):
     """Types of activities tracked in a talent pool."""
 
     CANDIDATE_ADDED = "candidate_added"

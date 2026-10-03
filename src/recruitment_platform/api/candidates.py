@@ -24,7 +24,7 @@ router = APIRouter(prefix="/candidates", tags=["candidates"])
 # ---------------------------------------------------------------------------
 
 
-class CandidateStatus(str, Enum):
+class CandidateStatus(Enum):
     NEW = "new"
     SCREENING = "screening"
     INTERVIEW = "interview"
@@ -33,7 +33,7 @@ class CandidateStatus(str, Enum):
     REJECTED = "rejected"
 
 
-class ExperienceLevel(str, Enum):
+class ExperienceLevel(Enum):
     JUNIOR = "junior"
     MID = "mid"
     SENIOR = "senior"

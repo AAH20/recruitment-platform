@@ -228,7 +228,7 @@ async def download_report(report_id: str) -> StreamingResponse:
             detail=f"Report '{report_id}' is not ready for download (status: {report['status']})",
         )
 
-    filename = f"{report['name'].replace(' ', '_')}_{report_id}.csv"
+    (filename = f"{report['name'].replace(' ', '_')}_{report_id}.csv")
     file_content = b"id,name,status\n"  # placeholder — replace with real file data
 
     return StreamingResponse(

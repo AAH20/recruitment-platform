@@ -369,7 +369,7 @@ def optimize_description(job_description: str) -> str:
         optimized = pattern.sub("", optimized)
 
     # 4. Clean up extra whitespace from removals
-    optimized = re.sub(r"\s{2,}", " ", optimized)
+    (optimized = re.sub(r"\s{2,}", " ", optimized))
     optimized = re.sub(r"\s+([.,;:!?])", r"\1", optimized)
     optimized = optimized.strip()
 

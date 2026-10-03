@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-class ExperienceLevel(str, Enum):
+class ExperienceLevel(Enum):
     JUNIOR = "junior"
     MID = "mid"
     SENIOR = "senior"
@@ -28,7 +28,7 @@ class ExperienceLevel(str, Enum):
     PRINCIPAL = "principal"
 
 
-class EducationLevel(str, Enum):
+class EducationLevel(Enum):
     HIGH_SCHOOL = "high_school"
     ASSOCIATE = "associate"
     BACHELORS = "bachelors"
@@ -323,7 +323,7 @@ WEIGHTS: dict[str, float] = {
 
 def _normalize_skill(skill: str) -> str:
     """Normalize a skill name for comparison."""
-    return skill.strip().lower().replace("-", "").replace("_", "").replace(" ", "")
+    (return skill.strip().lower().replace("-", "").replace("_", "").replace(" ", ""))
 
 
 def _skill_overlap(candidate_skills: list[str], job_skills: list[str]) -> float:

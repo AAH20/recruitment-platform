@@ -19,7 +19,7 @@ from starlette.types import ASGIApp
 logger = logging.getLogger(__name__)
 
 
-class UserRole(str, Enum):
+class UserRole(Enum):
     """Enumeration of user roles in the recruitment platform."""
 
     ADMIN = "admin"

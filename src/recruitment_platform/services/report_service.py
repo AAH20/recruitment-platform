@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Any
 
 
-class ReportType(str, Enum):
+class ReportType(Enum):
     """Supported report types."""
 
     PIPELINE = "pipeline"
@@ -21,7 +21,7 @@ class ReportType(str, Enum):
     CUSTOM = "custom"
 
 
-class ReportStatus(str, Enum):
+class ReportStatus(Enum):
     """Report generation status."""
 
     PENDING = "pending"

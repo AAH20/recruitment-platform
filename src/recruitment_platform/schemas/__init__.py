@@ -83,7 +83,7 @@ class CandidateResponse(BaseSchema):
 # ---------------------------------------------------------------------------
 
 
-class JobStatus(str, Enum):
+class JobStatus(Enum):
     """Job posting status."""
 
     DRAFT = "draft"
@@ -154,7 +154,7 @@ class JobResponse(BaseSchema):
 # ---------------------------------------------------------------------------
 
 
-class ApplicationStatus(str, Enum):
+class ApplicationStatus(Enum):
     """Application status."""
 
     NEW = "new"
@@ -206,7 +206,7 @@ class ApplicationResponse(BaseSchema):
 # ---------------------------------------------------------------------------
 
 
-class InterviewType(str, Enum):
+class InterviewType(Enum):
     """Interview type."""
 
     PHONE = "phone"
@@ -217,7 +217,7 @@ class InterviewType(str, Enum):
     PANEL = "panel"
 
 
-class InterviewStatus(str, Enum):
+class InterviewStatus(Enum):
     """Interview status."""
 
     SCHEDULED = "scheduled"
@@ -277,7 +277,7 @@ class InterviewResponse(BaseSchema):
 # ---------------------------------------------------------------------------
 
 
-class AssessmentType(str, Enum):
+class AssessmentType(Enum):
     """Assessment type."""
 
     TECHNICAL = "technical"
@@ -287,7 +287,7 @@ class AssessmentType(str, Enum):
     CASE_STUDY = "case_study"
 
 
-class AssessmentStatus(str, Enum):
+class AssessmentStatus(Enum):
     """Assessment status."""
 
     PENDING = "pending"

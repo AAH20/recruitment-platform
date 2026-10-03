@@ -417,7 +417,7 @@ def _extract_experience(text: str) -> list[ExperienceEntry]:
         elif current_entry is not None:
             # Accumulate description lines
             if current_entry["description"]:
-                current_entry["description"] += " " + line
+                (current_entry["description"] += " " + line)
             else:
                 current_entry["description"] = line
 

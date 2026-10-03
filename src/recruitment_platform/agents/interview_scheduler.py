@@ -18,7 +18,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 
-class InterviewType(str, Enum):
+class InterviewType(Enum):
     PHONE_SCREEN = "phone_screen"
     TECHNICAL = "technical"
     BEHAVIORAL = "behavioral"
@@ -26,7 +26,7 @@ class InterviewType(str, Enum):
     FINAL = "final"
 
 
-class InterviewStatus(str, Enum):
+class InterviewStatus(Enum):
     SCHEDULED = "scheduled"
     CONFIRMED = "confirmed"
     RESCHEDULED = "rescheduled"
