@@ -1,18 +1,51 @@
-"""Comprehensive API tests for the /jobs endpoints."""
+"""Comprehensive API tests for the /api/v1/jobs endpoints."""
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from recruitment_platform.main import app, get_db
+from recruitment_platform.database import Base
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
-@pytest.fixture
-def client():
-    """Return a TestClient bound to the FastAPI app."""
-    from recruitment_platform.main import recruitment_platform
-    return TestClient(app)
+@pytest.fixture(scope="function")
+def db_session():
+    """Create a fresh in-memory SQLite database for each test."""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base.metadata.create_all(bind=engine)
+
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(scope="function")
+def client(db_session):
+    """Return a TestClient wired to the test database."""
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as test_client:
+        yield test_client
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -21,315 +54,272 @@ def sample_job_payload():
     return {
         "title": "Senior Backend Engineer",
         "description": "Build and maintain scalable APIs.",
+        "company": "Acme Corp",
         "location": "Remote",
         "salary_min": 120000,
         "salary_max": 180000,
         "employment_type": "full-time",
-        "department": "Engineering",
-        "is_active": True,
+        "status": "open",
     }
 
 
 @pytest.fixture
 def created_job(client, sample_job_payload):
     """Create a job via the API and return the response JSON."""
-    response = client.post("/jobs", json=sample_job_payload)
+    response = client.post("/api/v1/jobs", json=sample_job_payload)
     assert response.status_code == 201
     return response.json()
 
 
 # ---------------------------------------------------------------------------
-# 1. test_create_job — POST /jobs
+# 1. GET /api/v1/jobs — list with pagination
+# ---------------------------------------------------------------------------
+
+class TestListJobs:
+    """Tests for GET /api/v1/jobs."""
+
+    def test_list_jobs_empty(self, client):
+        """GET /api/v1/jobs returns an empty list when no jobs exist."""
+        response = client.get("/api/v1/jobs")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["items"] == []
+        assert data["total"] == 0
+        assert data["page"] == 1
+        assert data["page_size"] == 20
+
+    def test_list_jobs_returns_created_jobs(self, client, sample_job_payload):
+        """GET /api/v1/jobs returns previously created jobs."""
+        client.post("/api/v1/jobs", json=sample_job_payload)
+        response = client.get("/api/v1/jobs")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
+        assert data["items"][0]["title"] == sample_job_payload["title"]
+
+    def test_list_jobs_pagination_first_page(self, client, sample_job_payload):
+        """GET /api/v1/jobs returns the correct first page of results."""
+        for i in range(5):
+            payload = {**sample_job_payload, "title": f"Job {i}"}
+            client.post("/api/v1/jobs", json=payload)
+
+        response = client.get("/api/v1/jobs?page=1&page_size=2")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 5
+        assert data["page"] == 1
+        assert data["page_size"] == 2
+        assert len(data["items"]) == 2
+
+    def test_list_jobs_pagination_second_page(self, client, sample_job_payload):
+        """GET /api/v1/jobs returns the correct second page of results."""
+        for i in range(5):
+            payload = {**sample_job_payload, "title": f"Job {i}"}
+            client.post("/api/v1/jobs", json=payload)
+
+        response = client.get("/api/v1/jobs?page=2&page_size=2")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 5
+        assert data["page"] == 2
+        assert data["page_size"] == 2
+        assert len(data["items"]) == 2
+
+    def test_list_jobs_pagination_last_partial_page(self, client, sample_job_payload):
+        """GET /api/v1/jobs returns a partial last page correctly."""
+        for i in range(5):
+            payload = {**sample_job_payload, "title": f"Job {i}"}
+            client.post("/api/v1/jobs", json=payload)
+
+        response = client.get("/api/v1/jobs?page=3&page_size=2")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 5
+        assert data["page"] == 3
+        assert len(data["items"]) == 1
+
+    def test_list_jobs_pagination_out_of_range(self, client, sample_job_payload):
+        """GET /api/v1/jobs returns empty items when page exceeds total pages."""
+        client.post("/api/v1/jobs", json=sample_job_payload)
+        response = client.get("/api/v1/jobs?page=10&page_size=20")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["items"] == []
+        assert data["total"] == 1
+
+    def test_list_jobs_default_page_size(self, client, sample_job_payload):
+        """GET /api/v1/jobs uses default page_size of 20."""
+        response = client.get("/api/v1/jobs")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["page_size"] == 20
+
+
+# ---------------------------------------------------------------------------
+# 2. POST /api/v1/jobs — create
 # ---------------------------------------------------------------------------
 
 class TestCreateJob:
-    """Tests for POST /jobs."""
+    """Tests for POST /api/v1/jobs."""
 
     def test_create_job_success(self, client, sample_job_payload):
-        """POST /jobs with valid payload returns 201 and the created job."""
-        response = client.post("/jobs", json=sample_job_payload)
-
+        """POST /api/v1/jobs creates a job and returns 201 with the job data."""
+        response = client.post("/api/v1/jobs", json=sample_job_payload)
         assert response.status_code == 201
         data = response.json()
+        assert data["id"] is not None
         assert data["title"] == sample_job_payload["title"]
         assert data["description"] == sample_job_payload["description"]
+        assert data["company"] == sample_job_payload["company"]
         assert data["location"] == sample_job_payload["location"]
         assert data["salary_min"] == sample_job_payload["salary_min"]
         assert data["salary_max"] == sample_job_payload["salary_max"]
         assert data["employment_type"] == sample_job_payload["employment_type"]
-        assert data["department"] == sample_job_payload["department"]
-        assert data["is_active"] is True
-        assert "id" in data
+        assert data["status"] == sample_job_payload["status"]
         assert "created_at" in data
         assert "updated_at" in data
 
-    def test_create_job_minimal_payload(self, client):
-        """POST /jobs with only required fields succeeds."""
-        payload = {"title": "DevOps Engineer"}
-        response = client.post("/jobs", json=payload)
-
-        assert response.status_code == 201
-        data = response.json()
-        assert data["title"] == "DevOps Engineer"
-        assert "id" in data
-
-    def test_create_job_missing_title(self, client):
-        """POST /jobs without a title returns 422."""
-        payload = {"description": "No title provided"}
-        response = client.post("/jobs", json=payload)
-
+    def test_create_job_missing_required_fields(self, client):
+        """POST /api/v1/jobs returns 422 when required fields are missing."""
+        response = client.post("/api/v1/jobs", json={})
         assert response.status_code == 422
 
-    def test_create_job_empty_title(self, client):
-        """POST /jobs with an empty title returns 422."""
-        payload = {"title": ""}
-        response = client.post("/jobs", json=payload)
-
+    def test_create_job_missing_title(self, client, sample_job_payload):
+        """POST /api/v1/jobs returns 422 when title is missing."""
+        payload = {k: v for k, v in sample_job_payload.items() if k != "title"}
+        response = client.post("/api/v1/jobs", json=payload)
         assert response.status_code == 422
 
-    def test_create_job_invalid_salary_range(self, client):
-        """POST /jobs where salary_min > salary_max returns 422."""
-        payload = {
-            "title": "QA Engineer",
-            "salary_min": 100000,
-            "salary_max": 50000,
-        }
-        response = client.post("/jobs", json=payload)
-
+    def test_create_job_invalid_salary_range(self, client, sample_job_payload):
+        """POST /api/v1/jobs returns 422 when salary_min > salary_max."""
+        payload = {**sample_job_payload, "salary_min": 200000, "salary_max": 100000}
+        response = client.post("/api/v1/jobs", json=payload)
         assert response.status_code == 422
 
-    def test_create_job_invalid_employment_type(self, client):
-        """POST /jobs with an invalid employment_type returns 422."""
-        payload = {
-            "title": "Designer",
-            "employment_type": "internship-fulltime-hybrid",
-        }
-        response = client.post("/jobs", json=payload)
-
+    def test_create_job_invalid_employment_type(self, client, sample_job_payload):
+        """POST /api/v1/jobs returns 422 for an invalid employment_type."""
+        payload = {**sample_job_payload, "employment_type": "internship-fulltime-hybrid"}
+        response = client.post("/api/v1/jobs", json=payload)
         assert response.status_code == 422
 
-    def test_create_job_negative_salary(self, client):
-        """POST /jobs with a negative salary returns 422."""
-        payload = {
-            "title": "Support Engineer",
-            "salary_min": -1000,
-        }
-        response = client.post("/jobs", json=payload)
-
-        assert response.status_code == 422
-
-    def test_create_job_extra_fields_ignored(self, client):
-        """POST /jobs ignores unknown fields gracefully."""
-        payload = {
-            "title": "Product Manager",
-            "unknown_field": "should be ignored",
-        }
-        response = client.post("/jobs", json=payload)
-
-        assert response.status_code == 201
-        data = response.json()
-        assert "unknown_field" not in data
-
-    def test_create_job_content_type(self, client, sample_job_payload):
-        """POST /jobs returns JSON content type."""
-        response = client.post("/jobs", json=sample_job_payload)
-
-        assert response.headers["content-type"].startswith("application/json")
-
-    def test_create_job_id_is_unique(self, client, sample_job_payload):
-        """Two POST /jobs calls produce different IDs."""
-        resp1 = client.post("/jobs", json=sample_job_payload)
-        resp2 = client.post("/jobs", json=sample_job_payload)
-
+    def test_create_job_auto_generates_id(self, client, sample_job_payload):
+        """POST /api/v1/jobs auto-generates a unique id for each job."""
+        resp1 = client.post("/api/v1/jobs", json=sample_job_payload)
+        resp2 = client.post("/api/v1/jobs", json=sample_job_payload)
         assert resp1.status_code == 201
         assert resp2.status_code == 201
         assert resp1.json()["id"] != resp2.json()["id"]
 
 
 # ---------------------------------------------------------------------------
-# 2. test_list_jobs — GET /jobs
-# ---------------------------------------------------------------------------
-
-class TestListJobs:
-    """Tests for GET /jobs."""
-
-    def test_list_jobs_empty(self, client):
-        """GET /jobs returns an empty list when no jobs exist."""
-        response = client.get("/jobs")
-
-        assert response.status_code == 200
-        assert response.json() == []
-
-    def test_list_jobs_returns_created(self, client, created_job):
-        """GET /jobs includes a previously created job."""
-        response = client.get("/jobs")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) >= 1
-        ids = [job["id"] for job in data]
-        assert created_job["id"] in ids
-
-    def test_list_jobs_multiple(self, client, sample_job_payload):
-        """GET /jobs returns all created jobs."""
-        # Create three jobs
-        for i in range(3):
-            payload = {**sample_job_payload, "title": f"Job {i}"}
-            client.post("/jobs", json=payload)
-
-        response = client.get("/jobs")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) >= 3
-
-    def test_list_jobs_pagination_limit(self, client, sample_job_payload):
-        """GET /jobs?limit=N respects the limit parameter."""
-        for i in range(5):
-            payload = {**sample_job_payload, "title": f"Paginated Job {i}"}
-            client.post("/jobs", json=payload)
-
-        response = client.get("/jobs", params={"limit": 2})
-
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) <= 2
-
-    def test_list_jobs_pagination_offset(self, client, sample_job_payload):
-        """GET /jobs?offset=N skips the first N jobs."""
-        # Create jobs with known titles
-        for i in range(5):
-            payload = {**sample_job_payload, "title": f"Offset Job {i}"}
-            client.post("/jobs", json=payload)
-
-        response = client.get("/jobs", params={"offset": 3})
-
-        assert response.status_code == 200
-        data = response.json()
-        # Should have fewer results than the total
-        all_response = client.get("/jobs")
-        all_data = all_response.json()
-        assert len(data) < len(all_data)
-
-    def test_list_jobs_filter_by_department(self, client, sample_job_payload):
-        """GET /jobs?department=Engineering filters by department."""
-        client.post("/jobs", json={**sample_job_payload, "department": "Engineering"})
-        client.post("/jobs", json={**sample_job_payload, "department": "Marketing"})
-
-        response = client.get("/jobs", params={"department": "Engineering"})
-
-        assert response.status_code == 200
-        data = response.json()
-        for job in data:
-            assert job["department"] == "Engineering"
-
-    def test_list_jobs_filter_by_location(self, client, sample_job_payload):
-        """GET /jobs?location=Remote filters by location."""
-        client.post("/jobs", json={**sample_job_payload, "location": "Remote"})
-        client.post("/jobs", json={**sample_job_payload, "location": "New York"})
-
-        response = client.get("/jobs", params={"location": "Remote"})
-
-        assert response.status_code == 200
-        data = response.json()
-        for job in data:
-            assert job["location"] == "Remote"
-
-    def test_list_jobs_filter_by_is_active(self, client, sample_job_payload):
-        """GET /jobs?is_active=false returns only inactive jobs."""
-        client.post("/jobs", json={**sample_job_payload, "is_active": True})
-        client.post("/jobs", json={**sample_job_payload, "is_active": False})
-
-        response = client.get("/jobs", params={"is_active": "false"})
-
-        assert response.status_code == 200
-        data = response.json()
-        for job in data:
-            assert job["is_active"] is False
-
-    def test_list_jobs_response_structure(self, client, created_job):
-        """GET /jobs returns objects with expected keys."""
-        response = client.get("/jobs")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) >= 1
-        job = data[0]
-        expected_keys = {"id", "title", "description", "location", "created_at", "updated_at"}
-        assert expected_keys.issubset(set(job.keys()))
-
-    def test_list_jobs_content_type(self, client):
-        """GET /jobs returns JSON content type."""
-        response = client.get("/jobs")
-
-        assert response.headers["content-type"].startswith("application/json")
-
-
-# ---------------------------------------------------------------------------
-# 3. test_get_job — GET /jobs/{id}
+# 3. GET /api/v1/jobs/{id} — retrieve single job
 # ---------------------------------------------------------------------------
 
 class TestGetJob:
-    """Tests for GET /jobs/{id}."""
+    """Tests for GET /api/v1/jobs/{id}."""
 
-    def test_get_job_success(self, client, created_job):
-        """GET /jobs/{id} returns the correct job."""
+    def test_get_job_success(self, client, created_job, sample_job_payload):
+        """GET /api/v1/jobs/{id} returns the correct job."""
         job_id = created_job["id"]
-        response = client.get(f"/jobs/{job_id}")
-
+        response = client.get(f"/api/v1/jobs/{job_id}")
         assert response.status_code == 200
         data = response.json()
         assert data["id"] == job_id
-        assert data["title"] == created_job["title"]
-        assert data["description"] == created_job["description"]
-        assert data["location"] == created_job["location"]
+        assert data["title"] == sample_job_payload["title"]
+        assert data["company"] == sample_job_payload["company"]
 
     def test_get_job_not_found(self, client):
-        """GET /jobs/{id} with non-existent ID returns 404."""
-        response = client.get("/jobs/999999")
-
+        """GET /api/v1/jobs/{id} returns 404 for a non-existent job."""
+        response = client.get("/api/v1/jobs/99999")
         assert response.status_code == 404
+        assert "detail" in response.json()
 
     def test_get_job_invalid_id_format(self, client):
-        """GET /jobs/{id} with non-integer ID returns 422."""
-        response = client.get("/jobs/not-a-number")
-
+        """GET /api/v1/jobs/{id} returns 422 for a non-integer id."""
+        response = client.get("/api/v1/jobs/not-a-number")
         assert response.status_code == 422
 
-    def test_get_job_negative_id(self, client):
-        """GET /jobs/{id} with negative ID returns 404."""
-        response = client.get("/jobs/-1")
 
-        assert response.status_code == 404
+# ---------------------------------------------------------------------------
+# 4. PUT /api/v1/jobs/{id} — update
+# ---------------------------------------------------------------------------
 
-    def test_get_job_content_type(self, client, created_job):
-        """GET /jobs/{id} returns JSON content type."""
-        response = client.get(f"/jobs/{created_job['id']}")
+class TestUpdateJob:
+    """Tests for PUT /api/v1/jobs/{id}."""
 
-        assert response.headers["content-type"].startswith("application/json")
-
-    def test_get_job_all_fields_present(self, client, created_job):
-        """GET /jobs/{id} response contains all expected fields."""
-        response = client.get(f"/jobs/{created_job['id']}")
-
+    def test_update_job_success(self, client, created_job):
+        """PUT /api/v1/jobs/{id} updates and returns the modified job."""
+        job_id = created_job["id"]
+        update_payload = {"title": "Staff Engineer", "salary_max": 220000}
+        response = client.put(f"/api/v1/jobs/{job_id}", json=update_payload)
         assert response.status_code == 200
         data = response.json()
-        expected_keys = {
-            "id", "title", "description", "location",
-            "salary_min", "salary_max", "employment_type",
-            "department", "is_active", "created_at", "updated_at",
-        }
-        assert expected_keys.issubset(set(data.keys()))
+        assert data["id"] == job_id
+        assert data["title"] == "Staff Engineer"
+        assert data["salary_max"] == 220000
+        # Unchanged fields remain intact
+        assert data["company"] == created_job["company"]
+        assert data["location"] == created_job["location"]
 
-    def test_get_job_after_update_reflects_changes(self, client, created_job):
-        """GET /jobs/{id} reflects updates made after creation."""
+    def test_update_job_not_found(self, client):
+        """PUT /api/v1/jobs/{id} returns 404 for a non-existent job."""
+        response = client.put("/api/v1/jobs/99999", json={"title": "New Title"})
+        assert response.status_code == 404
+
+    def test_update_job_partial(self, client, created_job):
+        """PUT /api/v1/jobs/{id} supports partial updates."""
         job_id = created_job["id"]
-
-        # Update the job
-        update_payload = {"title": "Updated Title"}
-        client.patch(f"/jobs/{job_id}", json=update_payload)
-
-        # Fetch and verify
-        response = client.get(f"/jobs/{job_id}")
+        response = client.put(f"/api/v1/jobs/{job_id}", json={"status": "closed"})
         assert response.status_code == 200
-        assert response.json()["title"] == "Updated Title"
+        data = response.json()
+        assert data["status"] == "closed"
+        assert data["title"] == created_job["title"]
+
+    def test_update_job_invalid_id_format(self, client):
+        """PUT /api/v1/jobs/{id} returns 422 for a non-integer id."""
+        response = client.put("/api/v1/jobs/abc", json={"title": "X"})
+        assert response.status_code == 422
+
+    def test_update_job_empty_body(self, client, created_job):
+        """PUT /api/v1/jobs/{id} with empty body returns the job unchanged."""
+        job_id = created_job["id"]
+        response = client.put(f"/api/v1/jobs/{job_id}", json={})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["title"] == created_job["title"]
+
+
+# ---------------------------------------------------------------------------
+# 5. DELETE /api/v1/jobs/{id} — delete
+# ---------------------------------------------------------------------------
+
+class TestDeleteJob:
+    """Tests for DELETE /api/v1/jobs/{id}."""
+
+    def test_delete_job_success(self, client, created_job):
+        """DELETE /api/v1/jobs/{id} removes the job and returns 204."""
+        job_id = created_job["id"]
+        response = client.delete(f"/api/v1/jobs/{job_id}")
+        assert response.status_code == 204
+
+        # Verify the job is gone
+        get_response = client.get(f"/api/v1/jobs/{job_id}")
+        assert get_response.status_code == 404
+
+    def test_delete_job_not_found(self, client):
+        """DELETE /api/v1/jobs/{id} returns 404 for a non-existent job."""
+        response = client.delete("/api/v1/jobs/99999")
+        assert response.status_code == 404
+
+    def test_delete_job_invalid_id_format(self, client):
+        """DELETE /api/v1/jobs/{id} returns 422 for a non-integer id."""
+        response = client.delete("/api/v1/jobs/not-a-number")
+        assert response.status_code == 422
+
+    def test_delete_job_idempotent_behaviour(self, client, created_job):
+        """DELETE /api/v1/jobs/{id} on an already-deleted job returns 404."""
+        job_id = created_job["id"]
+        client.delete(f"/api/v1/jobs/{job_id}")
+        response = client.delete(f"/api/v1/jobs/{job_id}")
+        assert response.status_code == 404

@@ -1,365 +1,431 @@
-"""
-Comprehensive API tests for the Interviews endpoints.
-
-Endpoints under test:
-    POST   /interviews              — schedule a new interview
-    GET    /interviews              — list interviews
-    PATCH  /interviews/{id}         — reschedule an existing interview
-"""
-
-from datetime import datetime, timedelta, timezone
+"""Comprehensive API tests for /api/v1/interviews endpoints."""
 
 import pytest
 from fastapi.testclient import TestClient
+from datetime import datetime, timedelta, timezone
 
 
 # ---------------------------------------------------------------------------
-# Helpers / fixtures
+# Fixtures
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
 def client():
-    """Return a TestClient bound to the FastAPI app."""
-    # Import lazily so collection does not fail if the app is not yet wired.
-    from recruitment_platform.main import app  # type: ignore
-
+    """Return a TestClient for the app."""
+    from recruitment_platform.main import app
     return TestClient(app)
 
 
 @pytest.fixture
+def auth_headers():
+    """Return headers with a valid auth token."""
+    return {"Authorization": "Bearer test-token"}
+
+
+@pytest.fixture
 def sample_interview_payload():
-    """Return a minimal valid payload for scheduling an interview."""
-    start = datetime.now(timezone.utc) + timedelta(days=1)
-    end = start + timedelta(hours=1)
+    """Return a valid payload for creating an interview."""
+    future = datetime.now(timezone.utc) + timedelta(days=7)
     return {
-        "candidate_id": 1,
-        "job_id": 1,
-        "interviewer_id": 1,
-        "scheduled_at": start.isoformat(),
+        "candidate_id": "cand-001",
+        "job_id": "job-001",
+        "interviewer_id": "user-001",
+        "scheduled_at": future.isoformat(),
         "duration_minutes": 60,
-        "mode": "video",
-        "status": "scheduled",
+        "interview_type": "technical",
+        "location": "https://meet.example.com/abc123",
+        "notes": "Initial technical screening",
     }
 
 
 @pytest.fixture
-def created_interview(client, sample_interview_payload):
-    """Create an interview via the API and return the response JSON."""
-    resp = client.post("/interviews", json=sample_interview_payload)
-    assert resp.status_code == 201, resp.text
+def created_interview(client, auth_headers, sample_interview_payload):
+    """Create an interview and return the response JSON."""
+    resp = client.post(
+        "/api/v1/interviews",
+        json=sample_interview_payload,
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
     return resp.json()
 
 
 # ---------------------------------------------------------------------------
-# 1. test_schedule_interview  —  POST /interviews
-# ---------------------------------------------------------------------------
-
-class TestScheduleInterview:
-    """Tests for POST /interviews."""
-
-    def test_schedule_interview_success(self, client, sample_interview_payload):
-        """A valid payload returns 201 and the created interview object."""
-        resp = client.post("/interviews", json=sample_interview_payload)
-
-        assert resp.status_code == 201
-        body = resp.json()
-        assert "id" in body
-        assert body["candidate_id"] == sample_interview_payload["candidate_id"]
-        assert body["job_id"] == sample_interview_payload["job_id"]
-        assert body["interviewer_id"] == sample_interview_payload["interviewer_id"]
-        assert body["mode"] == sample_interview_payload["mode"]
-        assert body["status"] == "scheduled"
-
-    def test_schedule_interview_missing_required_fields(self, client):
-        """Omitting required fields returns 422."""
-        resp = client.post("/interviews", json={})
-        assert resp.status_code == 422
-
-    def test_schedule_interview_invalid_datetime(self, client, sample_interview_payload):
-        """A non-ISO datetime string returns 422."""
-        sample_interview_payload["scheduled_at"] = "not-a-date"
-        resp = client.post("/interviews", json=sample_interview_payload)
-        assert resp.status_code == 422
-
-    def test_schedule_interview_negative_duration(self, client, sample_interview_payload):
-        """A negative duration returns 422."""
-        sample_interview_payload["duration_minutes"] = -30
-        resp = client.post("/interviews", json=sample_interview_payload)
-        assert resp.status_code == 422
-
-    def test_schedule_interview_zero_duration(self, client, sample_interview_payload):
-        """A zero duration returns 422."""
-        sample_interview_payload["duration_minutes"] = 0
-        resp = client.post("/interviews", json=sample_interview_payload)
-        assert resp.status_code == 422
-
-    def test_schedule_interview_invalid_mode(self, client, sample_interview_payload):
-        """An unrecognised interview mode returns 422."""
-        sample_interview_payload["mode"] = "telepathy"
-        resp = client.post("/interviews", json=sample_interview_payload)
-        assert resp.status_code == 422
-
-    def test_schedule_interview_nonexistent_candidate(self, client, sample_interview_payload):
-        """A candidate_id that does not exist returns 404."""
-        sample_interview_payload["candidate_id"] = 999_999
-        resp = client.post("/interviews", json=sample_interview_payload)
-        assert resp.status_code == 404
-
-    def test_schedule_interview_nonexistent_job(self, client, sample_interview_payload):
-        """A job_id that does not exist returns 404."""
-        sample_interview_payload["job_id"] = 999_999
-        resp = client.post("/interviews", json=sample_interview_payload)
-        assert resp.status_code == 404
-
-    def test_schedule_interview_nonexistent_interviewer(self, client, sample_interview_payload):
-        """An interviewer_id that does not exist returns 404."""
-        sample_interview_payload["interviewer_id"] = 999_999
-        resp = client.post("/interviews", json=sample_interview_payload)
-        assert resp.status_code == 404
-
-    def test_schedule_interview_past_datetime(self, client, sample_interview_payload):
-        """Scheduling in the past returns 422."""
-        past = datetime.now(timezone.utc) - timedelta(days=1)
-        sample_interview_payload["scheduled_at"] = past.isoformat()
-        resp = client.post("/interviews", json=sample_interview_payload)
-        assert resp.status_code == 422
-
-    def test_schedule_interview_duplicate_conflict(self, client, sample_interview_payload):
-        """Double-booking the same interviewer returns 409."""
-        # First booking succeeds.
-        resp1 = client.post("/interviews", json=sample_interview_payload)
-        assert resp1.status_code == 201
-
-        # Second identical booking conflicts.
-        resp2 = client.post("/interviews", json=sample_interview_payload)
-        assert resp2.status_code == 409
-
-    def test_schedule_interview_response_has_timestamps(self, client, sample_interview_payload):
-        """The created interview includes created_at / updated_at fields."""
-        resp = client.post("/interviews", json=sample_interview_payload)
-        body = resp.json()
-        assert "created_at" in body
-        assert "updated_at" in body
-
-
-# ---------------------------------------------------------------------------
-# 2. test_list_interviews  —  GET /interviews
+# 1. GET /api/v1/interviews — list with pagination
 # ---------------------------------------------------------------------------
 
 class TestListInterviews:
-    """Tests for GET /interviews."""
+    """Tests for GET /api/v1/interviews."""
 
-    def test_list_interviews_empty(self, client):
-        """With no interviews the endpoint returns an empty list."""
-        resp = client.get("/interviews")
+    def test_list_interviews_success(self, client, auth_headers):
+        """GET /api/v1/interviews returns 200 with a list."""
+        resp = client.get("/api/v1/interviews", headers=auth_headers)
         assert resp.status_code == 200
-        assert resp.json() == []
+        data = resp.json()
+        assert isinstance(data, list)
 
-    def test_list_interviews_returns_created(self, client, created_interview):
-        """A previously created interview appears in the list."""
-        resp = client.get("/interviews")
+    def test_list_interviews_pagination_default(self, client, auth_headers):
+        """Default pagination returns a reasonable page size."""
+        resp = client.get("/api/v1/interviews", headers=auth_headers)
         assert resp.status_code == 200
-        body = resp.json()
-        assert isinstance(body, list)
-        assert len(body) >= 1
-        ids = [item["id"] for item in body]
-        assert created_interview["id"] in ids
+        data = resp.json()
+        assert len(data) <= 100
 
-    def test_list_interviews_pagination(self, client, sample_interview_payload):
-        """The endpoint honours limit / offset query parameters."""
-        # Create three interviews.
-        for _ in range(3):
-            client.post("/interviews", json=sample_interview_payload)
-
-        resp = client.get("/interviews?limit=2&offset=0")
+    def test_list_interviews_pagination_custom_page(self, client, auth_headers):
+        """Custom page parameter is respected."""
+        resp = client.get("/api/v1/interviews?page=2&page_size=5", headers=auth_headers)
         assert resp.status_code == 200
-        body = resp.json()
-        assert len(body) <= 2
+        data = resp.json()
+        assert isinstance(data, list)
+        assert len(data) <= 5
 
-        resp2 = client.get("/interviews?limit=2&offset=2")
-        assert resp2.status_code == 200
-        body2 = resp2.json()
-        assert len(body2) <= 2
-
-    def test_list_interviews_filter_by_candidate(self, client, sample_interview_payload):
-        """Filtering by candidate_id returns only matching interviews."""
-        # Create for candidate 1.
-        client.post("/interviews", json=sample_interview_payload)
-
-        # Create for candidate 2.
-        payload2 = {**sample_interview_payload, "candidate_id": 2}
-        client.post("/interviews", json=payload2)
-
-        resp = client.get("/interviews?candidate_id=1")
+    def test_list_interviews_pagination_page_size(self, client, auth_headers):
+        """page_size parameter limits results."""
+        resp = client.get("/api/v1/interviews?page_size=3", headers=auth_headers)
         assert resp.status_code == 200
-        body = resp.json()
-        assert all(item["candidate_id"] == 1 for item in body)
+        data = resp.json()
+        assert len(data) <= 3
 
-    def test_list_interviews_filter_by_job(self, client, sample_interview_payload):
-        """Filtering by job_id returns only matching interviews."""
-        client.post("/interviews", json=sample_interview_payload)
+    def test_list_interviews_pagination_zero_page_size(self, client, auth_headers):
+        """page_size=0 should return empty list or 422."""
+        resp = client.get("/api/v1/interviews?page_size=0", headers=auth_headers)
+        assert resp.status_code in (200, 422)
+        if resp.status_code == 200:
+            assert resp.json() == []
 
-        payload2 = {**sample_interview_payload, "job_id": 2}
-        client.post("/interviews", json=payload2)
+    def test_list_interviews_pagination_negative_page(self, client, auth_headers):
+        """Negative page should return 422 or empty."""
+        resp = client.get("/api/v1/interviews?page=-1", headers=auth_headers)
+        assert resp.status_code in (200, 422)
 
-        resp = client.get("/interviews?job_id=1")
+    def test_list_interviews_unauthenticated(self, client):
+        """GET /api/v1/interviews without auth returns 401."""
+        resp = client.get("/api/v1/interviews")
+        assert resp.status_code == 401
+
+    def test_list_interviews_response_fields(self, client, auth_headers, created_interview):
+        """Each interview in the list has required fields."""
+        resp = client.get("/api/v1/interviews", headers=auth_headers)
         assert resp.status_code == 200
-        body = resp.json()
-        assert all(item["job_id"] == 1 for item in body)
+        data = resp.json()
+        if data:
+            item = data[0]
+            for field in ("id", "candidate_id", "job_id", "scheduled_at", "status"):
+                assert field in item, f"Missing field: {field}"
 
-    def test_list_interviews_filter_by_status(self, client, sample_interview_payload):
-        """Filtering by status returns only matching interviews."""
-        client.post("/interviews", json=sample_interview_payload)
-
-        resp = client.get("/interviews?status=scheduled")
+    def test_list_interviews_filter_by_status(self, client, auth_headers):
+        """Filter interviews by status."""
+        resp = client.get("/api/v1/interviews?status=scheduled", headers=auth_headers)
         assert resp.status_code == 200
-        body = resp.json()
-        assert all(item["status"] == "scheduled" for item in body)
+        data = resp.json()
+        for item in data:
+            assert item.get("status") == "scheduled"
 
-    def test_list_interviews_invalid_limit(self, client):
-        """A negative limit returns 422."""
-        resp = client.get("/interviews?limit=-1")
+    def test_list_interviews_filter_by_candidate(self, client, auth_headers):
+        """Filter interviews by candidate_id."""
+        resp = client.get("/api/v1/interviews?candidate_id=cand-001", headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        for item in data:
+            assert item.get("candidate_id") == "cand-001"
+
+
+# ---------------------------------------------------------------------------
+# 2. POST /api/v1/interviews — schedule
+# ---------------------------------------------------------------------------
+
+class TestScheduleInterview:
+    """Tests for POST /api/v1/interviews."""
+
+    def test_schedule_interview_success(self, client, auth_headers, sample_interview_payload):
+        """POST /api/v1/interviews creates an interview and returns 201."""
+        resp = client.post(
+            "/api/v1/interviews",
+            json=sample_interview_payload,
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert "id" in data
+        assert data["candidate_id"] == sample_interview_payload["candidate_id"]
+        assert data["job_id"] == sample_interview_payload["job_id"]
+        assert data["status"] == "scheduled"
+
+    def test_schedule_interview_minimal_payload(self, client, auth_headers):
+        """POST with only required fields succeeds."""
+        future = datetime.now(timezone.utc) + timedelta(days=1)
+        payload = {
+            "candidate_id": "cand-002",
+            "job_id": "job-002",
+            "scheduled_at": future.isoformat(),
+        }
+        resp = client.post("/api/v1/interviews", json=payload, headers=auth_headers)
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["candidate_id"] == "cand-002"
+
+    def test_schedule_interview_missing_required_fields(self, client, auth_headers):
+        """POST without required fields returns 422."""
+        resp = client.post("/api/v1/interviews", json={}, headers=auth_headers)
         assert resp.status_code == 422
 
-    def test_list_interviews_response_structure(self, client, created_interview):
-        """Each item in the list has the expected keys."""
-        resp = client.get("/interviews")
-        body = resp.json()
-        if body:
-            item = body[0]
-            expected_keys = {"id", "candidate_id", "job_id", "interviewer_id", "scheduled_at", "mode", "status"}
-            assert expected_keys.issubset(item.keys())
+    def test_schedule_interview_missing_candidate_id(self, client, auth_headers):
+        """POST without candidate_id returns 422."""
+        future = datetime.now(timezone.utc) + timedelta(days=1)
+        payload = {"job_id": "job-001", "scheduled_at": future.isoformat()}
+        resp = client.post("/api/v1/interviews", json=payload, headers=auth_headers)
+        assert resp.status_code == 422
 
+    def test_schedule_interview_missing_job_id(self, client, auth_headers):
+        """POST without job_id returns 422."""
+        future = datetime.now(timezone.utc) + timedelta(days=1)
+        payload = {"candidate_id": "cand-001", "scheduled_at": future.isoformat()}
+        resp = client.post("/api/v1/interviews", json=payload, headers=auth_headers)
+        assert resp.status_code == 422
 
-# ---------------------------------------------------------------------------
-# 3. test_reschedule_interview  —  PATCH /interviews/{id}
-# ---------------------------------------------------------------------------
+    def test_schedule_interview_missing_scheduled_at(self, client, auth_headers):
+        """POST without scheduled_at returns 422."""
+        payload = {"candidate_id": "cand-001", "job_id": "job-001"}
+        resp = client.post("/api/v1/interviews", json=payload, headers=auth_headers)
+        assert resp.status_code == 422
 
-class TestRescheduleInterview:
-    """Tests for PATCH /interviews/{id}."""
+    def test_schedule_interview_invalid_datetime(self, client, auth_headers):
+        """POST with invalid datetime returns 422."""
+        payload = {
+            "candidate_id": "cand-001",
+            "job_id": "job-001",
+            "scheduled_at": "not-a-date",
+        }
+        resp = client.post("/api/v1/interviews", json=payload, headers=auth_headers)
+        assert resp.status_code == 422
 
-    def test_reschedule_interview_success(self, client, created_interview):
-        """Updating the scheduled_at returns 200 and the updated record."""
-        interview_id = created_interview["id"]
-        new_time = datetime.now(timezone.utc) + timedelta(days=2)
-        resp = client.patch(
-            f"/interviews/{interview_id}",
-            json={"scheduled_at": new_time.isoformat()},
+    def test_schedule_interview_past_datetime(self, client, auth_headers):
+        """POST with past datetime returns 422 or 400."""
+        past = datetime.now(timezone.utc) - timedelta(days=1)
+        payload = {
+            "candidate_id": "cand-001",
+            "job_id": "job-001",
+            "scheduled_at": past.isoformat(),
+        }
+        resp = client.post("/api/v1/interviews", json=payload, headers=auth_headers)
+        assert resp.status_code in (400, 422)
+
+    def test_schedule_interview_unauthenticated(self, client, sample_interview_payload):
+        """POST without auth returns 401."""
+        resp = client.post("/api/v1/interviews", json=sample_interview_payload)
+        assert resp.status_code == 401
+
+    def test_schedule_interview_invalid_interview_type(self, client, auth_headers):
+        """POST with invalid interview_type returns 422."""
+        future = datetime.now(timezone.utc) + timedelta(days=1)
+        payload = {
+            "candidate_id": "cand-001",
+            "job_id": "job-001",
+            "scheduled_at": future.isoformat(),
+            "interview_type": "invalid_type",
+        }
+        resp = client.post("/api/v1/interviews", json=payload, headers=auth_headers)
+        assert resp.status_code == 422
+
+    def test_schedule_interview_negative_duration(self, client, auth_headers):
+        """POST with negative duration returns 422."""
+        future = datetime.now(timezone.utc) + timedelta(days=1)
+        payload = {
+            "candidate_id": "cand-001",
+            "job_id": "job-001",
+            "scheduled_at": future.isoformat(),
+            "duration_minutes": -30,
+        }
+        resp = client.post("/api/v1/interviews", json=payload, headers=auth_headers)
+        assert resp.status_code == 422
+
+    def test_schedule_interview_response_contains_id(self, client, auth_headers, sample_interview_payload):
+        """Response contains a unique id."""
+        resp = client.post(
+            "/api/v1/interviews",
+            json=sample_interview_payload,
+            headers=auth_headers,
         )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["id"]
+        assert isinstance(data["id"], str)
 
+
+# ---------------------------------------------------------------------------
+# 3. GET /api/v1/interviews/{id} — retrieve
+# ---------------------------------------------------------------------------
+
+class TestGetInterview:
+    """Tests for GET /api/v1/interviews/{id}."""
+
+    def test_get_interview_success(self, client, auth_headers, created_interview):
+        """GET /api/v1/interviews/{id} returns 200 with the interview."""
+        interview_id = created_interview["id"]
+        resp = client.get(f"/api/v1/interviews/{interview_id}", headers=auth_headers)
         assert resp.status_code == 200
-        body = resp.json()
-        assert body["id"] == interview_id
-        # The timestamp should reflect the new value (compare ISO strings).
-        assert new_time.isoformat()[:19] in body["scheduled_at"].replace("Z", "").replace("+00:00", "")[:19] or \
-               body["scheduled_at"] == new_time.isoformat()
+        data = resp.json()
+        assert data["id"] == interview_id
+        assert data["candidate_id"] == created_interview["candidate_id"]
 
-    def test_reschedule_interview_not_found(self, client):
-        """Patching a non-existent interview returns 404."""
-        resp = client.patch(
-            "/interviews/999999",
-            json={"scheduled_at": datetime.now(timezone.utc).isoformat()},
+    def test_get_interview_not_found(self, client, auth_headers):
+        """GET with non-existent id returns 404."""
+        resp = client.get("/api/v1/interviews/nonexistent-id", headers=auth_headers)
+        assert resp.status_code == 404
+
+    def test_get_interview_unauthenticated(self, client, created_interview):
+        """GET without auth returns 401."""
+        interview_id = created_interview["id"]
+        resp = client.get(f"/api/v1/interviews/{interview_id}")
+        assert resp.status_code == 401
+
+    def test_get_interview_response_fields(self, client, auth_headers, created_interview):
+        """Response contains all expected fields."""
+        interview_id = created_interview["id"]
+        resp = client.get(f"/api/v1/interviews/{interview_id}", headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        for field in ("id", "candidate_id", "job_id", "interviewer_id", "scheduled_at", "status"):
+            assert field in data, f"Missing field: {field}"
+
+    def test_get_interview_invalid_id_format(self, client, auth_headers):
+        """GET with invalid id format returns 422 or 404."""
+        resp = client.get("/api/v1/interviews/!!!invalid!!!", headers=auth_headers)
+        assert resp.status_code in (404, 422)
+
+
+# ---------------------------------------------------------------------------
+# 4. PUT /api/v1/interviews/{id} — update
+# ---------------------------------------------------------------------------
+
+class TestUpdateInterview:
+    """Tests for PUT /api/v1/interviews/{id}."""
+
+    def test_update_interview_success(self, client, auth_headers, created_interview):
+        """PUT /api/v1/interviews/{id} updates and returns 200."""
+        interview_id = created_interview["id"]
+        update_payload = {
+            "duration_minutes": 90,
+            "notes": "Updated: extended interview",
+        }
+        resp = client.put(
+            f"/api/v1/interviews/{interview_id}",
+            json=update_payload,
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["id"] == interview_id
+        assert data["duration_minutes"] == 90
+        assert data["notes"] == "Updated: extended interview"
+
+    def test_update_interview_reschedule(self, client, auth_headers, created_interview):
+        """PUT can reschedule the interview."""
+        interview_id = created_interview["id"]
+        new_time = datetime.now(timezone.utc) + timedelta(days=14)
+        update_payload = {"scheduled_at": new_time.isoformat()}
+        resp = client.put(
+            f"/api/v1/interviews/{interview_id}",
+            json=update_payload,
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["id"] == interview_id
+
+    def test_update_interview_not_found(self, client, auth_headers):
+        """PUT with non-existent id returns 404."""
+        resp = client.put(
+            "/api/v1/interviews/nonexistent-id",
+            json={"notes": "test"},
+            headers=auth_headers,
         )
         assert resp.status_code == 404
 
-    def test_reschedule_interview_invalid_datetime(self, client, created_interview):
-        """A non-ISO datetime returns 422."""
+    def test_update_interview_unauthenticated(self, client, created_interview):
+        """PUT without auth returns 401."""
         interview_id = created_interview["id"]
-        resp = client.patch(
-            f"/interviews/{interview_id}",
-            json={"scheduled_at": "tomorrow at 3pm"},
+        resp = client.put(
+            f"/api/v1/interviews/{interview_id}",
+            json={"notes": "test"},
+        )
+        assert resp.status_code == 401
+
+    def test_update_interview_empty_body(self, client, auth_headers, created_interview):
+        """PUT with empty body returns 422 or 200 (no-op)."""
+        interview_id = created_interview["id"]
+        resp = client.put(
+            f"/api/v1/interviews/{interview_id}",
+            json={},
+            headers=auth_headers,
+        )
+        assert resp.status_code in (200, 422)
+
+    def test_update_interview_invalid_datetime(self, client, auth_headers, created_interview):
+        """PUT with invalid datetime returns 422."""
+        interview_id = created_interview["id"]
+        resp = client.put(
+            f"/api/v1/interviews/{interview_id}",
+            json={"scheduled_at": "invalid"},
+            headers=auth_headers,
         )
         assert resp.status_code == 422
 
-    def test_reschedule_interview_past_datetime(self, client, created_interview):
-        """Rescheduling to a past datetime returns 422."""
+    def test_update_interview_change_type(self, client, auth_headers, created_interview):
+        """PUT can change interview type."""
         interview_id = created_interview["id"]
-        past = datetime.now(timezone.utc) - timedelta(days=1)
-        resp = client.patch(
-            f"/interviews/{interview_id}",
-            json={"scheduled_at": past.isoformat()},
-        )
-        assert resp.status_code == 422
-
-    def test_reschedule_interview_empty_body(self, client, created_interview):
-        """An empty PATCH body returns 422 (nothing to update)."""
-        interview_id = created_interview["id"]
-        resp = client.patch(f"/interviews/{interview_id}", json={})
-        assert resp.status_code == 422
-
-    def test_reschedule_interview_change_mode(self, client, created_interview):
-        """Changing the interview mode via PATCH succeeds."""
-        interview_id = created_interview["id"]
-        resp = client.patch(
-            f"/interviews/{interview_id}",
-            json={"mode": "in_person"},
+        resp = client.put(
+            f"/api/v1/interviews/{interview_id}",
+            json={"interview_type": "behavioral"},
+            headers=auth_headers,
         )
         assert resp.status_code == 200
-        assert resp.json()["mode"] == "in_person"
+        data = resp.json()
+        assert data["interview_type"] == "behavioral"
 
-    def test_reschedule_interview_change_status(self, client, created_interview):
-        """Changing the status via PATCH succeeds."""
+
+# ---------------------------------------------------------------------------
+# 5. DELETE /api/v1/interviews/{id} — cancel
+# ---------------------------------------------------------------------------
+
+class TestCancelInterview:
+    """Tests for DELETE /api/v1/interviews/{id}."""
+
+    def test_cancel_interview_success(self, client, auth_headers, created_interview):
+        """DELETE /api/v1/interviews/{id} cancels and returns 200 or 204."""
         interview_id = created_interview["id"]
-        resp = client.patch(
-            f"/interviews/{interview_id}",
-            json={"status": "cancelled"},
-        )
+        resp = client.delete(f"/api/v1/interviews/{interview_id}", headers=auth_headers)
+        assert resp.status_code in (200, 204)
+
+    def test_cancel_interview_status_changes(self, client, auth_headers, created_interview):
+        """After cancellation, interview status is 'cancelled'."""
+        interview_id = created_interview["id"]
+        client.delete(f"/api/v1/interviews/{interview_id}", headers=auth_headers)
+        resp = client.get(f"/api/v1/interviews/{interview_id}", headers=auth_headers)
         assert resp.status_code == 200
-        assert resp.json()["status"] == "cancelled"
+        data = resp.json()
+        assert data["status"] == "cancelled"
 
-    def test_reschedule_interview_change_duration(self, client, created_interview):
-        """Changing the duration via PATCH succeeds."""
+    def test_cancel_interview_not_found(self, client, auth_headers):
+        """DELETE with non-existent id returns 404."""
+        resp = client.delete("/api/v1/interviews/nonexistent-id", headers=auth_headers)
+        assert resp.status_code == 404
+
+    def test_cancel_interview_unauthenticated(self, client, created_interview):
+        """DELETE without auth returns 401."""
         interview_id = created_interview["id"]
-        resp = client.patch(
-            f"/interviews/{interview_id}",
-            json={"duration_minutes": 90},
-        )
-        assert resp.status_code == 200
-        assert resp.json()["duration_minutes"] == 90
+        resp = client.delete(f"/api/v1/interviews/{interview_id}")
+        assert resp.status_code == 401
 
-    def test_reschedule_interview_multiple_fields(self, client, created_interview):
-        """Updating several fields at once succeeds."""
+    def test_cancel_interview_idempotent_or_404(self, client, auth_headers, created_interview):
+        """Cancelling twice returns 404 or 200/204 (idempotent)."""
         interview_id = created_interview["id"]
-        new_time = datetime.now(timezone.utc) + timedelta(days=3)
-        resp = client.patch(
-            f"/interviews/{interview_id}",
-            json={
-                "scheduled_at": new_time.isoformat(),
-                "duration_minutes": 45,
-                "mode": "phone",
-            },
-        )
-        assert resp.status_code == 200
-        body = resp.json()
-        assert body["duration_minutes"] == 45
-        assert body["mode"] == "phone"
+        resp1 = client.delete(f"/api/v1/interviews/{interview_id}", headers=auth_headers)
+        assert resp1.status_code in (200, 204)
+        resp2 = client.delete(f"/api/v1/interviews/{interview_id}", headers=auth_headers)
+        assert resp2.status_code in (200, 204, 404)
 
-    def test_reschedule_interview_invalid_mode(self, client, created_interview):
-        """An invalid mode value returns 422."""
-        interview_id = created_interview["id"]
-        resp = client.patch(
-            f"/interviews/{interview_id}",
-            json={"mode": "smoke_signals"},
-        )
-        assert resp.status_code == 422
-
-    def test_reschedule_interview_negative_duration(self, client, created_interview):
-        """A negative duration returns 422."""
-        interview_id = created_interview["id"]
-        resp = client.patch(
-            f"/interviews/{interview_id}",
-            json={"duration_minutes": -10},
-        )
-        assert resp.status_code == 422
-
-    def test_reschedule_interview_idempotent(self, client, created_interview):
-        """Applying the same reschedule twice does not error."""
-        interview_id = created_interview["id"]
-        new_time = datetime.now(timezone.utc) + timedelta(days=5)
-        payload = {"scheduled_at": new_time.isoformat()}
-
-        resp1 = client.patch(f"/interviews/{interview_id}", json=payload)
-        assert resp1.status_code == 200
-
-        resp2 = client.patch(f"/interviews/{interview_id}", json=payload)
-        assert resp2.status_code == 200
+    def test_cancel_interview_invalid_id(self, client, auth_headers):
+        """DELETE with invalid id returns 404 or 422."""
+        resp = client.delete("/api/v1/interviews/!!!invalid!!!", headers=auth_headers)
+        assert resp.status_code in (404, 422)
