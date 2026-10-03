@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class EmployerNotFoundError(Exception):
     """Raised when an employer is not found."""
 
-    def __init__(self, employer_id: int) -> None:
+    def __init__(self, employer_id: str) -> None:
         self.employer_id = employer_id
         super().__init__(f"Employer with id {employer_id} not found")
 
@@ -30,152 +30,303 @@ class EmployerValidationError(Exception):
         super().__init__(message)
 
 
-class EmployerService:
-    """Service for managing employers."""
+class EmployerServiceError(Exception):
+    """Raised when an employer service operation fails."""
 
-    def __init__(self, db: Session) -> None:
-        self.db = db
+    def __init__(self, message: str) -> None:
+        self.message = message
+        super().__init__(message)
 
-    def create_employer(self, data: EmployerCreate) -> Employer:
-        """Create a new employer with validation.
 
-        Args:
-            data: Employer creation data.
+def _get_db() -> Session:
+    """Get a database session.
 
-        Returns:
-            The created Employer instance.
+    Returns:
+        A SQLAlchemy Session instance.
 
-        Raises:
-            EmployerValidationError: If data validation fails.
-            SQLAlchemyError: If database operation fails.
-        """
-        try:
-            # Validate required fields
-            if not data.name or not data.name.strip():
-                raise EmployerValidationError("Employer name is required")
+    Raises:
+        EmployerServiceError: If session creation fails.
+    """
+    try:
+        from recruitment_platform.database import SessionLocal
+        return SessionLocal()
+    except Exception as e:
+        logger.error(f"Failed to create database session: {e}")
+        raise EmployerServiceError(f"Database session error: {e}") from e
 
-            if not data.email or not data.email.strip():
-                raise EmployerValidationError("Employer email is required")
 
+def _employer_to_dict(employer: Employer) -> dict:
+    """Convert an Employer model instance to a dictionary.
+
+    Args:
+        employer: The Employer model instance.
+
+    Returns:
+        A dictionary representation of the employer.
+    """
+    return {
+        "id": employer.id,
+        "name": employer.name,
+        "email": employer.email,
+        "phone": employer.phone,
+        "website": employer.website,
+        "industry": employer.industry,
+        "size": employer.size,
+        "location": employer.location,
+        "description": employer.description,
+        "is_active": employer.is_active,
+        "created_at": employer.created_at.isoformat() if hasattr(employer, "created_at") and employer.created_at else None,
+        "updated_at": employer.updated_at.isoformat() if hasattr(employer, "updated_at") and employer.updated_at else None,
+    }
+
+
+def get_employer(employer_id: str) -> dict:
+    """Get employer by ID.
+
+    Args:
+        employer_id: The unique identifier of the employer.
+
+    Returns:
+        A dictionary containing the employer data.
+
+    Raises:
+        EmployerNotFoundError: If the employer does not exist.
+        EmployerServiceError: If the operation fails.
+    """
+    db = _get_db()
+    try:
+        employer = db.query(Employer).filter(Employer.id == employer_id).first()
+        if not employer:
+            raise EmployerNotFoundError(employer_id)
+        return _employer_to_dict(employer)
+    except EmployerNotFoundError:
+        raise
+    except SQLAlchemyError as e:
+        logger.error(f"Database error fetching employer {employer_id}: {e}")
+        raise EmployerServiceError(f"Failed to fetch employer: {e}") from e
+    finally:
+        db.close()
+
+
+def list_employers(filters: dict, page: int, page_size: int) -> list[dict]:
+    """List employers with optional filters and pagination.
+
+    Args:
+        filters: A dictionary of filter criteria.
+        page: The page number (1-indexed).
+        page_size: The number of results per page.
+
+    Returns:
+        A list of employer dictionaries.
+
+    Raises:
+        EmployerServiceError: If the operation fails.
+    """
+    db = _get_db()
+    try:
+        query = db.query(Employer)
+
+        # Apply filters
+        if filters:
+            if "name" in filters and filters["name"]:
+                query = query.filter(Employer.name.ilike(f"%{filters['name']}%"))
+            if "industry" in filters and filters["industry"]:
+                query = query.filter(Employer.industry == filters["industry"])
+            if "location" in filters and filters["location"]:
+                query = query.filter(Employer.location.ilike(f"%{filters['location']}%"))
+            if "is_active" in filters and filters["is_active"] is not None:
+                query = query.filter(Employer.is_active == filters["is_active"])
+            if "size" in filters and filters["size"]:
+                query = query.filter(Employer.size == filters["size"])
+
+        # Apply pagination
+        offset = (page - 1) * page_size
+        query = query.offset(offset).limit(page_size)
+
+        employers = query.all()
+        return [_employer_to_dict(emp) for emp in employers]
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error listing employers: {e}")
+        raise EmployerServiceError(f"Failed to list employers: {e}") from e
+    finally:
+        db.close()
+
+
+def create_employer(data: dict) -> dict:
+    """Create a new employer.
+
+    Args:
+        data: A dictionary containing the employer data.
+
+    Returns:
+        A dictionary containing the created employer data.
+
+    Raises:
+        EmployerValidationError: If data validation fails.
+        EmployerServiceError: If the operation fails.
+    """
+    db = _get_db()
+    try:
+        # Validate required fields
+        if not data.get("name") or not str(data["name"]).strip():
+            raise EmployerValidationError("Employer name is required")
+        if not data.get("email") or not str(data["email"]).strip():
+            raise EmployerValidationError("Employer email is required")
+
+        # Check for duplicate email
+        existing = db.query(Employer).filter(
+            Employer.email == str(data["email"]).strip()
+        ).first()
+        if existing:
+            raise EmployerValidationError(
+                f"Employer with email {data['email']} already exists"
+            )
+
+        employer = Employer(
+            name=str(data["name"]).strip(),
+            email=str(data["email"]).strip(),
+            phone=data.get("phone"),
+            website=data.get("website"),
+            industry=data.get("industry"),
+            size=data.get("size"),
+            location=data.get("location"),
+            description=data.get("description"),
+            is_active=data.get("is_active", True),
+        )
+
+        db.add(employer)
+        db.commit()
+        db.refresh(employer)
+
+        logger.info(f"Created employer {employer.id}: {employer.name}")
+        return _employer_to_dict(employer)
+
+    except EmployerValidationError:
+        db.rollback()
+        raise
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"Integrity error creating employer: {e}")
+        raise EmployerValidationError("Employer with this data already exists") from e
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error creating employer: {e}")
+        raise EmployerServiceError(f"Failed to create employer: {e}") from e
+    finally:
+        db.close()
+
+
+def update_employer(employer_id: str, data: dict) -> dict:
+    """Update an existing employer.
+
+    Args:
+        employer_id: The unique identifier of the employer.
+        data: A dictionary containing the fields to update.
+
+    Returns:
+        A dictionary containing the updated employer data.
+
+    Raises:
+        EmployerNotFoundError: If the employer does not exist.
+        EmployerValidationError: If data validation fails.
+        EmployerServiceError: If the operation fails.
+    """
+    db = _get_db()
+    try:
+        employer = db.query(Employer).filter(Employer.id == employer_id).first()
+        if not employer:
+            raise EmployerNotFoundError(employer_id)
+
+        # Validate name if provided
+        if "name" in data:
+            if not str(data["name"]).strip():
+                raise EmployerValidationError("Employer name cannot be empty")
+            employer.name = str(data["name"]).strip()
+
+        # Validate email if provided
+        if "email" in data:
+            if not str(data["email"]).strip():
+                raise EmployerValidationError("Employer email cannot be empty")
             # Check for duplicate email
-            existing = self.db.query(Employer).filter(
-                Employer.email == data.email
+            existing = db.query(Employer).filter(
+                Employer.email == str(data["email"]).strip(),
+                Employer.id != employer_id,
             ).first()
             if existing:
                 raise EmployerValidationError(
-                    f"Employer with email {data.email} already exists"
+                    f"Employer with email {data['email']} already exists"
                 )
+            employer.email = str(data["email"]).strip()
 
-            employer = Employer(
-                name=data.name.strip(),
-                email=data.email.strip(),
-                phone=data.phone,
-                website=data.website,
-                industry=data.industry,
-                size=data.size,
-                location=data.location,
-                description=data.description,
-                is_active=True,
-            )
+        # Update optional fields
+        if "phone" in data:
+            employer.phone = data["phone"]
+        if "website" in data:
+            employer.website = data["website"]
+        if "industry" in data:
+            employer.industry = data["industry"]
+        if "size" in data:
+            employer.size = data["size"]
+        if "location" in data:
+            employer.location = data["location"]
+        if "description" in data:
+            employer.description = data["description"]
+        if "is_active" in data:
+            employer.is_active = data["is_active"]
 
-            self.db.add(employer)
-            self.db.commit()
-            self.db.refresh(employer)
+        db.commit()
+        db.refresh(employer)
 
-            logger.info(f"Created employer {employer.id}: {employer.name}")
-            return employer
+        logger.info(f"Updated employer {employer.id}: {employer.name}")
+        return _employer_to_dict(employer)
 
-        except EmployerValidationError:
-            self.db.rollback()
-            raise
-        except IntegrityError as e:
-            self.db.rollback()
-            logger.error(f"Integrity error creating employer: {e}")
-            raise EmployerValidationError("Employer with this data already exists") from e
-        except SQLAlchemyError as e:
-            self.db.rollback()
-            logger.error(f"Database error creating employer: {e}")
-            raise
+    except (EmployerNotFoundError, EmployerValidationError):
+        db.rollback()
+        raise
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"Integrity error updating employer {employer_id}: {e}")
+        raise EmployerValidationError("Employer with this data already exists") from e
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error updating employer {employer_id}: {e}")
+        raise EmployerServiceError(f"Failed to update employer: {e}") from e
+    finally:
+        db.close()
 
-    def get_employer(self, employer_id: int) -> Employer:
-        """Get an employer by ID.
 
-        Args:
-            employer_id: The employer's unique identifier.
+def delete_employer(employer_id: str) -> bool:
+    """Delete an employer.
 
-        Returns:
-            The Employer instance.
+    Args:
+        employer_id: The unique identifier of the employer.
 
-        Raises:
-            EmployerNotFoundError: If employer is not found.
-            SQLAlchemyError: If database operation fails.
-        """
-        try:
-            employer = self.db.query(Employer).filter(
-                Employer.id == employer_id
-            ).first()
+    Returns:
+        True if the employer was deleted successfully.
 
-            if not employer:
-                raise EmployerNotFoundError(employer_id)
+    Raises:
+        EmployerNotFoundError: If the employer does not exist.
+        EmployerServiceError: If the operation fails.
+    """
+    db = _get_db()
+    try:
+        employer = db.query(Employer).filter(Employer.id == employer_id).first()
+        if not employer:
+            raise EmployerNotFoundError(employer_id)
 
-            return employer
+        db.delete(employer)
+        db.commit()
 
-        except EmployerNotFoundError:
-            raise
-        except SQLAlchemyError as e:
-            logger.error(f"Database error fetching employer {employer_id}: {e}")
-            raise
+        logger.info(f"Deleted employer {employer_id}")
+        return True
 
-    def list_employers(
-        self,
-        filters: Optional[Dict[str, Any]] = None,
-        pagination: Optional[Dict[str, int]] = None,
-    ) -> Tuple[List[Employer], int]:
-        """List employers with optional filtering and pagination.
-
-        Args:
-            filters: Optional filter criteria (e.g., {"industry": "tech", "is_active": True}).
-            pagination: Optional pagination params (e.g., {"page": 1, "per_page": 20}).
-
-        Returns:
-            Tuple of (list of employers, total count).
-
-        Raises:
-            SQLAlchemyError: If database operation fails.
-        """
-        try:
-            query = self.db.query(Employer)
-
-            # Apply filters
-            if filters:
-                if "name" in filters and filters["name"]:
-                    query = query.filter(
-                        Employer.name.ilike(f"%{filters['name']}%")
-                    )
-                if "industry" in filters and filters["industry"]:
-                    query = query.filter(Employer.industry == filters["industry"])
-                if "location" in filters and filters["location"]:
-                    query = query.filter(
-                        Employer.location.ilike(f"%{filters['location']}%")
-                    )
-                if "is_active" in filters and filters["is_active"] is not None:
-                    query = query.filter(Employer.is_active == filters["is_active"])
-                if "size" in filters and filters["size"]:
-                    query = query.filter(Employer.size == filters["size"])
-
-            # Get total count before pagination
-            total = query.count()
-
-            # Apply pagination
-            if pagination:
-                page = pagination.get("page", 1)
-                per_page = pagination.get("per_page", 20)
-                offset = (page - 1) * per_page
-                query = query.offset(offset).limit(per_page)
-
-            employers = query.all()
-            return employers, total
-
-        except SQLAlchemyError as e:
-            logger.error(f"Database error listing employers: {e}")
-            raise
+    except EmployerNotFoundError:
+        db.rollback()
+        raise
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error deleting employer {employer_id}: {e}")
+        raise EmployerServiceError(f"Failed to delete employer: {e}") from e
+    finally:
+        db.close()

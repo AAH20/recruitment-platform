@@ -1,140 +1,173 @@
-"""Interview service for the recruitment platform."""
+"""Interview service for managing interviews in the recruitment platform."""
 
 from __future__ import annotations
 
-from datetime import datetime
+import logging
 from typing import Any
 
-
-class InterviewServiceError(Exception):
-    """Base exception for interview service errors."""
+logger = logging.getLogger(__name__)
 
 
-class ValidationError(InterviewServiceError):
-    """Raised when interview data fails validation."""
-
-
-class InterviewNotFoundError(InterviewServiceError):
+class InterviewNotFoundError(Exception):
     """Raised when an interview is not found."""
 
 
-class FeedbackNotFoundError(InterviewServiceError):
-    """Raised when feedback for an interview is not found."""
+class InterviewServiceError(Exception):
+    """Raised when an interview service operation fails."""
 
 
-# In-memory store for demonstration purposes.
-# Replace with actual database calls in production.
-_interviews: dict[str, dict[str, Any]] = {}
-_feedback: dict[str, dict[str, Any]] = {}
+class InterviewService:
+    """Service for managing interviews."""
 
+    def __init__(self, db: Any) -> None:
+        """Initialize the interview service.
 
-def schedule_interview(data: dict[str, Any]) -> dict[str, Any]:
-    """Schedule a new interview with validation.
+        Args:
+            db: Database session or repository instance.
+        """
+        self._db = db
 
-    Args:
-        data: Dictionary containing interview details.
-            Required keys: candidate_id, interviewer_id, scheduled_time.
+    def get_interview(self, interview_id: str) -> dict:
+        """Get an interview by its ID.
 
-    Returns:
-        The created interview record with an assigned interview_id.
+        Args:
+            interview_id: The unique identifier of the interview.
 
-    Raises:
-        ValidationError: If required fields are missing or invalid.
-    """
-    required_fields = ("candidate_id", "interviewer_id", "scheduled_time")
-    missing = [f for f in required_fields if f not in data or data[f] is None]
-    if missing:
-        raise ValidationError(f"Missing required fields: {', '.join(missing)}")
+        Returns:
+            A dictionary containing the interview data.
 
-    candidate_id = data["candidate_id"]
-    interviewer_id = data["interviewer_id"]
-    scheduled_time = data["scheduled_time"]
-
-    if not isinstance(candidate_id, str) or not candidate_id.strip():
-        raise ValidationError("candidate_id must be a non-empty string")
-    if not isinstance(interviewer_id, str) or not interviewer_id.strip():
-        raise ValidationError("interviewer_id must be a non-empty string")
-
-    if isinstance(scheduled_time, str):
+        Raises:
+            InterviewNotFoundError: If no interview exists with the given ID.
+            InterviewServiceError: If the database query fails.
+        """
         try:
-            scheduled_time = datetime.fromisoformat(scheduled_time)
-        except ValueError as exc:
-            raise ValidationError(
-                "scheduled_time must be a valid ISO format datetime string"
+            interview = self._db.get_interview(interview_id)
+            if interview is None:
+                raise InterviewNotFoundError(
+                    f"Interview with ID '{interview_id}' not found."
+                )
+            return interview
+        except InterviewNotFoundError:
+            raise
+        except Exception as exc:
+            logger.error("Failed to get interview %s: %s", interview_id, exc)
+            raise InterviewServiceError(
+                f"Failed to retrieve interview '{interview_id}'."
             ) from exc
-    elif not isinstance(scheduled_time, datetime):
-        raise ValidationError("scheduled_time must be a datetime or ISO format string")
 
-    if scheduled_time < datetime.now(scheduled_time.tzinfo):
-        raise ValidationError("scheduled_time must be in the future")
+    def list_interviews(
+        self, filters: dict, page: int, page_size: int
+    ) -> list[dict]:
+        """List interviews with optional filters and pagination.
 
-    interview_id = f"int_{len(_interviews) + 1:06d}"
-    interview = {
-        "interview_id": interview_id,
-        "candidate_id": candidate_id,
-        "interviewer_id": interviewer_id,
-        "scheduled_time": scheduled_time,
-        "status": "scheduled",
-        "feedback": None,
-    }
-    _interviews[interview_id] = interview
-    return interview
+        Args:
+            filters: A dictionary of filter criteria (e.g., status, candidate_id).
+            page: The page number (1-indexed).
+            page_size: The number of interviews per page.
 
+        Returns:
+            A list of interview dictionaries matching the filters.
 
-def reschedule_interview(interview_id: str, new_time: datetime | str) -> dict[str, Any]:
-    """Reschedule an existing interview to a new time.
+        Raises:
+            InterviewServiceError: If the database query fails.
+            ValueError: If page or page_size is less than 1.
+        """
+        if page < 1:
+            raise ValueError("page must be >= 1")
+        if page_size < 1:
+            raise ValueError("page_size must be >= 1")
 
-    Args:
-        interview_id: The unique identifier of the interview.
-        new_time: The new scheduled time (datetime or ISO format string).
-
-    Returns:
-        The updated interview record.
-
-    Raises:
-        InterviewNotFoundError: If the interview does not exist.
-        ValidationError: If the new time is invalid or in the past.
-    """
-    if interview_id not in _interviews:
-        raise InterviewNotFoundError(f"Interview '{interview_id}' not found")
-
-    if isinstance(new_time, str):
         try:
-            new_time = datetime.fromisoformat(new_time)
-        except ValueError as exc:
-            raise ValidationError(
-                "new_time must be a valid ISO format datetime string"
+            offset = (page - 1) * page_size
+            interviews = self._db.list_interviews(
+                filters=filters, offset=offset, limit=page_size
+            )
+            return interviews
+        except Exception as exc:
+            logger.error("Failed to list interviews: %s", exc)
+            raise InterviewServiceError("Failed to list interviews.") from exc
+
+    def schedule_interview(self, data: dict) -> dict:
+        """Schedule a new interview.
+
+        Args:
+            data: A dictionary containing interview details (candidate_id,
+                interviewer_id, scheduled_at, etc.).
+
+        Returns:
+            A dictionary containing the created interview data.
+
+        Raises:
+            InterviewServiceError: If scheduling fails.
+            ValueError: If required fields are missing.
+        """
+        required_fields = {"candidate_id", "interviewer_id", "scheduled_at"}
+        missing = required_fields - data.keys()
+        if missing:
+            raise ValueError(f"Missing required fields: {missing}")
+
+        try:
+            interview = self._db.create_interview(data)
+            return interview
+        except Exception as exc:
+            logger.error("Failed to schedule interview: %s", exc)
+            raise InterviewServiceError("Failed to schedule interview.") from exc
+
+    def update_interview(self, interview_id: str, data: dict) -> dict:
+        """Update an existing interview.
+
+        Args:
+            interview_id: The unique identifier of the interview to update.
+            data: A dictionary containing the fields to update.
+
+        Returns:
+            A dictionary containing the updated interview data.
+
+        Raises:
+            InterviewNotFoundError: If no interview exists with the given ID.
+            InterviewServiceError: If the update fails.
+        """
+        try:
+            existing = self._db.get_interview(interview_id)
+            if existing is None:
+                raise InterviewNotFoundError(
+                    f"Interview with ID '{interview_id}' not found."
+                )
+            updated = self._db.update_interview(interview_id, data)
+            return updated
+        except InterviewNotFoundError:
+            raise
+        except Exception as exc:
+            logger.error("Failed to update interview %s: %s", interview_id, exc)
+            raise InterviewServiceError(
+                f"Failed to update interview '{interview_id}'."
             ) from exc
-    elif not isinstance(new_time, datetime):
-        raise ValidationError("new_time must be a datetime or ISO format string")
 
-    if new_time < datetime.now(new_time.tzinfo):
-        raise ValidationError("new_time must be in the future")
+    def cancel_interview(self, interview_id: str) -> bool:
+        """Cancel an existing interview.
 
-    _interviews[interview_id]["scheduled_time"] = new_time
-    _interviews[interview_id]["status"] = "rescheduled"
-    return _interviews[interview_id]
+        Args:
+            interview_id: The unique identifier of the interview to cancel.
 
+        Returns:
+            True if the interview was successfully cancelled.
 
-def get_interview_feedback(interview_id: str) -> dict[str, Any]:
-    """Get feedback for a specific interview.
-
-    Args:
-        interview_id: The unique identifier of the interview.
-
-    Returns:
-        The feedback record for the interview.
-
-    Raises:
-        InterviewNotFoundError: If the interview does not exist.
-        FeedbackNotFoundError: If no feedback exists for the interview.
-    """
-    if interview_id not in _interviews:
-        raise InterviewNotFoundError(f"Interview '{interview_id}' not found")
-
-    if interview_id not in _feedback:
-        raise FeedbackNotFoundError(
-            f"No feedback found for interview '{interview_id}'"
-        )
-
-    return _feedback[interview_id]
+        Raises:
+            InterviewNotFoundError: If no interview exists with the given ID.
+            InterviewServiceError: If the cancellation fails.
+        """
+        try:
+            existing = self._db.get_interview(interview_id)
+            if existing is None:
+                raise InterviewNotFoundError(
+                    f"Interview with ID '{interview_id}' not found."
+                )
+            self._db.update_interview(interview_id, {"status": "cancelled"})
+            return True
+        except InterviewNotFoundError:
+            raise
+        except Exception as exc:
+            logger.error("Failed to cancel interview %s: %s", interview_id, exc)
+            raise InterviewServiceError(
+                f"Failed to cancel interview '{interview_id}'."
+            ) from exc

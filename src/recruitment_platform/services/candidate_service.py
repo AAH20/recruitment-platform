@@ -2,137 +2,96 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+import logging
+from typing import Any
 
-from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
-
-from recruitment_platform.models.candidate import Candidate
-from recruitment_platform.schemas.candidate import CandidateCreate, CandidateFilters, PaginationParams
+logger = logging.getLogger(__name__)
 
 
-class CandidateServiceError(Exception):
-    """Base exception for candidate service errors."""
-
-
-class CandidateNotFoundError(CandidateServiceError):
+class CandidateNotFoundError(Exception):
     """Raised when a candidate is not found."""
 
 
-class CandidateValidationError(CandidateServiceError):
-    """Raised when candidate data fails validation."""
+class CandidateServiceError(Exception):
+    """Raised when a candidate service operation fails."""
 
 
-def create_candidate(data: Dict[str, Any], db: Session) -> Candidate:
-    """Create a new candidate with validation.
-
-    Args:
-        data: Candidate data dictionary.
-        db: Database session.
-
-    Returns:
-        The created Candidate instance.
-
-    Raises:
-        CandidateValidationError: If data validation fails.
-        CandidateServiceError: If database operation fails.
-    """
-    try:
-        candidate_data = CandidateCreate(**data)
-    except Exception as exc:
-        raise CandidateValidationError(f"Invalid candidate data: {exc}") from exc
-
-    try:
-        candidate = Candidate(**candidate_data.model_dump())
-        db.add(candidate)
-        db.commit()
-        db.refresh(candidate)
-        return candidate
-    except SQLAlchemyError as exc:
-        db.rollback()
-        raise CandidateServiceError(f"Failed to create candidate: {exc}") from exc
-
-
-def get_candidate(candidate_id: int, db: Session) -> Candidate:
-    """Get a candidate by ID.
+def get_candidate(candidate_id: str) -> dict:
+    """Get candidate by ID.
 
     Args:
-        candidate_id: The candidate's unique identifier.
-        db: Database session.
+        candidate_id: The unique identifier of the candidate.
 
     Returns:
-        The Candidate instance.
+        A dictionary containing the candidate data.
 
     Raises:
-        CandidateNotFoundError: If candidate is not found.
-        CandidateServiceError: If database operation fails.
+        CandidateNotFoundError: If the candidate does not exist.
+        CandidateServiceError: If the operation fails.
     """
-    try:
-        candidate = db.execute(
-            select(Candidate).where(Candidate.id == candidate_id)
-        ).scalar_one_or_none()
-    except SQLAlchemyError as exc:
-        raise CandidateServiceError(f"Failed to fetch candidate: {exc}") from exc
-
-    if candidate is None:
-        raise CandidateNotFoundError(f"Candidate with id {candidate_id} not found")
-
-    return candidate
+    raise NotImplementedError
 
 
-def list_candidates(
-    filters: Optional[Dict[str, Any]] = None,
-    pagination: Optional[Dict[str, Any]] = None,
-    db: Session = None,
-) -> Dict[str, Any]:
-    """List candidates with filtering and pagination.
+def list_candidates(filters: dict, page: int, page_size: int) -> list[dict]:
+    """List candidates with filters.
 
     Args:
-        filters: Optional filter criteria (e.g., {"status": "active", "skill": "python"}).
-        pagination: Optional pagination params (e.g., {"page": 1, "page_size": 20}).
-        db: Database session.
+        filters: A dictionary of filter criteria.
+        page: The page number (1-indexed).
+        page_size: The number of candidates per page.
 
     Returns:
-        Dictionary with 'items' (list of candidates), 'total', 'page', 'page_size'.
+        A list of dictionaries containing candidate data.
 
     Raises:
-        CandidateServiceError: If database operation fails.
+        CandidateServiceError: If the operation fails.
     """
-    filters = filters or {}
-    pagination = pagination or {}
+    raise NotImplementedError
 
-    try:
-        filter_params = CandidateFilters(**filters)
-        page_params = PaginationParams(**pagination)
-    except Exception as exc:
-        raise CandidateValidationError(f"Invalid filter or pagination data: {exc}") from exc
 
-    try:
-        query = select(Candidate)
+def create_candidate(data: dict) -> dict:
+    """Create a new candidate.
 
-        if filter_params.status is not None:
-            query = query.where(Candidate.status == filter_params.status)
-        if filter_params.skill is not None:
-            query = query.where(Candidate.skills.contains([filter_params.skill]))
-        if filter_params.location is not None:
-            query = query.where(Candidate.location == filter_params.location)
+    Args:
+        data: A dictionary containing the candidate data.
 
-        total = db.execute(
-            select(Candidate.id).where(query.whereclause)
-        ).scalars().all()
-        total_count = len(total)
+    Returns:
+        A dictionary containing the created candidate data.
 
-        offset = (page_params.page - 1) * page_params.page_size
-        query = query.offset(offset).limit(page_params.page_size)
+    Raises:
+        CandidateServiceError: If the operation fails.
+    """
+    raise NotImplementedError
 
-        items = db.execute(query).scalars().all()
 
-        return {
-            "items": list(items),
-            "total": total_count,
-            "page": page_params.page,
-            "page_size": page_params.page_size,
-        }
-    except SQLAlchemyError as exc:
-        raise CandidateServiceError(f"Failed to list candidates: {exc}") from exc
+def update_candidate(candidate_id: str, data: dict) -> dict:
+    """Update an existing candidate.
+
+    Args:
+        candidate_id: The unique identifier of the candidate.
+        data: A dictionary containing the fields to update.
+
+    Returns:
+        A dictionary containing the updated candidate data.
+
+    Raises:
+        CandidateNotFoundError: If the candidate does not exist.
+        CandidateServiceError: If the operation fails.
+    """
+    raise NotImplementedError
+
+
+def delete_candidate(candidate_id: str) -> bool:
+    """Delete a candidate.
+
+    Args:
+        candidate_id: The unique identifier of the candidate.
+
+    Returns:
+        True if the candidate was deleted successfully.
+
+    Raises:
+        CandidateNotFoundError: If the candidate does not exist.
+        CandidateServiceError: If the operation fails.
+    """
+    raise NotImplementedError

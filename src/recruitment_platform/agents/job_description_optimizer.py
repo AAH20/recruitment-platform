@@ -324,33 +324,18 @@ def analyze_description(job_description: str) -> DescriptionMetrics:
     )
 
 
-def optimize_description(job_description: str) -> OptimizedDescription:
-    """Optimize a job description and return improved version with suggestions.
+def optimize_description(job_description: str) -> str:
+    """Optimize a job description for clarity and inclusivity.
 
     Args:
         job_description: The raw job description text to optimize.
 
     Returns:
-        OptimizedDescription with the improved text and list of suggestions.
+        The optimized job description text.
     """
     if not job_description or not job_description.strip():
-        return OptimizedDescription(
-            original=job_description or "",
-            optimized="",
-            suggestions=[
-                OptimizationSuggestion(
-                    category="general",
-                    severity="high",
-                    original="",
-                    suggestion="Provide a non-empty job description.",
-                    reason="Cannot optimize an empty description.",
-                )
-            ],
-            score_before=0.0,
-            score_after=0.0,
-        )
+        return ""
 
-    suggestions: list[OptimizationSuggestion] = []
     optimized = job_description
 
     # 1. Replace exclusive language
@@ -359,15 +344,6 @@ def optimize_description(job_description: str) -> OptimizedDescription:
         replacement = INCLUSIVE_LANGUAGE_MAP.get(term, term)
         pattern = re.compile(r"\b" + re.escape(term) + r"\b", re.IGNORECASE)
         optimized = pattern.sub(replacement, optimized)
-        suggestions.append(
-            OptimizationSuggestion(
-                category="inclusivity",
-                severity="high",
-                original=term,
-                suggestion=replacement,
-                reason=f"'{term}' may be exclusionary. Consider using '{replacement}' instead.",
-            )
-        )
 
     # 2. Replace gendered pronouns with they/them
     gendered_terms = _detect_gendered_language(job_description)
@@ -384,73 +360,105 @@ def optimize_description(job_description: str) -> OptimizedDescription:
             replacement = pronoun_map[term.lower()]
             pattern = re.compile(r"\b" + re.escape(term) + r"\b", re.IGNORECASE)
             optimized = pattern.sub(replacement, optimized)
-            suggestions.append(
-                OptimizationSuggestion(
-                    category="inclusivity",
-                    severity="medium",
-                    original=term,
-                    suggestion=replacement,
-                    reason=f"Use '{replacement}' instead of gendered '{term}' for inclusivity.",
-                )
-            )
 
     # 3. Remove buzzwords
     buzzwords = _detect_buzzwords(job_description)
     for word in buzzwords:
         pattern = re.compile(r"\b" + re.escape(word) + r"\b", re.IGNORECASE)
         optimized = pattern.sub("", optimized)
-        suggestions.append(
-            OptimizationSuggestion(
-                category="seo",
-                severity="medium",
-                original=word,
-                suggestion="(removed)",
-                reason=f"'{word}' is an overused buzzword that reduces SEO effectiveness.",
-            )
-        )
 
     # 4. Clean up extra whitespace from removals
     optimized = re.sub(r"\s{2,}", " ", optimized)
     optimized = re.sub(r"\s+([.,;:!?])", r"\1", optimized)
     optimized = optimized.strip()
 
-    # 5. Add missing sections as suggestions
-    missing_sections = _detect_missing_sections(optimized)
+    return optimized
+
+
+def suggest_improvements(description: str) -> list[str]:
+    """Suggest improvements for a job description.
+
+    Args:
+        description: The job description text to analyze.
+
+    Returns:
+        A list of improvement suggestions.
+    """
+    if not description or not description.strip():
+        return ["Provide a non-empty job description."]
+
+    suggestions: list[str] = []
+
+    # Check for exclusive language
+    exclusive_terms = _detect_exclusive_language(description)
+    for term in exclusive_terms:
+        replacement = INCLUSIVE_LANGUAGE_MAP.get(term, term)
+        suggestions.append(
+            f"Replace '{term}' with '{replacement}' for better inclusivity."
+        )
+
+    # Check for gendered language
+    gendered_terms = _detect_gendered_language(description)
+    pronoun_map = {
+        "he": "they",
+        "she": "they",
+        "him": "them",
+        "his": "their",
+        "her": "their",
+        "hers": "theirs",
+    }
+    for term in gendered_terms:
+        if term.lower() in pronoun_map:
+            replacement = pronoun_map[term.lower()]
+            suggestions.append(
+                f"Use '{replacement}' instead of gendered '{term}' for inclusivity."
+            )
+
+    # Check for buzzwords
+    buzzwords = _detect_buzzwords(description)
+    for word in buzzwords:
+        suggestions.append(
+            f"Remove buzzword '{word}' to improve SEO effectiveness."
+        )
+
+    # Check for missing sections
+    missing_sections = _detect_missing_sections(description)
     for section in missing_sections:
         suggestions.append(
-            OptimizationSuggestion(
-                category="structure",
-                severity="low",
-                original="(missing)",
-                suggestion=f"Add a '{section}' section.",
-                reason=f"Job descriptions with a '{section}' section perform better in search results.",
-            )
+            f"Add a '{section}' section for better structure."
         )
 
-    # 6. Suggest adding power words if few are present
-    power_words = _detect_power_words(optimized)
+    # Check for power words
+    power_words = _detect_power_words(description)
     if len(power_words) < 3:
         suggestions.append(
-            OptimizationSuggestion(
-                category="engagement",
-                severity="low",
-                original="",
-                suggestion="Consider adding power words like 'innovative', 'collaborative', or 'inclusive'.",
-                reason="Power words increase applicant engagement by up to 30%.",
-            )
+            "Consider adding power words like 'innovative', 'collaborative', or 'inclusive'."
         )
 
-    # Compute before/after scores
-    before_metrics = analyze_description(job_description)
-    after_metrics = analyze_description(optimized)
+    # Check readability
+    flesch_score = _flesch_reading_ease(description)
+    if flesch_score < 40:
+        suggestions.append(
+            "Improve readability by using shorter sentences and simpler words."
+        )
 
-    return OptimizedDescription(
-        original=job_description,
-        optimized=optimized,
-        suggestions=suggestions,
-        score_before=before_metrics.overall_score,
-        score_after=after_metrics.overall_score,
-    )
+    return suggestions
+
+
+def score_description(description: str) -> float:
+    """Score job description quality.
+
+    Args:
+        description: The job description text to score.
+
+    Returns:
+        A quality score between 0.0 and 100.0.
+    """
+    if not description or not description.strip():
+        return 0.0
+
+    metrics = analyze_description(description)
+    return metrics.overall_score
 
 
 def _readability_level(flesch_score: float) -> str:

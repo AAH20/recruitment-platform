@@ -1,249 +1,299 @@
-"""Analytics service for recruitment platform dashboard and reporting."""
+"""Analytics service for recruitment metrics and reporting."""
 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
-
-@dataclass
-class DashboardMetrics:
-    """Aggregated metrics for the main dashboard."""
-
-    total_jobs: int = 0
-    active_jobs: int = 0
-    total_candidates: int = 0
-    active_candidates: int = 0
-    total_applications: int = 0
-    pending_applications: int = 0
-    interviews_scheduled: int = 0
-    offers_extended: int = 0
-    offers_accepted: int = 0
-    hires_completed: int = 0
-    period_start: Optional[date] = None
-    period_end: Optional[date] = None
+VALID_TIME_RANGES = {"7d", "30d", "90d", "180d", "365d", "all"}
 
 
-@dataclass
-class PipelineStageMetrics:
-    """Metrics for a single pipeline stage."""
+def _parse_time_range(time_range: str) -> tuple[datetime | None, datetime]:
+    """Parse a time range string into start and end datetimes.
 
-    stage_name: str
-    candidate_count: int = 0
-    conversion_rate: float = 0.0
-    average_days_in_stage: float = 0.0
+    Args:
+        time_range: One of '7d', '30d', '90d', '180d', '365d', 'all'.
 
+    Returns:
+        A tuple of (start_datetime, end_datetime). For 'all', start is None.
 
-@dataclass
-class PipelineMetrics:
-    """Full pipeline funnel metrics."""
-
-    stages: List[PipelineStageMetrics] = field(default_factory=list)
-    overall_conversion_rate: float = 0.0
-    bottleneck_stage: Optional[str] = None
-
-
-@dataclass
-class TimeToHireMetrics:
-    """Time-to-hire statistics."""
-
-    average_days: float = 0.0
-    median_days: float = 0.0
-    min_days: int = 0
-    max_days: int = 0
-    p25_days: float = 0.0
-    p75_days: float = 0.0
-    by_department: Dict[str, float] = field(default_factory=dict)
-    by_role: Dict[str, float] = field(default_factory=dict)
-
-
-class AnalyticsServiceError(Exception):
-    """Raised when analytics computation fails."""
-
-
-class AnalyticsService:
-    """Service for computing recruitment analytics and metrics."""
-
-    def __init__(self, db_session: Any = None) -> None:
-        """Initialize the analytics service.
-
-        Args:
-            db_session: Optional database session for querying data.
-        """
-        self._db = db_session
-
-    def get_dashboard_metrics(
-        self,
-        *,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-        department_id: Optional[int] = None,
-    ) -> DashboardMetrics:
-        """Return aggregated dashboard metrics.
-
-        Args:
-            start_date: Optional start of reporting period.
-            end_date: Optional end of reporting period.
-            department_id: Optional department filter.
-
-        Returns:
-            DashboardMetrics with current recruitment KPIs.
-
-        Raises:
-            AnalyticsServiceError: If metrics cannot be computed.
-        """
-        try:
-            metrics = self._compute_dashboard_metrics(
-                start_date=start_date,
-                end_date=end_date,
-                department_id=department_id,
-            )
-            return metrics
-        except AnalyticsServiceError:
-            raise
-        except Exception as exc:
-            logger.exception("Failed to compute dashboard metrics")
-            raise AnalyticsServiceError(
-                f"Failed to compute dashboard metrics: {exc}"
-            ) from exc
-
-    def get_pipeline_metrics(
-        self,
-        *,
-        job_id: Optional[int] = None,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-    ) -> PipelineMetrics:
-        """Return pipeline funnel metrics.
-
-        Args:
-            job_id: Optional job requisition filter.
-            start_date: Optional start of reporting period.
-            end_date: Optional end of reporting period.
-
-        Returns:
-            PipelineMetrics with stage-by-stage funnel data.
-
-        Raises:
-            AnalyticsServiceError: If pipeline metrics cannot be computed.
-        """
-        try:
-            metrics = self._compute_pipeline_metrics(
-                job_id=job_id,
-                start_date=start_date,
-                end_date=end_date,
-            )
-            return metrics
-        except AnalyticsServiceError:
-            raise
-        except Exception as exc:
-            logger.exception("Failed to compute pipeline metrics")
-            raise AnalyticsServiceError(
-                f"Failed to compute pipeline metrics: {exc}"
-            ) from exc
-
-    def get_time_to_hire_metrics(
-        self,
-        *,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-        department_id: Optional[int] = None,
-        role_id: Optional[int] = None,
-    ) -> TimeToHireMetrics:
-        """Return time-to-hire statistics.
-
-        Args:
-            start_date: Optional start of reporting period.
-            end_date: Optional end of reporting period.
-            department_id: Optional department filter.
-            role_id: Optional role filter.
-
-        Returns:
-            TimeToHireMetrics with distribution statistics.
-
-        Raises:
-            AnalyticsServiceError: If time-to-hire metrics cannot be computed.
-        """
-        try:
-            metrics = self._compute_time_to_hire_metrics(
-                start_date=start_date,
-                end_date=end_date,
-                department_id=department_id,
-                role_id=role_id,
-            )
-            return metrics
-        except AnalyticsServiceError:
-            raise
-        except Exception as exc:
-            logger.exception("Failed to compute time-to-hire metrics")
-            raise AnalyticsServiceError(
-                f"Failed to compute time-to-hire metrics: {exc}"
-            ) from exc
-
-    # ------------------------------------------------------------------
-    # Private computation helpers
-    # ------------------------------------------------------------------
-
-    def _compute_dashboard_metrics(
-        self,
-        *,
-        start_date: Optional[date],
-        end_date: Optional[date],
-        department_id: Optional[int],
-    ) -> DashboardMetrics:
-        """Compute raw dashboard metrics from data source."""
-        # Placeholder: replace with actual DB queries
-        return DashboardMetrics(
-            total_jobs=0,
-            active_jobs=0,
-            total_candidates=0,
-            active_candidates=0,
-            total_applications=0,
-            pending_applications=0,
-            interviews_scheduled=0,
-            offers_extended=0,
-            offers_accepted=0,
-            hires_completed=0,
-            period_start=start_date,
-            period_end=end_date,
+    Raises:
+        ValueError: If the time range is not recognised.
+    """
+    if time_range not in VALID_TIME_RANGES:
+        raise ValueError(
+            f"Invalid time_range '{time_range}'. "
+            f"Must be one of: {', '.join(sorted(VALID_TIME_RANGES))}"
         )
 
-    def _compute_pipeline_metrics(
-        self,
-        *,
-        job_id: Optional[int],
-        start_date: Optional[date],
-        end_date: Optional[date],
-    ) -> PipelineMetrics:
-        """Compute pipeline funnel metrics from data source."""
-        # Placeholder: replace with actual DB queries
-        return PipelineMetrics(
-            stages=[],
-            overall_conversion_rate=0.0,
-            bottleneck_stage=None,
-        )
+    end = datetime.utcnow()
+    if time_range == "all":
+        return None, end
 
-    def _compute_time_to_hire_metrics(
-        self,
-        *,
-        start_date: Optional[date],
-        end_date: Optional[date],
-        department_id: Optional[int],
-        role_id: Optional[int],
-    ) -> TimeToHireMetrics:
-        """Compute time-to-hire statistics from data source."""
-        # Placeholder: replace with actual DB queries
-        return TimeToHireMetrics(
-            average_days=0.0,
-            median_days=0.0,
-            min_days=0,
-            max_days=0,
-            p25_days=0.0,
-            p75_days=0.0,
-            by_department={},
-            by_role={},
+    days = int(time_range[:-1])
+    start = end - timedelta(days=days)
+    return start, end
+
+
+def _format_response(data: dict[str, Any]) -> dict[str, Any]:
+    """Wrap response data with metadata.
+
+    Args:
+        data: The raw metrics data.
+
+    Returns:
+        A dict containing the data and metadata.
+    """
+    return {
+        "success": True,
+        "data": data,
+        "generated_at": datetime.utcnow().isoformat(),
+    }
+
+
+def get_recruitment_metrics(time_range: str) -> dict[str, Any]:
+    """Get recruitment metrics for the given time range.
+
+    Returns key recruitment KPIs including total applications, hires,
+    open positions, and offer acceptance rate.
+
+    Args:
+        time_range: The time period to analyse. One of '7d', '30d',
+            '90d', '180d', '365d', 'all'.
+
+    Returns:
+        A dict containing recruitment metrics wrapped with metadata.
+
+    Raises:
+        ValueError: If the time_range is invalid.
+        RuntimeError: If metrics cannot be retrieved.
+    """
+    try:
+        start, end = _parse_time_range(time_range)
+    except ValueError:
+        raise
+
+    try:
+        # TODO: Replace with actual database queries
+        metrics: dict[str, Any] = {
+            "time_range": time_range,
+            "period_start": start.isoformat() if start else None,
+            "period_end": end.isoformat(),
+            "total_applications": 0,
+            "total_hires": 0,
+            "open_positions": 0,
+            "offer_acceptance_rate": 0.0,
+            "applications_per_opening": 0.0,
+            "active_candidates": 0,
+            "rejected_candidates": 0,
+            "withdrawn_candidates": 0,
+        }
+
+        logger.info(
+            "Retrieved recruitment metrics for period %s (%s to %s)",
+            time_range,
+            start,
+            end,
         )
+        return _format_response(metrics)
+
+    except Exception as exc:
+        logger.error("Failed to get recruitment metrics: %s", exc)
+        raise RuntimeError(f"Failed to retrieve recruitment metrics: {exc}") from exc
+
+
+def get_pipeline_funnel(time_range: str) -> dict[str, Any]:
+    """Get pipeline funnel data for the given time range.
+
+    Returns candidate counts at each stage of the recruitment pipeline:
+    applied, screened, interviewed, offered, hired.
+
+    Args:
+        time_range: The time period to analyse. One of '7d', '30d',
+            '90d', '180d', '365d', 'all'.
+
+    Returns:
+        A dict containing pipeline funnel data with stage counts and
+        conversion rates.
+
+    Raises:
+        ValueError: If the time_range is invalid.
+        RuntimeError: If funnel data cannot be retrieved.
+    """
+    try:
+        start, end = _parse_time_range(time_range)
+    except ValueError:
+        raise
+
+    try:
+        # TODO: Replace with actual database queries
+        stages = [
+            {"stage": "applied", "count": 0},
+            {"stage": "screened", "count": 0},
+            {"stage": "interviewed", "count": 0},
+            {"stage": "offered", "count": 0},
+            {"stage": "hired", "count": 0},
+        ]
+
+        # Calculate conversion rates between stages
+        for i in range(1, len(stages)):
+            prev_count = stages[i - 1]["count"]
+            curr_count = stages[i]["count"]
+            stages[i]["conversion_rate"] = (
+                round(curr_count / prev_count, 4) if prev_count > 0 else 0.0
+            )
+
+        funnel: dict[str, Any] = {
+            "time_range": time_range,
+            "period_start": start.isoformat() if start else None,
+            "period_end": end.isoformat(),
+            "stages": stages,
+            "overall_conversion_rate": 0.0,
+        }
+
+        logger.info(
+            "Retrieved pipeline funnel for period %s", time_range
+        )
+        return _format_response(funnel)
+
+    except Exception as exc:
+        logger.error("Failed to get pipeline funnel: %s", exc)
+        raise RuntimeError(f"Failed to retrieve pipeline funnel: {exc}") from exc
+
+
+def get_source_effectiveness(time_range: str) -> dict[str, Any]:
+    """Get source effectiveness data for the given time range.
+
+    Returns metrics for each recruitment source (e.g., LinkedIn, referrals,
+    job boards) including application count, hire count, cost per hire, and
+    quality score.
+
+    Args:
+        time_range: The time period to analyse. One of '7d', '30d',
+            '90d', '180d', '365d', 'all'.
+
+    Returns:
+        A dict containing per-source effectiveness metrics.
+
+    Raises:
+        ValueError: If the time_range is invalid.
+        RuntimeError: If source effectiveness data cannot be retrieved.
+    """
+    try:
+        start, end = _parse_time_range(time_range)
+    except ValueError:
+        raise
+
+    try:
+        # TODO: Replace with actual database queries
+        sources: list[dict[str, Any]] = [
+            {
+                "source": "linkedin",
+                "applications": 0,
+                "hires": 0,
+                "cost_per_hire": 0.0,
+                "quality_score": 0.0,
+                "conversion_rate": 0.0,
+            },
+            {
+                "source": "referral",
+                "applications": 0,
+                "hires": 0,
+                "cost_per_hire": 0.0,
+                "quality_score": 0.0,
+                "conversion_rate": 0.0,
+            },
+            {
+                "source": "indeed",
+                "applications": 0,
+                "hires": 0,
+                "cost_per_hire": 0.0,
+                "quality_score": 0.0,
+                "conversion_rate": 0.0,
+            },
+            {
+                "source": "company_careers_page",
+                "applications": 0,
+                "hires": 0,
+                "cost_per_hire": 0.0,
+                "quality_score": 0.0,
+                "conversion_rate": 0.0,
+            },
+        ]
+
+        effectiveness: dict[str, Any] = {
+            "time_range": time_range,
+            "period_start": start.isoformat() if start else None,
+            "period_end": end.isoformat(),
+            "sources": sources,
+            "total_sources": len(sources),
+            "most_effective_source": None,
+        }
+
+        logger.info(
+            "Retrieved source effectiveness for period %s", time_range
+        )
+        return _format_response(effectiveness)
+
+    except Exception as exc:
+        logger.error("Failed to get source effectiveness: %s", exc)
+        raise RuntimeError(
+            f"Failed to retrieve source effectiveness: {exc}"
+        ) from exc
+
+
+def get_time_to_hire(time_range: str) -> dict[str, Any]:
+    """Get time-to-hire metrics for the given time range.
+
+    Returns average, median, and percentile breakdowns of the number of
+    days between application and hire, segmented by department and role
+    seniority.
+
+    Args:
+        time_range: The time period to analyse. One of '7d', '30d',
+            '90d', '180d', '365d', 'all'.
+
+    Returns:
+        A dict containing time-to-hire statistics.
+
+    Raises:
+        ValueError: If the time_range is invalid.
+        RuntimeError: If time-to-hire data cannot be retrieved.
+    """
+    try:
+        start, end = _parse_time_range(time_range)
+    except ValueError:
+        raise
+
+    try:
+        # TODO: Replace with actual database queries
+        time_to_hire: dict[str, Any] = {
+            "time_range": time_range,
+            "period_start": start.isoformat() if start else None,
+            "period_end": end.isoformat(),
+            "overall": {
+                "average_days": 0.0,
+                "median_days": 0.0,
+                "p25_days": 0.0,
+                "p75_days": 0.0,
+                "min_days": 0,
+                "max_days": 0,
+            },
+            "by_department": [],
+            "by_seniority": [],
+            "sample_size": 0,
+        }
+
+        logger.info(
+            "Retrieved time-to-hire metrics for period %s", time_range
+        )
+        return _format_response(time_to_hire)
+
+    except Exception as exc:
+        logger.error("Failed to get time-to-hire metrics: %s", exc)
+        raise RuntimeError(
+            f"Failed to retrieve time-to-hire metrics: {exc}"
+        ) from exc

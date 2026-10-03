@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -29,35 +31,120 @@ _pools: dict[str, dict[str, Any]] = {}
 _candidates: dict[str, dict[str, Any]] = {}
 
 
-def create_pool(data: dict[str, Any]) -> dict[str, Any]:
+def get_talent_pool(pool_id: str) -> dict:
+    """Get a talent pool by its ID.
+
+    Args:
+        pool_id: The unique identifier of the talent pool.
+
+    Returns:
+        A dictionary containing the talent pool data.
+
+    Raises:
+        PoolNotFoundError: If no talent pool exists with the given ID.
+        TalentPoolError: If pool_id is invalid.
+    """
+    if not pool_id or not isinstance(pool_id, str):
+        raise TalentPoolError("pool_id must be a non-empty string")
+
+    pool = _pools.get(pool_id)
+    if pool is None:
+        raise PoolNotFoundError(f"Talent pool '{pool_id}' not found")
+
+    logger.info("Retrieved talent pool %s", pool_id)
+    return pool
+
+
+def list_talent_pools(
+    filters: dict, page: int, page_size: int
+) -> list[dict]:
+    """List talent pools with optional filtering and pagination.
+
+    Args:
+        filters: A dictionary of filter criteria (e.g., {"name": "Engineering",
+                 "tags": ["senior"], "owner_id": "user-123"}).
+        page: The page number (1-indexed).
+        page_size: The number of results per page.
+
+    Returns:
+        A list of talent pool dictionaries matching the filters.
+
+    Raises:
+        ValueError: If page or page_size is less than 1.
+    """
+    if page < 1:
+        raise ValueError("page must be >= 1")
+    if page_size < 1:
+        raise ValueError("page_size must be >= 1")
+
+    results: list[dict] = []
+    filters = filters or {}
+
+    for pool in _pools.values():
+        # Apply name filter (case-insensitive substring match)
+        if "name" in filters:
+            if filters["name"].lower() not in pool.get("name", "").lower():
+                continue
+
+        # Apply tags filter (pool must contain all specified tags)
+        if "tags" in filters:
+            required_tags = set(filters["tags"])
+            pool_tags = set(pool.get("tags", []))
+            if not required_tags.issubset(pool_tags):
+                continue
+
+        # Apply owner_id filter
+        if "owner_id" in filters:
+            if pool.get("owner_id") != filters["owner_id"]:
+                continue
+
+        # Apply created_after filter
+        if "created_after" in filters:
+            if pool.get("created_at", "") < filters["created_after"]:
+                continue
+
+        results.append(pool)
+
+    # Sort by most recently updated
+    results.sort(key=lambda p: p.get("updated_at", ""), reverse=True)
+
+    # Apply pagination
+    offset = (page - 1) * page_size
+    paginated = results[offset : offset + page_size]
+
+    logger.info(
+        "Listed talent pools (page=%d, page_size=%d, total=%d)",
+        page,
+        page_size,
+        len(results),
+    )
+    return paginated
+
+
+def create_talent_pool(data: dict) -> dict:
     """Create a new talent pool.
 
     Args:
-        data: Pool data containing at least 'name' and optionally
-              'description', 'tags', 'owner_id'.
+        data: A dictionary containing the talent pool attributes
+              (e.g., {"name": "Engineering", "description": "..."}).
 
     Returns:
-        The created pool record with generated 'id' and timestamps.
+        A dictionary containing the created talent pool data, including its ID.
 
     Raises:
-        TalentPoolError: If required fields are missing or invalid.
+        ValueError: If required fields are missing from data.
     """
-    if not isinstance(data, dict):
-        raise TalentPoolError("Pool data must be a dictionary")
-
-    name = data.get("name")
-    if not name or not isinstance(name, str):
-        raise TalentPoolError("Pool 'name' is required and must be a non-empty string")
-
-    import uuid
-    from datetime import datetime, timezone
+    if not data:
+        raise ValueError("data must not be empty")
+    if "name" not in data:
+        raise ValueError("data must contain a 'name' field")
 
     pool_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
 
     pool = {
         "id": pool_id,
-        "name": name,
+        "name": data["name"],
         "description": data.get("description", ""),
         "tags": data.get("tags", []),
         "owner_id": data.get("owner_id"),
@@ -67,24 +154,25 @@ def create_pool(data: dict[str, Any]) -> dict[str, Any]:
     }
 
     _pools[pool_id] = pool
-    logger.info("Created talent pool %s (%s)", pool_id, name)
+    logger.info("Created talent pool %s (%s)", pool_id, data["name"])
     return pool
 
 
-def add_candidate_to_pool(pool_id: str, candidate_id: str) -> dict[str, Any]:
+def add_candidate_to_pool(pool_id: str, candidate_id: str) -> bool:
     """Add a candidate to a talent pool.
 
     Args:
         pool_id: The unique identifier of the talent pool.
-        candidate_id: The unique identifier of the candidate.
+        candidate_id: The unique identifier of the candidate to add.
 
     Returns:
-        The updated pool record.
+        True if the candidate was successfully added to the pool.
 
     Raises:
-        PoolNotFoundError: If the pool does not exist.
+        PoolNotFoundError: If the talent pool does not exist.
         CandidateNotFoundError: If the candidate does not exist.
         DuplicateCandidateError: If the candidate is already in the pool.
+        TalentPoolError: If pool_id or candidate_id is invalid.
     """
     if not pool_id or not isinstance(pool_id, str):
         raise TalentPoolError("pool_id must be a non-empty string")
@@ -103,13 +191,68 @@ def add_candidate_to_pool(pool_id: str, candidate_id: str) -> dict[str, Any]:
             f"Candidate '{candidate_id}' is already in pool '{pool_id}'"
         )
 
-    from datetime import datetime, timezone
-
     pool["candidate_ids"].append(candidate_id)
     pool["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     logger.info("Added candidate %s to pool %s", candidate_id, pool_id)
-    return pool
+    return True
+
+
+def remove_candidate_from_pool(pool_id: str, candidate_id: str) -> bool:
+    """Remove a candidate from a talent pool.
+
+    Args:
+        pool_id: The unique identifier of the talent pool.
+        candidate_id: The unique identifier of the candidate to remove.
+
+    Returns:
+        True if the candidate was successfully removed from the pool.
+
+    Raises:
+        PoolNotFoundError: If the talent pool does not exist.
+        CandidateNotFoundError: If the candidate does not exist.
+        TalentPoolError: If pool_id or candidate_id is invalid.
+    """
+    if not pool_id or not isinstance(pool_id, str):
+        raise TalentPoolError("pool_id must be a non-empty string")
+    if not candidate_id or not isinstance(candidate_id, str):
+        raise TalentPoolError("candidate_id must be a non-empty string")
+
+    pool = _pools.get(pool_id)
+    if pool is None:
+        raise PoolNotFoundError(f"Talent pool '{pool_id}' not found")
+
+    if candidate_id not in _candidates:
+        raise CandidateNotFoundError(f"Candidate '{candidate_id}' not found")
+
+    if candidate_id not in pool["candidate_ids"]:
+        logger.warning(
+            "Candidate %s is not in pool %s", candidate_id, pool_id
+        )
+        return False
+
+    pool["candidate_ids"].remove(candidate_id)
+    pool["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    logger.info("Removed candidate %s from pool %s", candidate_id, pool_id)
+    return True
+
+
+# Legacy function names for backward compatibility
+def create_pool(data: dict[str, Any]) -> dict[str, Any]:
+    """Create a new talent pool (legacy alias for create_talent_pool).
+
+    Args:
+        data: Pool data containing at least 'name' and optionally
+              'description', 'tags', 'owner_id'.
+
+    Returns:
+        The created pool record with generated 'id' and timestamps.
+
+    Raises:
+        TalentPoolError: If required fields are missing or invalid.
+    """
+    return create_talent_pool(data)
 
 
 def search_pools(
