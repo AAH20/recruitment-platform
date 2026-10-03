@@ -18,6 +18,7 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read
@@ -72,6 +73,7 @@ jobs:
   autofix:
     name: Autofix Suggestions
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: analyze
     if: github.event_name == 'pull_request'
     permissions:
