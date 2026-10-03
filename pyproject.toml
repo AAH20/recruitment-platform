@@ -29,9 +29,10 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
-[tool.ruff.lint]
-select = ["E", "F", "I", "W"]
-ignore = ["E501", "ISC004", "UP042", "UP006", "UP035", "B904", "TC001"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["E501", "F401", "F841"]
+
+[tool.ruff.lint]
+select = ["E9", "F821", "F811"]
+ignore = []

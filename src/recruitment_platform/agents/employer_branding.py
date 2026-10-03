@@ -471,10 +471,7 @@ def generate_content_strategy(
         recommendations.append(
             ContentRecommendation(
                 title="Behind-the-Scenes Content",
-                description=(
-                    "Produce behind-the-scenes videos showing office culture, "
-                    "team events, and the real day-to-day at the company."
-                ),
+                description="Produce behind-the-scenes videos showing office culture, " "team events, and the real day-to-day at the company.",
                 channel=ContentChannel.INSTAGRAM,
                 format=ContentFormat.BEHIND_THE_SCENES,
                 priority=2,
@@ -488,10 +485,7 @@ def generate_content_strategy(
         recommendations.append(
             ContentRecommendation(
                 title="Diversity & Inclusion Spotlight",
-                description=(
-                    "Feature D&I initiatives, employee resource groups, and "
-                    "commitment stories through video testimonials and articles."
-                ),
+                description="Feature D&I initiatives, employee resource groups, and " "commitment stories through video testimonials and articles.",
                 channel=ContentChannel.LINKEDIN,
                 format=ContentFormat.VIDEO,
                 priority=2,
@@ -523,10 +517,7 @@ def generate_content_strategy(
         recommendations.append(
             ContentRecommendation(
                 title="Day-in-the-Life Video Series",
-                description=(
-                    "Produce short-form videos showing what a typical day looks "
-                    "like for different roles, reducing uncertainty for candidates."
-                ),
+                description="Produce short-form videos showing what a typical day looks " "like for different roles, reducing uncertainty for candidates.",
                 channel=ContentChannel.TIKTOK,
                 format=ContentFormat.VIDEO,
                 priority=3,
@@ -540,10 +531,7 @@ def generate_content_strategy(
         recommendations.append(
             ContentRecommendation(
                 title="Hiring Process Transparency",
-                description=(
-                    "Create content explaining the interview process, timeline, "
-                    "and what candidates can expect at each stage."
-                ),
+                description="Create content explaining the interview process, timeline, " "and what candidates can expect at each stage.",
                 channel=ContentChannel.COMPANY_BLOG,
                 format=ContentFormat.ARTICLE,
                 priority=3,
@@ -558,10 +546,7 @@ def generate_content_strategy(
         recommendations.append(
             ContentRecommendation(
                 title="Industry Thought Leadership",
-                description=(
-                    "Publish articles and insights from leadership on industry "
-                    "trends, innovation, and the company's vision for the future."
-                ),
+                description="Publish articles and insights from leadership on industry " "trends, innovation, and the company's vision for the future.",
                 channel=ContentChannel.LINKEDIN,
                 format=ContentFormat.ARTICLE,
                 priority=3,
