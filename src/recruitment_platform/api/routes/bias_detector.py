@@ -20,7 +20,9 @@ async def analyze_language(data: dict[str, Any]) -> dict[str, Any]:
         Detected biased phrases with suggestions.
     """
     try:
-        from recruitment_platform.agents.bias_detector.language_bias_detector import LanguageBiasDetector
+        from recruitment_platform.agents.bias_detector.language_bias_detector import (
+            LanguageBiasDetector,
+        )
 
         agent = LanguageBiasDetector()
         result = await agent.process(data)
@@ -56,7 +58,9 @@ async def analyze_demographics(data: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Demographic analysis results.
     """
-    from recruitment_platform.agents.bias_detector.demographic_analyzer import DemographicAnalyzer
+    from recruitment_platform.agents.bias_detector.demographic_analyzer import (
+        DemographicAnalyzer,
+    )
 
     agent = DemographicAnalyzer()
     result = await agent.process(data)
