@@ -1,31 +1,19 @@
 terraform {
-  required_version = ">= 1.5.0"
+  required_version = ">= 1.6.0"
 
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.23"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.11"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.5"
-    }
   }
 
   backend "s3" {
-    bucket         = "recruitment-platform-terraform-state"
+    bucket         = "recruitment-platform-tfstate"
     key            = "infrastructure/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
-    dynamodb_table = "recruitment-platform-terraform-locks"
+    dynamodb_table = "terraform-state-lock"
   }
 }
 
@@ -33,423 +21,682 @@ provider "aws" {
   region = var.aws_region
 
   default_tags {
-    tags = local.common_tags
-  }
-}
-
-provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-  token                  = data.aws_eks_cluster_auth.this.token
-}
-
-provider "helm" {
-  kubernetes {
-    host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-    token                  = data.aws_eks_cluster_auth.this.token
-  }
-}
-
-# -----------------------------------------------------------------------------
-# Data Sources
-# -----------------------------------------------------------------------------
-
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
-data "aws_caller_identity" "current" {}
-
-data "aws_eks_cluster_auth" "this" {
-  name = module.eks.cluster_name
-}
-
-# -----------------------------------------------------------------------------
-# Local Values
-# -----------------------------------------------------------------------------
-
-locals {
-  name_prefix = "${var.project_name}-${var.environment}"
-
-  common_tags = {
-    Project     = var.project_name
-    Environment = var.environment
-    ManagedBy   = "terraform"
-    Owner       = var.owner
-    CostCenter  = var.cost_center
-  }
-
-  cluster_name = "${local.name_prefix}-eks"
-
-  vpc_cidr = var.vpc_cidr
-
-  private_subnets = [
-    for i in range(var.az_count) : cidrsubnet(local.vpc_cidr, 8, i)
-  ]
-
-  public_subnets = [
-    for i in range(var.az_count) : cidrsubnet(local.vpc_cidr, 8, i + 100)
-  ]
-
-  database_subnets = [
-    for i in range(var.az_count) : cidrsubnet(local.vpc_cidr, 8, i + 200)
-  ]
-}
-
-# -----------------------------------------------------------------------------
-# VPC Module
-# -----------------------------------------------------------------------------
-
-module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
-  version = "~> 5.1"
-
-  name = "${local.name_prefix}-vpc"
-  cidr = local.vpc_cidr
-
-  azs             = slice(data.aws_availability_zones.available.names, 0, var.az_count)
-  private_subnets = local.private_subnets
-  public_subnets  = local.public_subnets
-  database_subnets = local.database_subnets
-
-  enable_nat_gateway     = true
-  single_nat_gateway     = var.environment != "production"
-  enable_dns_hostnames   = true
-  enable_dns_support     = true
-  enable_flow_log        = true
-
-  public_subnet_tags = {
-    "kubernetes.io/role/elb" = "1"
-  }
-
-  private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = "1"
-  }
-
-  tags = local.common_tags
-}
-
-# -----------------------------------------------------------------------------
-# EKS Module
-# -----------------------------------------------------------------------------
-
-module "eks" {
-  source  = "terraform-aws-modules/eks/aws"
-  version = "~> 19.16"
-
-  cluster_name    = local.cluster_name
-  cluster_version = var.kubernetes_version
-
-  vpc_id     = module.vpc.vpc_id
-  subnet_ids = module.vpc.private_subnets
-
-  cluster_endpoint_private_access = true
-  cluster_endpoint_public_access  = var.eks_public_access
-
-  cluster_enabled_log_types = [
-    "api",
-    "audit",
-    "authenticator",
-    "controllerManager",
-    "scheduler"
-  ]
-
-  cluster_encryption_config = {
-    provider_key_arn = aws_kms_key.eks.arn
-    resources        = ["secrets"]
-  }
-
-  eks_managed_node_groups = {
-    general = {
-      name           = "${local.name_prefix}-general"
-      instance_types = var.eks_node_instance_types
-
-      min_size     = var.eks_node_min_size
-      max_size     = var.eks_node_max_size
-      desired_size = var.eks_node_desired_size
-
-      capacity_type  = "ON_DEMAND"
-      disk_size      = 100
-      disk_type      = "gp3"
-
-      labels = {
-        role = "general"
-      }
-
-      tags = local.common_tags
+    tags = {
+      Project     = "recruitment-platform"
+      Environment = var.environment
+      ManagedBy   = "terraform"
+      CostCenter  = "engineering"
     }
+  }
+}
 
-    spot = {
-      name           = "${local.name_prefix}-spot"
-      instance_types = var.eks_spot_instance_types
+# VPC and Networking
+resource "aws_vpc" "main" {
+  cidr_block           = var.vpc_cidr
+  enable_dns_hostnames = true
+  enable_dns_support   = true
 
-      min_size     = var.eks_spot_min_size
-      max_size     = var.eks_spot_max_size
-      desired_size = var.eks_spot_desired_size
+  tags = {
+    Name = "${var.project_name}-${var.environment}-vpc"
+  }
+}
 
-      capacity_type = "SPOT"
-      disk_size     = 100
-      disk_type     = "gp3"
+resource "aws_subnet" "public" {
+  count                   = length(var.availability_zones)
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index)
+  availability_zone       = var.availability_zones[count.index]
+  map_public_ip_on_launch = true
 
-      labels = {
-        role = "spot"
-      }
+  tags = {
+    Name = "${var.project_name}-${var.environment}-public-${count.index + 1}"
+    Type = "public"
+  }
+}
 
-      taints = [{
-        key    = "spot"
-        value  = "true"
-        effect = "NO_SCHEDULE"
-      }]
+resource "aws_subnet" "private" {
+  count             = length(var.availability_zones)
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = cidrsubnet(var.vpc_cidr, 8, count.index + 10)
+  availability_zone = var.availability_zones[count.index]
 
-      tags = local.common_tags
+  tags = {
+    Name = "${var.project_name}-${var.environment}-private-${count.index + 1}"
+    Type = "private"
+  }
+}
+
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-igw"
+  }
+}
+
+resource "aws_eip" "nat" {
+  count  = var.enable_nat_gateway ? 1 : 0
+  domain = "vpc"
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-nat-eip"
+  }
+}
+
+resource "aws_nat_gateway" "main" {
+  count         = var.enable_nat_gateway ? 1 : 0
+  allocation_id = aws_eip.nat[0].id
+  subnet_id     = aws_subnet.public[0].id
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-nat-gw"
+  }
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-public-rt"
+  }
+}
+
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.main.id
+
+  dynamic "route" {
+    for_each = var.enable_nat_gateway ? [1] : []
+    content {
+      cidr_block     = "0.0.0.0/0"
+      nat_gateway_id = aws_nat_gateway.main[0].id
     }
   }
 
-  cluster_addons = {
-    coredns = {
-      most_recent = true
-      configuration_values = jsonencode({
-        computeType = "Fargate"
-      })
-    }
-    kube-proxy = {
-      most_recent = true
-    }
-    vpc-cni = {
-      most_recent = true
-    }
-    aws-ebs-csi-driver = {
-      most_recent = true
-    }
+  tags = {
+    Name = "${var.project_name}-${var.environment}-private-rt"
+  }
+}
+
+resource "aws_route_table_association" "public" {
+  count          = length(var.availability_zones)
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "private" {
+  count          = length(var.availability_zones)
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
+}
+
+# Security Groups
+resource "aws_security_group" "alb" {
+  name_prefix = "${var.project_name}-${var.environment}-alb-"
+  vpc_id      = aws_vpc.main.id
+  description = "Security group for Application Load Balancer"
+
+  ingress {
+    description = "HTTPS from anywhere"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = local.common_tags
+  ingress {
+    description = "HTTP from anywhere (redirects to HTTPS)"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-alb-sg"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
-# -----------------------------------------------------------------------------
-# KMS Key for EKS Secrets Encryption
-# -----------------------------------------------------------------------------
+resource "aws_security_group" "ecs_tasks" {
+  name_prefix = "${var.project_name}-${var.environment}-ecs-tasks-"
+  vpc_id      = aws_vpc.main.id
+  description = "Security group for ECS tasks"
 
-resource "aws_kms_key" "eks" {
-  description             = "KMS key for EKS secrets encryption - ${local.name_prefix}"
-  deletion_window_in_days = 30
-  enable_key_rotation     = true
+  ingress {
+    description     = "Application traffic from ALB"
+    from_port       = var.app_port
+    to_port         = var.app_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
 
-  tags = local.common_tags
-}
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-resource "aws_kms_alias" "eks" {
-  name          = "alias/${local.name_prefix}-eks"
-  target_key_id = aws_kms_key.eks.key_id
-}
+  tags = {
+    Name = "${var.project_name}-${var.environment}-ecs-tasks-sg"
+  }
 
-# -----------------------------------------------------------------------------
-# RDS Module (PostgreSQL)
-# -----------------------------------------------------------------------------
-
-module "rds" {
-  source  = "terraform-aws-modules/rds/aws"
-  version = "~> 6.1"
-
-  identifier = "${local.name_prefix}-postgres"
-
-  engine               = "postgres"
-  engine_version       = var.rds_engine_version
-  family               = "postgres${split(".", var.rds_engine_version)[0]}"
-  major_engine_version = split(".", var.rds_engine_version)[0]
-  instance_class       = var.rds_instance_class
-
-  allocated_storage     = var.rds_allocated_storage
-  max_allocated_storage = var.rds_max_allocated_storage
-
-  db_name  = var.rds_database_name
-  username = var.rds_username
-  port     = 5432
-
-  multi_az               = var.environment == "production"
-  db_subnet_group_name   = module.vpc.database_subnet_group
-  vpc_security_group_ids = [aws_security_group.rds.id]
-
-  maintenance_window      = "Mon:03:00-Mon:04:00"
-  backup_window           = "04:00-05:00"
-  backup_retention_period = var.rds_backup_retention
-
-  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
-
-  deletion_protection = var.environment == "production"
-  skip_final_snapshot = var.environment != "production"
-  final_snapshot_identifier = var.environment == "production" ? "${local.name_prefix}-final-snapshot" : null
-
-  performance_insights_enabled    = true
-  performance_insights_kms_key_id = aws_kms_key.rds.arn
-
-  create_monitoring_role = true
-  monitoring_interval    = 60
-
-  parameters = [
-    {
-      name  = "autovacuum"
-      value = "1"
-    },
-    {
-      name  = "client_encoding"
-      value = "UTF8"
-    }
-  ]
-
-  tags = local.common_tags
-}
-
-resource "aws_kms_key" "rds" {
-  description             = "KMS key for RDS encryption - ${local.name_prefix}"
-  deletion_window_in_days = 30
-  enable_key_rotation     = true
-
-  tags = local.common_tags
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 resource "aws_security_group" "rds" {
-  name_prefix = "${local.name_prefix}-rds-"
+  name_prefix = "${var.project_name}-${var.environment}-rds-"
+  vpc_id      = aws_vpc.main.id
   description = "Security group for RDS PostgreSQL"
-  vpc_id      = module.vpc.vpc_id
 
   ingress {
-    description     = "PostgreSQL from EKS"
+    description     = "PostgreSQL from ECS tasks"
     from_port       = 5432
     to_port         = 5432
     protocol        = "tcp"
-    security_groups = [module.eks.cluster_security_group_id]
+    security_groups = [aws_security_group.ecs_tasks.id]
   }
 
-  egress {
-    description = "Allow all outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+  tags = {
+    Name = "${var.project_name}-${var.environment}-rds-sg"
   }
-
-  tags = local.common_tags
 
   lifecycle {
     create_before_destroy = true
   }
 }
 
-# -----------------------------------------------------------------------------
-# ElastiCache Module (Redis)
-# -----------------------------------------------------------------------------
+# Application Load Balancer
+resource "aws_lb" "main" {
+  name               = "${var.project_name}-${var.environment}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb.id]
+  subnets            = aws_subnet.public[*].id
 
-module "elasticache" {
-  source  = "terraform-aws-modules/elasticache/aws"
-  version = "~> 1.0"
+  enable_deletion_protection = var.environment == "production"
+  drop_invalid_header_fields = true
 
-  cluster_id               = "${local.name_prefix}-redis"
-  create_cluster           = false
-  create_replication_group = true
+  tags = {
+    Name = "${var.project_name}-${var.environment}-alb"
+  }
+}
 
-  engine               = "redis"
-  engine_version       = var.elasticache_engine_version
-  node_type            = var.elasticache_node_type
-  num_cache_clusters   = var.elasticache_num_cache_clusters
+resource "aws_lb_target_group" "app" {
+  name        = "${var.project_name}-${var.environment}-tg"
+  port        = var.app_port
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.main.id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    interval            = 30
+    matcher             = "200"
+    path                = "/health"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+    timeout             = 5
+    unhealthy_threshold = 3
+  }
+
+  deregistration_delay = 30
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-tg"
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+  certificate_arn   = var.acm_certificate_arn
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.app.arn
+  }
+}
+
+resource "aws_lb_listener" "http_redirect" {
+  load_balancer_arn = aws_lb.main.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# ECS Cluster
+resource "aws_ecs_cluster" "main" {
+  name = "${var.project_name}-${var.environment}-cluster"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-cluster"
+  }
+}
+
+resource "aws_ecs_cluster_capacity_providers" "main" {
+  cluster_name       = aws_ecs_cluster.main.name
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+
+  default_capacity_provider_strategy {
+    base              = 1
+    weight            = var.fargate_spot_weight
+    capacity_provider = "FARGATE_SPOT"
+  }
+
+  default_capacity_provider_strategy {
+    weight            = 100 - var.fargate_spot_weight
+    capacity_provider = "FARGATE"
+  }
+}
+
+# CloudWatch Log Group for ECS
+resource "aws_cloudwatch_log_group" "app" {
+  name              = "/ecs/${var.project_name}/${var.environment}"
+  retention_in_days = var.log_retention_days
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-logs"
+  }
+}
+
+# ECS Task Execution Role
+resource "aws_iam_role" "ecs_task_execution" {
+  name = "${var.project_name}-${var.environment}-ecs-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-ecs-execution-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
+  role       = aws_iam_role.ecs_task_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# ECS Task Role
+resource "aws_iam_role" "ecs_task" {
+  name = "${var.project_name}-${var.environment}-ecs-task-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-ecs-task-role"
+  }
+}
+
+# ECR Repository
+resource "aws_ecr_repository" "app" {
+  name                 = "${var.project_name}/${var.environment}"
+  image_tag_mutability = "IMMUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  encryption_configuration {
+    encryption_type = "KMS"
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-ecr"
+  }
+}
+
+resource "aws_ecr_lifecycle_policy" "app" {
+  repository = aws_ecr_repository.app.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep last 30 images"
+        selection = {
+          tagStatus     = "any"
+          countType     = "imageCountMoreThan"
+          countNumber   = 30
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
+}
+
+# ECS Task Definition
+resource "aws_ecs_task_definition" "app" {
+  family                   = "${var.project_name}-${var.environment}"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = var.task_cpu
+  memory                   = var.task_memory
+  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
+  task_role_arn            = aws_iam_role.ecs_task.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "app"
+      image     = "${aws_ecr_repository.app.repository_url}:latest"
+      essential = true
+
+      portMappings = [
+        {
+          containerPort = var.app_port
+          protocol      = "tcp"
+        }
+      ]
+
+      environment = [
+        {
+          name  = "NODE_ENV"
+          value = var.environment
+        },
+        {
+          name  = "PORT"
+          value = tostring(var.app_port)
+        },
+        {
+          name  = "DATABASE_URL"
+          value = "postgresql://${var.db_username}:${var.db_password}@${aws_db_instance.main.address}:${aws_db_instance.main.port}/${var.db_name}"
+        },
+        {
+          name  = "REDIS_URL"
+          value = "rediss://${aws_elasticache_replication_group.main.primary_endpoint_address}:6379"
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group"         = aws_cloudwatch_log_group.app.name
+          "awslogs-region"        = var.aws_region
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
+
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:${var.app_port}/health || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 60
+      }
+
+      ulimits = [
+        {
+          name      = "nofile"
+          softLimit = 65536
+          hardLimit = 65536
+        }
+      ]
+    }
+  ])
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-task"
+  }
+}
+
+# ECS Service
+resource "aws_ecs_service" "app" {
+  name            = "${var.project_name}-${var.environment}-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count   = var.desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = aws_subnet.private[*].id
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.app.arn
+    container_name   = "app"
+    container_port   = var.app_port
+  }
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  deployment_maximum_percent         = 200
+  deployment_minimum_healthy_percent = 100
+
+  propagate_tags = "SERVICE"
+
+  depends_on = [aws_lb_listener.https]
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-service"
+  }
+}
+
+# Auto Scaling for ECS Service
+resource "aws_appautoscaling_target" "ecs" {
+  max_capacity       = var.max_count
+  min_capacity       = var.min_count
+  resource_id        = "service/${aws_ecs_cluster.main.name}/${aws_ecs_service.app.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
+}
+
+resource "aws_appautoscaling_policy" "ecs_cpu" {
+  name               = "${var.project_name}-${var.environment}-cpu-autoscaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 70.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+resource "aws_appautoscaling_policy" "ecs_memory" {
+  name               = "${var.project_name}-${var.environment}-memory-autoscaling"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.ecs.resource_id
+  scalable_dimension = aws_appautoscaling_target.ecs.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.ecs.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+    target_value       = 75.0
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
+  }
+}
+
+# RDS PostgreSQL
+resource "aws_db_subnet_group" "main" {
+  name       = "${var.project_name}-${var.environment}-db-subnet-group"
+  subnet_ids = aws_subnet.private[*].id
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-db-subnet-group"
+  }
+}
+
+resource "aws_db_instance" "main" {
+  identifier = "${var.project_name}-${var.environment}-db"
+
+  engine         = "postgres"
+  engine_version = "15.4"
+  instance_class = var.db_instance_class
+
+  allocated_storage     = var.db_allocated_storage
+  max_allocated_storage = var.db_max_allocated_storage
+  storage_type          = "gp3"
+  storage_encrypted     = true
+
+  db_name  = var.db_name
+  username = var.db_username
+  password = var.db_password
+  port     = 5432
+
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [aws_security_group.rds.id]
+
+  multi_az               = var.environment == "production"
+  publicly_accessible    = false
+  deletion_protection    = var.environment == "production"
+  skip_final_snapshot    = var.environment != "production"
+  final_snapshot_identifier = var.environment == "production" ? "${var.project_name}-${var.environment}-final-snapshot" : null
+
+  backup_retention_period         = var.db_backup_retention
+  backup_window                    = "03:00-04:00"
+  maintenance_window               = "Mon:04:00-Mon:05:00"
+  enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
+
+  performance_insights_enabled    = true
+  performance_insights_retention_period = 7
+
+  auto_minor_version_upgrade = true
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-db"
+  }
+}
+
+# ElastiCache Redis
+resource "aws_elasticache_subnet_group" "main" {
+  name       = "${var.project_name}-${var.environment}-cache-subnet-group"
+  subnet_ids = aws_subnet.private[*].id
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-cache-subnet-group"
+  }
+}
+
+resource "aws_elasticache_replication_group" "main" {
+  replication_group_id = "${var.project_name}-${var.environment}-redis"
+  description          = "Redis cluster for recruitment platform"
+
+  node_type            = var.redis_node_type
+  num_cache_clusters   = var.environment == "production" ? 2 : 1
   automatic_failover_enabled = var.environment == "production"
+
+  engine       = "redis"
+  engine_version = "7.0"
+  port         = 6379
 
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
-  auth_token                 = random_password.redis_auth_token.result
 
-  subnet_group_name  = aws_elasticache_subnet_group.redis.name
-  security_group_ids = [aws_security_group.elasticache.id]
+  subnet_group_name  = aws_elasticache_subnet_group.main.name
+  security_group_ids = [aws_security_group.ecs_tasks.id]
 
-  log_delivery_configuration = {
-    slow-log = {
-      destination      = aws_cloudwatch_log_group.redis_slow.name
-      destination_type = "cloudwatch-logs"
-      log_format        = "json"
-    }
-  }
+  snapshot_retention_limit = 7
+  snapshot_window          = "05:00-06:00"
+  maintenance_window       = "sun:06:00-sun:07:00"
 
-  tags = local.common_tags
-}
+  auto_minor_version_upgrade = true
 
-resource "random_password" "redis_auth_token" {
-  length  = 32
-  special = false
-}
-
-resource "aws_elasticache_subnet_group" "redis" {
-  name       = "${local.name_prefix}-redis-subnet"
-  subnet_ids = module.vpc.database_subnets
-}
-
-resource "aws_security_group" "elasticache" {
-  name_prefix = "${local.name_prefix}-elasticache-"
-  description = "Security group for ElastiCache Redis"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    description     = "Redis from EKS"
-    from_port       = 6379
-    to_port         = 6379
-    protocol        = "tcp"
-    security_groups = [module.eks.cluster_security_group_id]
-  }
-
-  egress {
-    description = "Allow all outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = local.common_tags
-
-  lifecycle {
-    create_before_destroy = true
+  tags = {
+    Name = "${var.project_name}-${var.environment}-redis"
   }
 }
 
-resource "aws_cloudwatch_log_group" "redis_slow" {
-  name              = "/aws/elasticache/${local.name_prefix}-redis/slow-log"
-  retention_in_days = 30
+# S3 Bucket for file uploads (resumes, documents)
+resource "aws_s3_bucket" "uploads" {
+  bucket = "${var.project_name}-${var.environment}-uploads-${data.aws_caller_identity.current.account_id}"
 
-  tags = local.common_tags
+  tags = {
+    Name = "${var.project_name}-${var.environment}-uploads"
+  }
 }
 
-# -----------------------------------------------------------------------------
-# S3 Buckets
-# -----------------------------------------------------------------------------
-
-resource "aws_s3_bucket" "app_storage" {
-  bucket = "${local.name_prefix}-app-storage-${data.aws_caller_identity.current.account_id}"
-
-  tags = local.common_tags
-}
-
-resource "aws_s3_bucket_versioning" "app_storage" {
-  bucket = aws_s3_bucket.app_storage.id
-
+resource "aws_s3_bucket_versioning" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
   versioning_configuration {
     status = "Enabled"
   }
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "app_storage" {
-  bucket = aws_s3_bucket.app_storage.id
+resource "aws_s3_bucket_server_side_encryption_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm     = "aws:kms"
-      kms_master_key_id = aws_kms_key.s3.arn
+      sse_algorithm = "aws:kms"
     }
     bucket_key_enabled = true
   }
 }
 
-resource "aws_s3_bucket_public_access_block" "app_storage" {
-  bucket = aws_s3_bucket.app_storage.id
+resource "aws_s3_bucket_public_access_block" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -457,8 +704,8 @@ resource "aws_s3_bucket_public_access_block" "app_storage" {
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_lifecycle_configuration" "app_storage" {
-  bucket = aws_s3_bucket.app_storage.id
+resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
+  bucket = aws_s3_bucket.uploads.id
 
   rule {
     id     = "transition-to-ia"
@@ -476,308 +723,191 @@ resource "aws_s3_bucket_lifecycle_configuration" "app_storage" {
   }
 }
 
-resource "aws_s3_bucket" "backups" {
-  bucket = "${local.name_prefix}-backups-${data.aws_caller_identity.current.account_id}"
+# CloudFront Distribution
+resource "aws_cloudfront_distribution" "cdn" {
+  enabled             = true
+  is_ipv6_enabled     = true
+  comment             = "${var.project_name}-${var.environment} CDN"
+  default_root_object = "index.html"
+  price_class         = var.cloudfront_price_class
 
-  tags = local.common_tags
-}
+  origin {
+    domain_name = aws_lb.main.dns_name
+    origin_id   = "ALB-${var.project_name}-${var.environment}"
 
-resource "aws_s3_bucket_versioning" "backups" {
-  bucket = aws_s3_bucket.backups.id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "backups" {
-  bucket = aws_s3_bucket.backups.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm     = "aws:kms"
-      kms_master_key_id = aws_kms_key.s3.arn
-    }
-    bucket_key_enabled = true
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "backups" {
-  bucket = aws_s3_bucket.backups.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "backups" {
-  bucket = aws_s3_bucket.backups.id
-
-  rule {
-    id     = "expire-old-backups"
-    status = "Enabled"
-
-    expiration {
-      days = var.backup_retention_days
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
     }
   }
+
+  default_cache_behavior {
+    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "ALB-${var.project_name}-${var.environment}"
+
+    forwarded_values {
+      query_string = true
+      headers      = ["Origin", "Access-Control-Request-Headers", "Access-Control-Request-Method"]
+
+      cookies {
+        forward = "all"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 0
+    max_ttl                = 86400
+    compress               = true
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = var.acm_certificate_arn == "" ? true : false
+    acm_certificate_arn            = var.acm_certificate_arn != "" ? var.acm_certificate_arn : null
+    ssl_support_method             = "sni-only"
+    minimum_protocol_version       = "TLSv1.2_2021"
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-cdn"
+  }
 }
 
-resource "aws_kms_key" "s3" {
-  description             = "KMS key for S3 encryption - ${local.name_prefix}"
+# WAF Web ACL
+resource "aws_wafv2_web_acl" "main" {
+  name        = "${var.project_name}-${var.environment}-waf"
+  description = "WAF rules for recruitment platform"
+  scope       = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  # AWS Managed Rules - Common Rule Set
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 1
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesCommonRuleSetMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # AWS Managed Rules - Known Bad Inputs
+  rule {
+    name     = "AWSManagedRulesKnownBadInputsRuleSet"
+    priority = 2
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesKnownBadInputsRuleSetMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rate Limiting
+  rule {
+    name     = "RateLimitRule"
+    priority = 3
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 2000
+        aggregate_key_type = "IP"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "RateLimitRuleMetric"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${var.project_name}-${var.environment}-waf-metric"
+    sampled_requests_enabled   = true
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-waf"
+  }
+}
+
+resource "aws_wafv2_web_acl_association" "alb" {
+  resource_arn = aws_lb.main.arn
+  web_acl_arn  = aws_wafv2_web_acl.main.arn
+}
+
+# Data sources
+data "aws_caller_identity" "current" {}
+
+# Secrets Manager for database credentials
+resource "aws_secretsmanager_secret" "db_password" {
+  name                    = "${var.project_name}/${var.environment}/db-password"
+  description             = "Database password for recruitment platform"
+  recovery_window_in_days = var.environment == "production" ? 30 : 7
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-db-password"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "db_password" {
+  secret_id     = aws_secretsmanager_secret.db_password.id
+  secret_string = var.db_password
+}
+
+# KMS Key for encryption
+resource "aws_kms_key" "main" {
+  description             = "KMS key for recruitment platform ${var.environment}"
   deletion_window_in_days = 30
   enable_key_rotation     = true
 
-  tags = local.common_tags
-}
-
-# -----------------------------------------------------------------------------
-# IAM Roles for Service Accounts (IRSA)
-# -----------------------------------------------------------------------------
-
-module "eks_admin_irsa" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.20"
-
-  role_name = "${local.name_prefix}-admin"
-
-  oidc_providers = {
-    main = {
-      provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["kube-system:admin"]
-    }
-  }
-
-  tags = local.common_tags
-}
-
-module "cert_manager_irsa" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.20"
-
-  role_name = "${local.name_prefix}-cert-manager"
-
-  oidc_providers = {
-    main = {
-      provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["cert-manager:cert-manager"]
-    }
-  }
-
-  role_policy_arns = {
-    route53 = aws_iam_policy.cert_manager_route53.arn
-  }
-
-  tags = local.common_tags
-}
-
-module "external_dns_irsa" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.20"
-
-  role_name = "${local.name_prefix}-external-dns"
-
-  oidc_providers = {
-    main = {
-      provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["kube-system:external-dns"]
-    }
-  }
-
-  role_policy_arns = {
-    route53 = aws_iam_policy.external_dns_route53.arn
-  }
-
-  tags = local.common_tags
-}
-
-module "aws_load_balancer_controller_irsa" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.20"
-
-  role_name = "${local.name_prefix}-aws-load-balancer-controller"
-
-  oidc_providers = {
-    main = {
-      provider_arn               = module.eks.oidc_provider_arn
-      namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
-    }
-  }
-
-  tags = local.common_tags
-}
-
-# -----------------------------------------------------------------------------
-# IAM Policies
-# -----------------------------------------------------------------------------
-
-resource "aws_iam_policy" "cert_manager_route53" {
-  name        = "${local.name_prefix}-cert-manager-route53"
-  description = "Policy for cert-manager Route53 access"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "route53:GetChange",
-          "route53:ChangeResourceRecordSets",
-          "route53:ListResourceRecordSets",
-          "route53:ListHostedZones",
-          "route53:ListHostedZonesByName"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-
-  tags = local.common_tags
-}
-
-resource "aws_iam_policy" "external_dns_route53" {
-  name        = "${local.name_prefix}-external-dns-route53"
-  description = "Policy for external-dns Route53 access"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "route53:ChangeResourceRecordSets",
-          "route53:ListResourceRecordSets",
-          "route53:ListHostedZones",
-          "route53:ListHostedZonesByName"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-
-  tags = local.common_tags
-}
-
-# -----------------------------------------------------------------------------
-# Security Groups
-# -----------------------------------------------------------------------------
-
-resource "aws_security_group" "eks_nodes" {
-  name_prefix = "${local.name_prefix}-eks-nodes-"
-  description = "Security group for EKS worker nodes"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    description = "Allow inter-node communication"
-    from_port   = 0
-    to_port     = 65535
-    protocol    = "tcp"
-    self        = true
-  }
-
-  ingress {
-    description     = "Allow control plane to worker nodes"
-    from_port       = 1025
-    to_port         = 65535
-    protocol        = "tcp"
-    security_groups = [module.eks.cluster_security_group_id]
-  }
-
-  egress {
-    description = "Allow all outbound"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = local.common_tags
-
-  lifecycle {
-    create_before_destroy = true
+  tags = {
+    Name = "${var.project_name}-${var.environment}-kms"
   }
 }
 
-# -----------------------------------------------------------------------------
-# CloudWatch Log Groups
-# -----------------------------------------------------------------------------
-
-resource "aws_cloudwatch_log_group" "vpc_flow" {
-  name              = "/aws/vpc/${local.name_prefix}-flow-logs"
-  retention_in_days = 30
-
-  tags = local.common_tags
-}
-
-# -----------------------------------------------------------------------------
-# AWS Backup
-# -----------------------------------------------------------------------------
-
-resource "aws_backup_vault" "main" {
-  name        = "${local.name_prefix}-backup-vault"
-  kms_key_arn = aws_kms_key.s3.arn
-
-  tags = local.common_tags
-}
-
-resource "aws_backup_plan" "main" {
-  name = "${local.name_prefix}-backup-plan"
-
-  rule {
-    rule_name         = "daily-backup"
-    target_vault_name = aws_backup_vault.main.name
-    schedule          = "cron(0 5 ? * * *)"
-
-    lifecycle {
-      delete_after = 35
-    }
-  }
-
-  rule {
-    rule_name         = "weekly-backup"
-    target_vault_name = aws_backup_vault.main.name
-    schedule          = "cron(0 5 ? * 1 *)"
-
-    lifecycle {
-      delete_after = 90
-    }
-  }
-
-  tags = local.common_tags
-}
-
-resource "aws_backup_selection" "main" {
-  iam_role_arn = aws_iam_role.backup.arn
-  name         = "${local.name_prefix}-backup-selection"
-  plan_id      = aws_backup_plan.main.id
-
-  selection_tag {
-    type  = "STRINGEQUALS"
-    key   = "Backup"
-    value = "true"
-  }
-}
-
-resource "aws_iam_role" "backup" {
-  name               = "${local.name_prefix}-backup-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "backup.amazonaws.com"
-        }
-      }
-    ]
-  })
-
-  tags = local.common_tags
-}
-
-resource "aws_iam_role_policy_attachment" "backup" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
-  role       = aws_iam_role.backup.name
+resource "aws_kms_alias" "main" {
+  name          = "alias/${var.project_name}-${var.environment}"
+  target_key_id = aws_kms_key.main.key_id
 }

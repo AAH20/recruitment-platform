@@ -1,20 +1,11 @@
-# -----------------------------------------------------------------------------
-# General
-# -----------------------------------------------------------------------------
-
-variable "project_name" {
-  description = "Name of the project"
+variable "aws_region" {
+  description = "AWS region for all resources"
   type        = string
-  default     = "recruitment-platform"
-
-  validation {
-    condition     = can(regex("^[a-z][a-z0-9-]*$", var.project_name))
-    error_message = "Project name must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens."
-  }
+  default     = "us-east-1"
 }
 
 variable "environment" {
-  description = "Deployment environment (development, staging, production)"
+  description = "Environment name (development, staging, production)"
   type        = string
   default     = "development"
 
@@ -24,203 +15,163 @@ variable "environment" {
   }
 }
 
-variable "aws_region" {
-  description = "AWS region for resource deployment"
+variable "project_name" {
+  description = "Project name used for resource naming"
   type        = string
-  default     = "us-east-1"
+  default     = "recruitment-platform"
 }
-
-variable "owner" {
-  description = "Team or individual responsible for the infrastructure"
-  type        = string
-  default     = "platform-team"
-}
-
-variable "cost_center" {
-  description = "Cost center for billing purposes"
-  type        = string
-  default     = "engineering"
-}
-
-# -----------------------------------------------------------------------------
-# VPC
-# -----------------------------------------------------------------------------
 
 variable "vpc_cidr" {
   description = "CIDR block for the VPC"
   type        = string
   default     = "10.0.0.0/16"
-
-  validation {
-    condition     = can(cidrhost(var.vpc_cidr, 0))
-    error_message = "VPC CIDR must be a valid CIDR block."
-  }
 }
 
-variable "az_count" {
-  description = "Number of Availability Zones to use"
-  type        = number
-  default     = 3
-
-  validation {
-    condition     = var.az_count >= 2 && var.az_count <= 6
-    error_message = "AZ count must be between 2 and 6."
-  }
-}
-
-# -----------------------------------------------------------------------------
-# EKS
-# -----------------------------------------------------------------------------
-
-variable "kubernetes_version" {
-  description = "Kubernetes version for the EKS cluster"
-  type        = string
-  default     = "1.28"
-}
-
-variable "eks_public_access" {
-  description = "Enable public access to the EKS API server endpoint"
-  type        = bool
-  default     = false
-}
-
-variable "eks_node_instance_types" {
-  description = "Instance types for the general EKS managed node group"
+variable "availability_zones" {
+  description = "List of availability zones to use"
   type        = list(string)
-  default     = ["m6i.large"]
+  default     = ["us-east-1a", "us-east-1b", "us-east-1c"]
 }
 
-variable "eks_node_min_size" {
-  description = "Minimum number of nodes in the general node group"
+variable "enable_nat_gateway" {
+  description = "Whether to create a NAT Gateway (disable for cost savings in dev)"
+  type        = bool
+  default     = true
+}
+
+variable "app_port" {
+  description = "Port the application listens on"
+  type        = number
+  default     = 3000
+}
+
+variable "acm_certificate_arn" {
+  description = "ARN of the ACM certificate for HTTPS (empty for CloudFront default)"
+  type        = string
+  default     = ""
+}
+
+# ECS Variables
+variable "task_cpu" {
+  description = "CPU units for the ECS task (256 = 0.25 vCPU)"
+  type        = number
+  default     = 512
+
+  validation {
+    condition     = contains([256, 512, 1024, 2048, 4096], var.task_cpu)
+    error_message = "Task CPU must be one of: 256, 512, 1024, 2048, 4096."
+  }
+}
+
+variable "task_memory" {
+  description = "Memory for the ECS task in MiB"
+  type        = number
+  default     = 1024
+
+  validation {
+    condition     = contains([512, 1024, 2048, 4096, 8192, 16384], var.task_memory)
+    error_message = "Task memory must be one of: 512, 1024, 2048, 4096, 8192, 16384."
+  }
+}
+
+variable "desired_count" {
+  description = "Desired number of ECS tasks"
   type        = number
   default     = 2
 }
 
-variable "eks_node_max_size" {
-  description = "Maximum number of nodes in the general node group"
+variable "min_count" {
+  description = "Minimum number of ECS tasks for auto scaling"
   type        = number
-  default     = 5
+  default     = 1
 }
 
-variable "eks_node_desired_size" {
-  description = "Desired number of nodes in the general node group"
-  type        = number
-  default     = 3
-}
-
-variable "eks_spot_instance_types" {
-  description = "Instance types for the spot EKS managed node group"
-  type        = list(string)
-  default     = ["m6i.large", "m5.large", "m5a.large"]
-}
-
-variable "eks_spot_min_size" {
-  description = "Minimum number of nodes in the spot node group"
-  type        = number
-  default     = 0
-}
-
-variable "eks_spot_max_size" {
-  description = "Maximum number of nodes in the spot node group"
+variable "max_count" {
+  description = "Maximum number of ECS tasks for auto scaling"
   type        = number
   default     = 10
 }
 
-variable "eks_spot_desired_size" {
-  description = "Desired number of nodes in the spot node group"
+variable "fargate_spot_weight" {
+  description = "Weight for Fargate Spot capacity provider (0-100)"
   type        = number
-  default     = 2
+  default     = 50
+
+  validation {
+    condition     = var.fargate_spot_weight >= 0 && var.fargate_spot_weight <= 100
+    error_message = "Fargate Spot weight must be between 0 and 100."
+  }
 }
 
-# -----------------------------------------------------------------------------
-# RDS
-# -----------------------------------------------------------------------------
+variable "log_retention_days" {
+  description = "Number of days to retain CloudWatch logs"
+  type        = number
+  default     = 30
+}
 
-variable "rds_engine_version" {
-  description = "PostgreSQL engine version"
+# RDS Variables
+variable "db_instance_class" {
+  description = "RDS instance class"
   type        = string
-  default     = "15.4"
+  default     = "db.t3.micro"
 }
 
-variable "rds_instance_class" {
-  description = "Instance class for the RDS PostgreSQL instance"
-  type        = string
-  default     = "db.t3.medium"
-}
-
-variable "rds_allocated_storage" {
+variable "db_allocated_storage" {
   description = "Allocated storage for RDS in GB"
+  type        = number
+  default     = 20
+}
+
+variable "db_max_allocated_storage" {
+  description = "Maximum storage for RDS autoscaling in GB"
   type        = number
   default     = 100
 }
 
-variable "rds_max_allocated_storage" {
-  description = "Maximum allocated storage for RDS autoscaling in GB"
-  type        = number
-  default     = 500
-}
-
-variable "rds_database_name" {
-  description = "Name of the default database to create"
+variable "db_name" {
+  description = "Name of the database"
   type        = string
   default     = "recruitment_platform"
 }
 
-variable "rds_username" {
-  description = "Master username for the RDS instance"
+variable "db_username" {
+  description = "Master username for the database"
   type        = string
   default     = "recruitment_admin"
 }
 
-variable "rds_backup_retention" {
-  description = "Number of days to retain RDS backups"
-  type        = number
-  default     = 30
+variable "db_password" {
+  description = "Master password for the database"
+  type        = string
+  sensitive   = true
 
   validation {
-    condition     = var.rds_backup_retention >= 7 && var.rds_backup_retention <= 35
-    error_message = "RDS backup retention must be between 7 and 35 days."
+    condition     = length(var.db_password) >= 12
+    error_message = "Database password must be at least 12 characters long."
   }
 }
 
-# -----------------------------------------------------------------------------
-# ElastiCache
-# -----------------------------------------------------------------------------
-
-variable "elasticache_engine_version" {
-  description = "Redis engine version"
-  type        = string
-  default     = "7.0"
-}
-
-variable "elasticache_node_type" {
-  description = "Node type for ElastiCache Redis"
-  type        = string
-  default     = "cache.t3.medium"
-}
-
-variable "elasticache_num_cache_clusters" {
-  description = "Number of cache clusters in the replication group"
+variable "db_backup_retention" {
+  description = "Number of days to retain database backups"
   type        = number
-  default     = 2
+  default     = 7
+}
+
+# ElastiCache Variables
+variable "redis_node_type" {
+  description = "ElastiCache node type"
+  type        = string
+  default     = "cache.t3.micro"
+}
+
+# CloudFront Variables
+variable "cloudfront_price_class" {
+  description = "CloudFront price class (PriceClass_100, PriceClass_200, PriceClass_All)"
+  type        = string
+  default     = "PriceClass_100"
 
   validation {
-    condition     = var.elasticache_num_cache_clusters >= 1 && var.elasticache_num_cache_clusters <= 6
-    error_message = "Number of cache clusters must be between 1 and 6."
-  }
-}
-
-# -----------------------------------------------------------------------------
-# S3
-# -----------------------------------------------------------------------------
-
-variable "backup_retention_days" {
-  description = "Number of days to retain backups in the backup S3 bucket"
-  type        = number
-  default     = 90
-
-  validation {
-    condition     = var.backup_retention_days > 0
-    error_message = "Backup retention days must be greater than 0."
+    condition     = contains(["PriceClass_100", "PriceClass_200", "PriceClass_All"], var.cloudfront_price_class)
+    error_message = "CloudFront price class must be one of: PriceClass_100, PriceClass_200, PriceClass_All."
   }
 }

@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: recruitment-platform-config
+  namespace: recruitment
+  labels:
+    app: recruitment-platform
+    tier: backend
+data:
+  APP_ENV: "production"
+  APP_PORT: "8080"
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  DB_HOST: "recruitment-db.recruitment.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "recruitment"
+  DB_POOL_MIN: "2"
+  DB_POOL_MAX: "10"
+  DB_SSL_MODE: "require"
+  REDIS_HOST: "recruitment-redis.recruitment.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  CACHE_TTL: "300"
+  SESSION_TIMEOUT: "3600"
+  CORS_ORIGINS: "https://recruitment.example.com"
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_MAX: "100"
+  RATE_LIMIT_WINDOW: "60"
+  METRICS_ENABLED: "true"
+  METRICS_PORT: "9090"
+  TRACING_ENABLED: "true"
+  TRACING_ENDPOINT: "http://jaeger.monitoring.svc.cluster.local:14268/api/traces"

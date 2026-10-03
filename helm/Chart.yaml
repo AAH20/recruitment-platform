@@ -1,21 +1,20 @@
 apiVersion: v2
 name: recruitment-platform
-description: A Helm chart for the Recruitment Platform - unified recruitment system with AI agents
+description: A production-grade Helm chart for the Recruitment Platform
 type: application
 version: 1.0.0
 appVersion: "1.0.0"
 keywords:
   - recruitment
+  - hiring
   - hr
-  - ai
-  - agents
-  - fastapi
-home: https://github.com/ahmedhassan/recruitment-platform
+  - platform
+home: https://github.com/your-org/recruitment-platform
 sources:
-  - https://github.com/ahmedhassan/recruitment-platform
+  - https://github.com/your-org/recruitment-platform
 maintainers:
-  - name: Ahmed Hassan
-    email: ahmed@example.com
-icon: https://raw.githubusercontent.com/ahmedhassan/recruitment-platform/main/docs/icon.png
+  - name: Platform Team
+    email: platform@example.com
+    url: https://example.com
 annotations:
   category: Application

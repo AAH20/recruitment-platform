@@ -1,0 +1,244 @@
+groups:
+  - name: recruitment-platform-alerts
+    interval: 30s
+    rules:
+      # === API Availability ===
+      - alert: APIDown
+        expr: up{job="recruitment-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Recruitment API is down"
+          description: "API instance {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: APIHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="recruitment-api",status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{job="recruitment-api"}[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "High 5xx error rate on API"
+          description: "Error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      - alert: APIHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="recruitment-api"}[5m])) by (le, route)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High API latency (p95 > 2s)"
+          description: "Route {{ $labels.route }} p95 latency is {{ $value }}s."
+
+      # === Worker ===
+      - alert: WorkerDown
+        expr: up{job="recruitment-worker"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Recruitment worker is down"
+          description: "Worker instance {{ $labels.instance }} has been down for more than 2 minutes."
+
+      - alert: WorkerQueueBacklog
+        expr: worker_queue_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Worker queue backlog"
+          description: "Queue size is {{ $value }} — workers may be under-provisioned."
+
+      - alert: WorkerJobFailures
+        expr: |
+          sum(rate(worker_jobs_failed_total[10m]))
+          /
+          sum(rate(worker_jobs_total[10m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High worker job failure rate"
+          description: "Failure rate is {{ $value | humanizePercentage }} over the last 10 minutes."
+
+      # === Database ===
+      - alert: PostgreSQLDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: dba
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL instance {{ $labels.instance }} is unreachable."
+
+      - alert: PostgreSQLHighConnections
+        expr: |
+          pg_stat_activity_count / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: dba
+        annotations:
+          summary: "PostgreSQL connections near limit"
+          description: "{{ $value | humanizePercentage }} of max connections in use."
+
+      - alert: PostgreSQLSlowQueries
+        expr: |
+          rate(pg_slow_queries_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: dba
+        annotations:
+          summary: "High rate of slow queries"
+          description: "{{ $value }} slow queries/sec detected."
+
+      - alert: PostgreSQLReplicationLag
+        expr: pg_replication_lag_seconds > 30
+        for: 2m
+        labels:
+          severity: critical
+          team: dba
+        annotations:
+          summary: "Replication lag exceeds 30s"
+          description: "Replica {{ $labels.instance }} is {{ $value }}s behind primary."
+
+      # === Redis ===
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Redis is down"
+          description: "Redis instance {{ $labels.instance }} is unreachable."
+
+      - alert: RedisHighMemory
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Memory usage is {{ $value | humanizePercentage }}."
+
+      - alert: RedisHighLatency
+        expr: |
+          rate(redis_commands_duration_seconds_total[5m])
+          /
+          rate(redis_commands_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Redis command latency high"
+          description: "Average command duration is {{ $value }}s."
+
+      # === Infrastructure ===
+      - alert: NodeHighCPU
+        expr: |
+          100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Node CPU usage high"
+          description: "Node {{ $labels.instance }} CPU is {{ $value }}%."
+
+      - alert: NodeHighMemory
+        expr: |
+          (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+          / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Node memory usage high"
+          description: "Node {{ $labels.instance }} memory is {{ $value | humanizePercentage }}."
+
+      - alert: NodeDiskAlmostFull
+        expr: |
+          (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Disk space low"
+          description: "Mount {{ $labels.mountpoint }} on {{ $labels.instance }} has {{ $value | humanizePercentage }} free."
+
+      # === Blackbox / External ===
+      - alert: EndpointDown
+        expr: probe_success == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "External endpoint down"
+          description: "{{ $labels.instance }} is failing health checks."
+
+      - alert: EndpointSlow
+        expr: probe_duration_seconds > 3
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Endpoint response slow"
+          description: "{{ $labels.instance }} took {{ $value }}s to respond."
+
+      - alert: SSLCertExpiringSoon
+        expr: |
+          (probe_ssl_earliest_cert_expiry - time()) / 86400 < 14
+        for: 1h
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "Certificate for {{ $labels.instance }} expires in {{ $value | humanizeDuration }}."
+
+      # === Business Metrics ===
+      - alert: LowApplicationSubmissionRate
+        expr: |
+          rate(applications_submitted_total[1h]) < 10
+        for: 30m
+        labels:
+          severity: info
+          team: product
+        annotations:
+          summary: "Low application submission rate"
+          description: "Only {{ $value }} applications/hour — possible upstream issue."
+
+      - alert: HighLoginFailureRate
+        expr: |
+          sum(rate(login_failures_total[15m]))
+          /
+          sum(rate(login_attempts_total[15m])) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High login failure rate"
+          description: "{{ $value | humanizePercentage }} of logins are failing — possible brute-force attack."
