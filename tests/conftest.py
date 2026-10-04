@@ -6,12 +6,17 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+# Patch AuthMiddleware BEFORE importing app
+from recruitment_platform.security.middleware import AuthMiddleware
+async def _noop_dispatch(self, request, call_next):
+    return await call_next(request)
+AuthMiddleware.dispatch = _noop_dispatch
+
 from recruitment_platform.main import app
 from recruitment_platform.models import Base
 from recruitment_platform.api.dependencies import get_db
 
-# Disable auth middleware for tests
-app.user_middleware = [m for m in app.user_middleware if "AuthMiddleware" not in type(m.cls).__name__]
+# Rebuild middleware stack with patched dispatch
 app.middleware_stack = app.build_middleware_stack()
 
 
