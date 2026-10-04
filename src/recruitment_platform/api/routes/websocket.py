@@ -23,10 +23,10 @@ async def websocket_endpoint(websocket: WebSocket, room: str = "general") -> Non
                 await manager.send_personal_message({"type": "pong"}, websocket)
             elif message.get("type") == "subscribe":
                 new_room = message.get("room", "general")
-                manager.disconnect(websocket, room)
+                await manager.disconnect(websocket, room)
                 await manager.connect(websocket, new_room)
                 room = new_room
     except WebSocketDisconnect:
-        manager.disconnect(websocket, room)
+        await manager.disconnect(websocket, room)
     except Exception:
-        manager.disconnect(websocket, room)
+        await manager.disconnect(websocket, room)

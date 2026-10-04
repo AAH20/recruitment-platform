@@ -4,6 +4,19 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from recruitment_platform.api import (
+    analytics,
+    applications,
+    assessments,
+    candidates,
+    employers,
+    interviews,
+    jobs,
+    reports,
+    skills,
+    talent_pools,
+    websockets,
+)
 from recruitment_platform.api.routes import (
     auth,
     bias_detector,
@@ -65,3 +78,14 @@ api_router.include_router(search.router, prefix="/search", tags=["search"])
 api_router.include_router(
     notifications.router, prefix="/notifications", tags=["notifications"]
 )
+api_router.include_router(candidates.router)
+api_router.include_router(employers.router)
+api_router.include_router(jobs.router)
+api_router.include_router(applications.router)
+api_router.include_router(interviews.router)
+api_router.include_router(skills.router)
+api_router.include_router(talent_pools.router)
+api_router.include_router(reports.router)
+api_router.include_router(analytics.router)
+api_router.include_router(assessments.router)
+api_router.include_router(websockets.router)
