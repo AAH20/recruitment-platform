@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 from datetime import datetime, timedelta
 from typing import Any
 
-from src.recruitment_platform.agents.recruitment_analytics import (
+from recruitment_platform.recruitment_platform.agents.recruitment_analytics import (
     get_recruitment_metrics,
     get_pipeline_funnel,
     get_source_effectiveness,

@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from typing import Any
 
-from src.recruitment_platform.agents.employer_branding import (
+from recruitment_platform.recruitment_platform.agents.employer_branding import (
     analyze_employer_brand,
     generate_employer_profile,
     suggest_brand_improvements,

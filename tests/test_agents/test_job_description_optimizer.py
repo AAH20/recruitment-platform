@@ -11,7 +11,7 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from typing import Any
 
-from src.recruitment_platform.agents.job_description_optimizer import (
+from recruitment_platform.recruitment_platform.agents.job_description_optimizer import (
     optimize_description,
     suggest_improvements,
     score_description,

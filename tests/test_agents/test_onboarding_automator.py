@@ -11,7 +11,7 @@ import pytest
 from unittest.mock import MagicMock, patch, call
 from datetime import datetime, timezone
 
-from src.recruitment_platform.agents.onboarding_automator import (
+from recruitment_platform.recruitment_platform.agents.onboarding_automator import (
     OnboardingAutomator,
     OnboardingStep,
     OnboardingStatus,

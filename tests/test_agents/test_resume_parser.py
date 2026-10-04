@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock, patch
-from src.recruitment_platform.agents.resume_parser import (
+from recruitment_platform.recruitment_platform.agents.resume_parser import (
     parse_resume,
     score_resume,
     extract_skills,

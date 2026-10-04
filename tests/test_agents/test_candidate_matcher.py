@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock, patch
-from src.recruitment_platform.agents.candidate_matcher import (
+from recruitment_platform.recruitment_platform.agents.candidate_matcher import (
     match_candidates,
     rank_matches,
     get_top_matches,

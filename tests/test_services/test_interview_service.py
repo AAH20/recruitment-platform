@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.recruitment_platform.models.interview import (
+from recruitment_platform.recruitment_platform.models.interview import (
     Interview,
     InterviewStatus,
     InterviewType,
 )
-from src.recruitment_platform.services.interview_service import (
+from recruitment_platform.recruitment_platform.services.interview_service import (
     InterviewService,
     InterviewNotFoundError,
     InvalidInterviewStateError,

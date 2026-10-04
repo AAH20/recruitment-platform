@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 # Import the module under test
-from src.recruitment_platform.agents.skills_assessor import (
+from recruitment_platform.recruitment_platform.agents.skills_assessor import (
     assess_skills,
     generate_assessment,
     score_assessment,

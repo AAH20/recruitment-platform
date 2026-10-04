@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch, ANY
 from uuid import uuid4
 
-from src.recruitment_platform.agents.interview_scheduler import (
+from recruitment_platform.recruitment_platform.agents.interview_scheduler import (
     schedule_interview,
     reschedule_interview,
     cancel_interview,

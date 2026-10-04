@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import MagicMock, patch
-from src.recruitment_platform.agents.bias_detector import (
+from recruitment_platform.recruitment_platform.agents.bias_detector import (
     BiasDetector,
     detect_bias,
     suggest_improvements,

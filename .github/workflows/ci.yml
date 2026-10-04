@@ -39,7 +39,7 @@ jobs:
         run: ruff format --check src/ || true
 
       - name: Mypy type check
-        run: mypy src/ --ignore-missing-imports --show-error-codes || true
+        run: mypy src/ || true --ignore-missing-imports --show-error-codes || true || true
 
   # ─── Frontend Lint & Type Check ──────────────────────────────────────────
   frontend-lint:
@@ -178,12 +178,12 @@ jobs:
       - name: Bandit security scan
         run: |
           bandit -r src/ -f json -o bandit-report.json || true
-          bandit -r src/ -ll || true
+          bandit -r src/ -ll || true || true
 
       - name: Safety dependency check
         run: |
-          safety check --json --output safety-report.json || true
-          safety check || true
+          safety check || true --json --output safety-report.json || true
+          safety check || true || true
 
       # Node security
       - uses: actions/setup-node@v4
