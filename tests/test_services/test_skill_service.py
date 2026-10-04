@@ -15,7 +15,7 @@ class TestSkillService:
         
         result = create_skill(db_session, skill_data)
         assert result is not None
-        assert result.name == "Python"
+        assert result["name"] == "Python"
 
     def test_get_skill(self, db_session):
         """Test getting a skill."""

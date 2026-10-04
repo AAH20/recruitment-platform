@@ -14,11 +14,12 @@ class TestEmployerService:
         employer_data = {
             "name": "Test Company",
             "industry": "Technology",
+            "size": "50-200",
         }
         
         result = create_employer(db_session, employer_data)
         assert result is not None
-        assert result.name == "Test Company"
+        assert result["name"] == "Test Company"
 
     def test_get_employer(self, db_session):
         """Test getting an employer."""
