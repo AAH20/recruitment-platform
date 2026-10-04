@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from recruitment_platform.recruitment_platform.services.application_service import (
+from recruitment_platform.services.application_service import (
     ApplicationService,
     get_application,
     list_applications,

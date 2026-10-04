@@ -21,7 +21,7 @@ from typing import Any, Dict, List
 @pytest.fixture
 def api_client():
     """Return a configured API client for the recruitment platform."""
-    from recruitment_platform.recruitment_platform.client import RecruitmentAPIClient
+    from recruitment_platform.client import RecruitmentAPIClient
 
     return RecruitmentAPIClient(base_url="http://localhost:8000", api_key="test-key")
 
@@ -29,7 +29,7 @@ def api_client():
 @pytest.fixture
 def analytics_service(api_client):
     """Return an analytics service bound to the API client."""
-    from recruitment_platform.recruitment_platform.services.analytics import AnalyticsService
+    from recruitment_platform.services.analytics import AnalyticsService
 
     return AnalyticsService(client=api_client)
 

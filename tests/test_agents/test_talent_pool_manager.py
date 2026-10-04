@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch, AsyncMock
 from uuid import uuid4, UUID
 
-from recruitment_platform.recruitment_platform.agents.talent_pool_manager import (
+from recruitment_platform.agents.talent_pool_manager import (
     TalentPoolManager,
     TalentPool,
     PoolCandidate,
