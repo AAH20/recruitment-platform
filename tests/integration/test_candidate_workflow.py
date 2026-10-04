@@ -138,7 +138,7 @@ assert get_response.json()["id"] == candidate_id
 update_response = client.put(
 f"/api/v1/candidates/{candidate_id}", json=update_payload
 )
-        assert update_response.status_code == 200
+    assert update_response.status_code == 200
 updated = update_response.json()
 assert updated["first_name"] == "Updated"
 assert updated["experience_years"] == 10
@@ -283,7 +283,7 @@ job_id = created_job["id"]
 f"/api/v1/candidates/{candidate_id}/apply",
 json={"job_id": job_id},
 )
-        assert apply_response.status_code == 201
+    assert apply_response.status_code == 201
 application = apply_response.json()
 
         # Retrieve it
@@ -304,7 +304,7 @@ job_id = created_job["id"]
 f"/api/v1/candidates/{candidate_id}/apply",
 json={"job_id": job_id},
 )
-        assert apply_response.status_code == 201
+    assert apply_response.status_code == 201
 application = apply_response.json()
 application_id = application["id"]
 assert application["status"] == "applied"
@@ -314,7 +314,7 @@ assert application["status"] == "applied"
 f"/api/v1/applications/{application_id}/status",
 json={"status": "screening"},
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert data["status"] == "screening"
 assert data["id"] == application_id
@@ -324,7 +324,7 @@ assert data["id"] == application_id
 f"/api/v1/applications/{application_id}/status",
 json={"status": "interview"},
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert data["status"] == "interview"
 
@@ -333,7 +333,7 @@ assert data["status"] == "interview"
 f"/api/v1/applications/{application_id}/status",
 json={"status": "offer"},
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert data["status"] == "offer"
 
@@ -350,7 +350,7 @@ json={
 "cover_letter": "Excited about this opportunity!",
 },
 )
-        assert apply_response.status_code == 201
+    assert apply_response.status_code == 201
 application = apply_response.json()
 application_id = application["id"]
 assert application["status"] == "applied"
@@ -360,7 +360,7 @@ assert application["status"] == "applied"
 f"/api/v1/applications/{application_id}/status",
 json={"status": "screening"},
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 assert response.json()["status"] == "screening"
 
         # INTERVIEW
@@ -368,7 +368,7 @@ assert response.json()["status"] == "screening"
 f"/api/v1/applications/{application_id}/status",
 json={"status": "interview"},
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 assert response.json()["status"] == "interview"
 
         # OFFER
@@ -376,7 +376,7 @@ assert response.json()["status"] == "interview"
 f"/api/v1/applications/{application_id}/status",
 json={"status": "offer"},
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 assert response.json()["status"] == "offer"
 
         # ACCEPTED
@@ -384,7 +384,7 @@ assert response.json()["status"] == "offer"
 f"/api/v1/applications/{application_id}/status",
 json={"status": "accepted"},
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 final_data = response.json()
 assert final_data["status"] == "accepted"
 assert final_data["id"] == application_id
@@ -423,11 +423,11 @@ job_id = created_job["id"]
 f"/api/v1/candidates/{candidate_id}/apply",
 json={"job_id": job_id},
 )
-        assert response.status_code == 201
+    assert response.status_code == 201
 
         # Duplicate application should fail
         response = client.post(
 f"/api/v1/candidates/{candidate_id}/apply",
 json={"job_id": job_id},
 )
-        assert response.status_code == 409
+    assert response.status_code == 409

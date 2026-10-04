@@ -192,10 +192,10 @@ import websockets
             await ws.send(
 json.dumps({"action": "set_interval", "seconds": 5})
 )
-            analytics_ws.recv.return_value = json.dumps(
+        analytics_ws.recv.return_value = json.dumps(
 {"type": "interval_updated", "seconds": 5}
 )
-            message = await ws.recv()
+        message = await ws.recv()
 data = json.loads(message)
 
             assert data["type"] == "interval_updated"
@@ -223,8 +223,8 @@ json.dumps(
 "metrics": ["total_applications", "active_jobs"],
 }
 )
-            )
-            message = await ws.recv()
+        )
+        message = await ws.recv()
 data = json.loads(message)
 
             assert data["type"] == "metrics_subscribed"
@@ -252,8 +252,8 @@ json.dumps(
 "metrics": ["total_applications"],
 }
 )
-            )
-            message = await ws.recv()
+        )
+        message = await ws.recv()
 data = json.loads(message)
 
             assert data["type"] == "metrics_unsubscribed"
@@ -313,8 +313,8 @@ json.dumps(
 "end_date": "2026-10-03",
 }
 )
-            )
-            message = await ws.recv()
+        )
+        message = await ws.recv()
 data = json.loads(message)
 
             assert data["type"] == "time_series_data"
@@ -383,8 +383,8 @@ analytics_ws.recv.return_value = json.dumps(
 json.dumps(
 {"action": "refresh", "dashboard_id": "dash-001"}
 )
-            )
-            message = await ws.recv()
+        )
+        message = await ws.recv()
 data = json.loads(message)
 
             assert data["type"] == "dashboard_refreshed"
@@ -466,8 +466,8 @@ analytics_ws.recv.return_value = json.dumps(
 json.dumps(
 {"action": "subscribe_metrics", "metrics": ["invalid_metric_name"]}
 )
-            )
-            message = await ws.recv()
+        )
+        message = await ws.recv()
 data = json.loads(message)
 
             assert data["type"] == "error"

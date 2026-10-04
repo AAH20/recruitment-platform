@@ -162,7 +162,7 @@ assert updated_application["status"] == "interview"
 f"/api/v1/interviews/{interview_id}",
 json={"status": "completed"},
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 updated_interview = response.json()
 
         assert updated_interview["id"] == interview_id

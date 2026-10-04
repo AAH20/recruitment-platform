@@ -181,8 +181,8 @@ notification_ws.recv.return_value = json.dumps(
 json.dumps(
 {"action": "mark_read", "notification_id": "notif-001"}
 )
-            )
-            message = await ws.recv()
+        )
+        message = await ws.recv()
 data = json.loads(message)
 
             assert data["type"] == "notification_read"
@@ -223,8 +223,8 @@ notification_ws.recv.return_value = json.dumps(
 json.dumps(
 {"action": "subscribe", "channel": "recruiter-001"}
 )
-            )
-            message = await ws.recv()
+        )
+        message = await ws.recv()
 data = json.loads(message)
 
             assert data["type"] == "subscribed"
@@ -246,8 +246,8 @@ notification_ws.recv.return_value = json.dumps(
 json.dumps(
 {"action": "unsubscribe", "channel": "recruiter-001"}
 )
-            )
-            message = await ws.recv()
+        )
+        message = await ws.recv()
 data = json.loads(message)
 
             assert data["type"] == "unsubscribed"
@@ -265,7 +265,7 @@ json.dumps(
 "message": f"Application {i}",
 }
 )
-        for i in range(5)
+    for i in range(5)
 ]
 notification_ws.recv.side_effect = notifications
 
@@ -302,8 +302,8 @@ notification_ws.recv.return_value = json.dumps(
 json.dumps(
 {"action": "filter", "notification_type": "new_application"}
 )
-            )
-            message = await ws.recv()
+        )
+        message = await ws.recv()
 data = json.loads(message)
 
             assert data["type"] == "notifications_filtered"
@@ -330,8 +330,8 @@ json.dumps(
 "push_enabled": True,
 }
 )
-            )
-            message = await ws.recv()
+        )
+        message = await ws.recv()
 data = json.loads(message)
 
             assert data["type"] == "preferences_updated"

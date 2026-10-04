@@ -400,7 +400,7 @@ candidate_id = created_candidate["id"]
 update_resp = client.put(
 f"/api/v1/candidates/{candidate_id}", json=update_payload
 )
-        assert update_resp.status_code == 200
+    assert update_resp.status_code == 200
 
         response = client.get(f"/api/v1/candidates/{candidate_id}")
 assert response.status_code == 200
@@ -432,7 +432,7 @@ update_payload = {"first_name": "UpdatedFirst"}
 response = client.put(
 f"/api/v1/candidates/{candidate_id}", json=update_payload
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert data["id"] == candidate_id
 assert data["first_name"] == "UpdatedFirst"
@@ -446,7 +446,7 @@ response = client.put(
 "/api/v1/candidates/nonexistent-id-99999",
 json={"first_name": "NewName"},
 )
-        assert response.status_code == 404
+    assert response.status_code == 404
 
     def test_update_candidate_partial_update(self, client, created_candidate):
         """Only provided fields are modified."""
@@ -457,7 +457,7 @@ original_email = created_candidate["email"]
 response = client.put(
 f"/api/v1/candidates/{candidate_id}", json=update_payload
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert data["location"] == "New York, NY"
 assert data["email"] == original_email
@@ -470,7 +470,7 @@ update_payload = {"status": "screening"}
 response = client.put(
 f"/api/v1/candidates/{candidate_id}", json=update_payload
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert data["status"] == "screening"
 
@@ -481,7 +481,7 @@ update_payload = {"status": "invalid_status"}
 response = client.put(
 f"/api/v1/candidates/{candidate_id}", json=update_payload
 )
-        assert response.status_code == 422
+    assert response.status_code == 422
 
     def test_update_candidate_invalid_email(self, client, created_candidate):
         """Updating email to an invalid value returns 422."""
@@ -490,7 +490,7 @@ update_payload = {"email": "not-an-email"}
 response = client.put(
 f"/api/v1/candidates/{candidate_id}", json=update_payload
 )
-        assert response.status_code == 422
+    assert response.status_code == 422
 
     def test_update_candidate_skills(self, client, created_candidate):
         """Updating skills replaces the skills list."""
@@ -499,7 +499,7 @@ update_payload = {"skills": ["Rust", "Go", "Kubernetes"]}
 response = client.put(
 f"/api/v1/candidates/{candidate_id}", json=update_payload
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert data["skills"] == ["rust", "go", "kubernetes"]
 
@@ -510,7 +510,7 @@ update_payload = {"experience_level": "senior"}
 response = client.put(
 f"/api/v1/candidates/{candidate_id}", json=update_payload
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert data["experience_level"] == "senior"
 
@@ -522,7 +522,7 @@ original = client.get(f"/api/v1/candidates/{candidate_id}").json()
         response = client.put(
 f"/api/v1/candidates/{candidate_id}", json={}
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert data["first_name"] == original["first_name"]
 assert data["email"] == original["email"]
@@ -536,7 +536,7 @@ original_updated_at = created_candidate["updated_at"]
 response = client.put(
 f"/api/v1/candidates/{candidate_id}", json=update_payload
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 # updated_at should be different from the original
         assert data["updated_at"] != original_updated_at or data["notes"] == "Updated notes"
@@ -548,7 +548,7 @@ response = client.put(
 f"/api/v1/candidates/{candidate_id}",
 json={"first_name": "ContentTypeTest"},
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 assert "application/json" in response.headers.get("content-type", "")
 
 

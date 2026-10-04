@@ -68,8 +68,8 @@ status=JobStatus.OPEN if i % 2 == 0 else JobStatus.DRAFT,
 created_at=datetime(2026, 1, 1) + timedelta(days=i),
 updated_at=datetime(2026, 1, 1) + timedelta(days=i),
 )
-        )
-    return jobs
+    )
+return jobs
 
 
 # ---------------------------------------------------------------------------

@@ -71,7 +71,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"biased_terms": ["rockstar"], "suggestions": ["Use skilled professional"]}'))]
 )
-            result = detector.detect_bias(sample_job_description)
+        result = detector.detect_bias(sample_job_description)
 
         assert isinstance(result, dict)
 assert "biased_terms" in result
@@ -83,7 +83,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"biased_terms": [], "suggestions": []}'))]
 )
-            result = detector.detect_bias("")
+        result = detector.detect_bias("")
 
         assert isinstance(result, dict)
 assert result["biased_terms"] == []
@@ -95,7 +95,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"biased_terms": [], "suggestions": []}'))]
 )
-            result = detector.detect_bias(inclusive_job_description)
+        result = detector.detect_bias(inclusive_job_description)
 
         assert result["biased_terms"] == []
 assert result["suggestions"] == []
@@ -106,7 +106,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"biased_terms": ["rockstar", "ninja", "digital native", "culture fit"], "suggestions": ["Use skilled professional", "Use expert", "Remove jargon", "Use values alignment"]}'))]
 )
-            result = detector.detect_bias(sample_job_description)
+        result = detector.detect_bias(sample_job_description)
 
         assert len(result["biased_terms"]) == 4
 assert "rockstar" in result["biased_terms"]
@@ -120,7 +120,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"biased_terms": ["rockstar", "ninja"], "suggestions": ["Use skilled professional", "Use expert"]}'))]
 )
-            result = detector.detect_bias(sample_job_description)
+        result = detector.detect_bias(sample_job_description)
 
         assert len(result["suggestions"]) == len(result["biased_terms"])
 
@@ -139,7 +139,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"biased_terms": ["rockstar"], "suggestions": ["Use skilled professional"]}'))]
 )
-            result = detect_bias(sample_job_description)
+        result = detect_bias(sample_job_description)
 
         assert isinstance(result, dict)
 assert "biased_terms" in result
@@ -150,7 +150,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"biased_terms": [], "suggestions": []}'))]
 )
-            detector.detect_bias(sample_job_description)
+        detector.detect_bias(sample_job_description)
 
         call_kwargs = mock_openai.chat.completions.create.call_args
 assert call_kwargs is not None
@@ -163,7 +163,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"biased_terms": [], "suggestions": []}'))]
 )
-            detector.detect_bias(sample_job_description)
+        detector.detect_bias(sample_job_description)
 
         call_kwargs = mock_openai.chat.completions.create.call_args
 messages = call_kwargs.kwargs["messages"]
@@ -185,7 +185,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"improvements": ["Remove gendered language", "Add diversity statement", "Specify flexible hours"]}'))]
 )
-            result = detector.suggest_improvements(sample_job_description)
+        result = detector.suggest_improvements(sample_job_description)
 
         assert isinstance(result, list)
 assert len(result) == 3
@@ -196,7 +196,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"improvements": []}'))]
 )
-            result = detector.suggest_improvements("")
+        result = detector.suggest_improvements("")
 
         assert isinstance(result, list)
 assert result == []
@@ -207,7 +207,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"improvements": ["Consider adding specific accommodation details"]}'))]
 )
-            result = detector.suggest_improvements(inclusive_job_description)
+        result = detector.suggest_improvements(inclusive_job_description)
 
         assert isinstance(result, list)
 assert len(result) <= 2
@@ -218,7 +218,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"improvements": ["Remove gendered language"]}'))]
 )
-            result = suggest_improvements(sample_job_description)
+        result = suggest_improvements(sample_job_description)
 
         assert isinstance(result, list)
 assert len(result) == 1
@@ -238,7 +238,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"improvements": ["Suggestion one", "Suggestion two", "Suggestion three"]}'))]
 )
-            result = detector.suggest_improvements(sample_job_description)
+        result = detector.suggest_improvements(sample_job_description)
 
         assert all(isinstance(s, str) for s in result)
 
@@ -248,7 +248,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"improvements": []}'))]
 )
-            detector.suggest_improvements(sample_job_description)
+        detector.suggest_improvements(sample_job_description)
 
         call_kwargs = mock_openai.chat.completions.create.call_args
 messages = call_kwargs.kwargs["messages"]
@@ -270,7 +270,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"score": 42}'))]
 )
-            result = detector.score_inclusivity(sample_job_description)
+        result = detector.score_inclusivity(sample_job_description)
 
         assert isinstance(result, (int, float))
 
@@ -280,7 +280,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"score": 30}'))]
 )
-            result = detector.score_inclusivity(sample_job_description)
+        result = detector.score_inclusivity(sample_job_description)
 
         assert result < 50
 
@@ -290,7 +290,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"score": 85}'))]
 )
-            result = detector.score_inclusivity(inclusive_job_description)
+        result = detector.score_inclusivity(inclusive_job_description)
 
         assert result >= 70
 
@@ -300,7 +300,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"score": 50}'))]
 )
-            result = detector.score_inclusivity("")
+        result = detector.score_inclusivity("")
 
         assert isinstance(result, (int, float))
 
@@ -310,7 +310,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"score": 55}'))]
 )
-            result = score_inclusivity(sample_job_description)
+        result = score_inclusivity(sample_job_description)
 
         assert isinstance(result, (int, float))
 
@@ -328,7 +328,7 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"score": 60}'))]
 )
-            detector.score_inclusivity(sample_job_description)
+        detector.score_inclusivity(sample_job_description)
 
         call_kwargs = mock_openai.chat.completions.create.call_args
 messages = call_kwargs.kwargs["messages"]
@@ -341,6 +341,6 @@ with patch("src.recruitment_platform.agents.bias_detector.openai") as mock_opena
             mock_openai.chat.completions.create.return_value = MagicMock(
 choices=[MagicMock(message=MagicMock(content='{"score": 75}'))]
 )
-            result = detector.score_inclusivity(sample_job_description)
+        result = detector.score_inclusivity(sample_job_description)
 
         assert 0 <= result <= 100

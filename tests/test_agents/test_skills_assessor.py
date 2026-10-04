@@ -237,7 +237,7 @@ self, sample_candidate, sample_job_requirements
         sample_candidate["skills"].append(
 {"name": "Kubernetes", "level": "intermediate", "years": 2}
 )
-        result = assess_skills(sample_candidate, sample_job_requirements)
+    result = assess_skills(sample_candidate, sample_job_requirements)
 # All required and preferred skills are now met
         assert len(result["gaps"]) == 0
 
@@ -862,7 +862,7 @@ candidates = [
 for i, (lvl, yrs) in enumerate(
 [("expert", 8), ("intermediate", 4), ("beginner", 1)]
 )
-        ]
+    ]
 
         results = [assess_skills(c, sample_job_requirements) for c in candidates]
 scores = [r["overall_score"] for r in results]

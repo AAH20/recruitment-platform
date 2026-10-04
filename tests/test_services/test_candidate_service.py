@@ -253,7 +253,7 @@ result = candidate_service.get_all(
 created_after=datetime(2024, 1, 15),
 created_before=datetime(2024, 3, 1),
 )
-        assert isinstance(result, list)
+    assert isinstance(result, list)
 
     def test_list_candidates_with_skills_filter(
 self, candidate_service, mock_db, sample_candidates_list

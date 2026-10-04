@@ -31,13 +31,13 @@ name TEXT NOT NULL,
 email TEXT UNIQUE NOT NULL,
 created_at TIMESTAMPTZ DEFAULT NOW()
 )
-        """)
+    """)
 await conn.execute("TRUNCATE perf_candidates")
 await conn.executemany(
 "INSERT INTO perf_candidates (name, email) VALUES ($1, $2)",
 [(f"User {i}", f"user{i}@perf.com") for i in range(1000)],
 )
-    yield
+yield
 async with db_pool.acquire() as conn:
         await conn.execute("DROP TABLE IF EXISTS perf_candidates")
 
@@ -48,11 +48,11 @@ async with db_pool.acquire() as conn:
         await conn.execute(
 "CREATE INDEX IF NOT EXISTS idx_perf_email ON perf_candidates(email)"
 )
-        start = time.monotonic()
+    start = time.monotonic()
 row = await conn.fetchrow(
 "SELECT * FROM perf_candidates WHERE email = $1", "user500@perf.com"
 )
-        elapsed_ms = (time.monotonic() - start) * 1000
+    elapsed_ms = (time.monotonic() - start) * 1000
 assert row is not None
 assert elapsed_ms < MAX_QUERY_TIME_MS
 
@@ -75,7 +75,7 @@ await conn.executemany(
 "INSERT INTO perf_candidates (name, email) VALUES ($1, $2)",
 [(f"Bulk {i}", f"bulk{i}@perf.com") for i in range(500)],
 )
-        elapsed = time.monotonic() - start
+    elapsed = time.monotonic() - start
 assert elapsed < MAX_BULK_INSERT_TIME_S
 
 
@@ -89,13 +89,13 @@ candidate_id INTEGER REFERENCES perf_candidates(id),
 status TEXT,
 applied_at TIMESTAMPTZ DEFAULT NOW()
 )
-        """)
+    """)
 await conn.execute("TRUNCATE perf_applications")
 await conn.executemany(
 "INSERT INTO perf_applications (candidate_id, status) VALUES ($1, $2)",
 [(i, "applied") for i in range(1, 501)],
 )
-        start = time.monotonic()
+    start = time.monotonic()
 rows = await conn.fetch("""
 SELECT c.name, a.status
 FROM perf_candidates c

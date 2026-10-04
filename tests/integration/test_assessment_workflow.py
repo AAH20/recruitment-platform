@@ -74,7 +74,7 @@ api_client: requests.Session, sample_assessment_payload: Dict[str, Any]
 response = api_client.post(
 f"{BASE_URL}/assessments", json=sample_assessment_payload, timeout=TIMEOUT
 )
-    assert response.status_code == 201, f"Failed to create assessment: {response.text}"
+assert response.status_code == 201, f"Failed to create assessment: {response.text}"
 assessment = response.json()
 yield assessment
 
@@ -92,7 +92,7 @@ api_client: requests.Session, sample_candidate_payload: Dict[str, Any]
 response = api_client.post(
 f"{BASE_URL}/candidates", json=sample_candidate_payload, timeout=TIMEOUT
 )
-    assert response.status_code == 201, f"Failed to create candidate: {response.text}"
+assert response.status_code == 201, f"Failed to create candidate: {response.text}"
 candidate = response.json()
 yield candidate
 
@@ -120,17 +120,17 @@ f"{BASE_URL}/assessments",
 json=sample_assessment_payload,
 timeout=TIMEOUT,
 )
-        assert create_response.status_code == 201, (
+    assert create_response.status_code == 201, (
 f"Expected 201, got {create_response.status_code}: {create_response.text}"
 )
-        assessment = create_response.json()
+    assessment = create_response.json()
 assert "id" in assessment, "Assessment response must contain 'id'"
 assert assessment["title"] == sample_assessment_payload["title"]
 assert assessment["description"] == sample_assessment_payload["description"]
 assert len(assessment["questions"]) == len(
 sample_assessment_payload["questions"]
 )
-        assessment_id = assessment["id"]
+    assessment_id = assessment["id"]
 
         # --- Step 2: Score ---
         score_payload = {
@@ -147,10 +147,10 @@ f"{BASE_URL}/assessments/{assessment_id}/score",
 json=score_payload,
 timeout=TIMEOUT,
 )
-        assert score_response.status_code == 200, (
+    assert score_response.status_code == 200, (
 f"Expected 200, got {score_response.status_code}: {score_response.text}"
 )
-        score_result = score_response.json()
+    score_result = score_response.json()
 assert "score" in score_result, "Score response must contain 'score'"
 assert "passed" in score_result, "Score response must contain 'passed'"
 assert isinstance(score_result["score"], (int, float))
@@ -161,7 +161,7 @@ assert 0 <= score_result["score"] <= 100
         delete_response = api_client.delete(
 f"{BASE_URL}/assessments/{assessment_id}", timeout=TIMEOUT
 )
-        assert delete_response.status_code in (200, 204), (
+    assert delete_response.status_code in (200, 204), (
 f"Expected 200/204, got {delete_response.status_code}"
 )
 
@@ -169,7 +169,7 @@ f"Expected 200/204, got {delete_response.status_code}"
         get_response = api_client.get(
 f"{BASE_URL}/assessments/{assessment_id}", timeout=TIMEOUT
 )
-        assert get_response.status_code == 404, (
+    assert get_response.status_code == 404, (
 "Deleted assessment should return 404 on subsequent GET"
 )
 
@@ -193,10 +193,10 @@ f"{BASE_URL}/candidates",
 json=sample_candidate_payload,
 timeout=TIMEOUT,
 )
-        assert candidate_response.status_code == 201, (
+    assert candidate_response.status_code == 201, (
 f"Failed to create candidate: {candidate_response.text}"
 )
-        candidate = candidate_response.json()
+    candidate = candidate_response.json()
 assert "id" in candidate, "Candidate response must contain 'id'"
 assert candidate["email"] == sample_candidate_payload["email"]
 candidate_id = candidate["id"]
@@ -207,10 +207,10 @@ f"{BASE_URL}/assessments",
 json=sample_assessment_payload,
 timeout=TIMEOUT,
 )
-        assert assessment_response.status_code == 201, (
+    assert assessment_response.status_code == 201, (
 f"Failed to create assessment: {assessment_response.text}"
 )
-        assessment = assessment_response.json()
+    assessment = assessment_response.json()
 assert "id" in assessment, "Assessment response must contain 'id'"
 assessment_id = assessment["id"]
 
@@ -230,10 +230,10 @@ f"{BASE_URL}/assessments/{assessment_id}/score",
 json=score_payload,
 timeout=TIMEOUT,
 )
-        assert score_response.status_code == 200, (
+    assert score_response.status_code == 200, (
 f"Failed to score candidate: {score_response.text}"
 )
-        score_result = score_response.json()
+    score_result = score_response.json()
 assert "score" in score_result
 assert "passed" in score_result
 assert "candidate_id" in score_result
@@ -264,20 +264,20 @@ f"{BASE_URL}/assessments",
 json=sample_assessment_payload,
 timeout=TIMEOUT,
 )
-        assert create_response.status_code == 201, (
+    assert create_response.status_code == 201, (
 f"Failed to create assessment: {create_response.text}"
 )
-        assessment = create_response.json()
+    assessment = create_response.json()
 assessment_id = assessment["id"]
 
         # --- Step 2: Get Analytics ---
         analytics_response = api_client.get(
 f"{BASE_URL}/assessments/{assessment_id}/analytics", timeout=TIMEOUT
 )
-        assert analytics_response.status_code == 200, (
+    assert analytics_response.status_code == 200, (
 f"Failed to get analytics: {analytics_response.text}"
 )
-        analytics = analytics_response.json()
+    analytics = analytics_response.json()
 
         # Validate analytics structure
         assert "assessment_id" in analytics

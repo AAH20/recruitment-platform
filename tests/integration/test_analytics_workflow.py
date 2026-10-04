@@ -308,13 +308,13 @@ analytics_service.client, "get", return_value=mock_response
         sources_by_quality = sorted(
 result["sources"], key=lambda s: s["quality_score"], reverse=True
 )
-        assert sources_by_quality[0]["source"] == "referral"
+    assert sources_by_quality[0]["source"] == "referral"
 assert sources_by_quality[0]["quality_score"] == 9.1
 
         sources_by_cost = sorted(
 result["sources"], key=lambda s: s["cost_per_hire"]
 )
-        assert sources_by_cost[0]["source"] == "career_page"
+    assert sources_by_cost[0]["source"] == "career_page"
 assert sources_by_cost[0]["cost_per_hire"] == 30.0
 
 

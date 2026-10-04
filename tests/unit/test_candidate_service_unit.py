@@ -63,7 +63,7 @@ id="cand-002",
 created_at=datetime(2026, 2, 1, 9, 0, 0, tzinfo=timezone.utc),
 updated_at=datetime(2026, 2, 1, 9, 0, 0, tzinfo=timezone.utc),
 )
-        mock_repository.create.return_value = expected_candidate
+    mock_repository.create.return_value = expected_candidate
 
         result = candidate_service.create_candidate(**sample_candidate_data)
 
@@ -160,7 +160,7 @@ status="active",
 created_at=datetime(2026, 1, 16, 11, 0, 0, tzinfo=timezone.utc),
 updated_at=datetime(2026, 1, 16, 11, 0, 0, tzinfo=timezone.utc),
 )
-        mock_repository.list_all.return_value = [sample_candidate, other_candidate]
+    mock_repository.list_all.return_value = [sample_candidate, other_candidate]
 
         result = candidate_service.list_candidates()
 

@@ -134,7 +134,7 @@ assert employer_id is not None
 f"{BASE_URL}/employers/{employer_id}",
 json={"name": "Lifecycle Test Employer"},
 )
-        assert update_resp.status_code == 200
+    assert update_resp.status_code == 200
 assert update_resp.json()["name"] == "Lifecycle Test Employer"
 
         # Delete
@@ -202,7 +202,7 @@ employer_id = employer.get("id") or employer.get("employer_id")
 f"{BASE_URL}/jobs",
 json={**job_payload, "employer_id": employer_id},
 )
-        assert job_resp.status_code == 201
+    assert job_resp.status_code == 201
 job = job_resp.json()
 assert job["employer_id"] == employer_id
 
@@ -249,7 +249,7 @@ employer_id = created_employer.get("id") or created_employer.get("employer_id")
 f"{BASE_URL}/employers/{employer_id}/branding/analyze",
 json=branding_payload,
 )
-        assert analyze_resp.status_code == 200
+    assert analyze_resp.status_code == 200
 
         # Then get suggestions
         response = requests.get(
@@ -275,7 +275,7 @@ employer_id = employer.get("id") or employer.get("employer_id")
 f"{BASE_URL}/employers/{employer_id}/branding/analyze",
 json=branding_payload,
 )
-        assert analyze_resp.status_code == 200
+    assert analyze_resp.status_code == 200
 analysis = analyze_resp.json()
 assert analysis is not None
 
@@ -283,7 +283,7 @@ assert analysis is not None
         suggestions_resp = requests.get(
 f"{BASE_URL}/employers/{employer_id}/branding/suggestions"
 )
-        assert suggestions_resp.status_code == 200
+    assert suggestions_resp.status_code == 200
 suggestions = suggestions_resp.json()
 assert suggestions is not None
 

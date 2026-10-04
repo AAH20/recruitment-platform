@@ -30,7 +30,7 @@ name="Jane Doe",
 email="jane.doe@example.com",
 skills=["Python", "AWS"],
 )
-    yield cand
+yield cand
 try:
         platform.delete_candidate(cand.id)
 except Exception:
@@ -45,7 +45,7 @@ name="John Smith",
 email="john.smith@example.com",
 skills=["Java", "Kubernetes"],
 )
-    yield cand
+yield cand
 try:
         platform.delete_candidate(cand.id)
 except Exception:

@@ -576,7 +576,7 @@ candidate_id=101,
 job_id=201,
 cover_letter="Test",
 )
-        assert created.id == 1
+    assert created.id == 1
 assert created.status == "pending"
 
         mock_query = MagicMock()
@@ -592,7 +592,7 @@ db=mock_db,
 application_id=1,
 new_status="reviewed",
 )
-        assert updated.status == "reviewed"
+    assert updated.status == "reviewed"
 
         deleted = delete_application(db=mock_db, application_id=1)
 assert deleted is True

@@ -46,7 +46,7 @@ resp = client.post(
 json=sample_interview_payload,
 headers=auth_headers,
 )
-    assert resp.status_code == 201
+assert resp.status_code == 201
 return resp.json()
 
 
@@ -144,7 +144,7 @@ resp = client.post(
 json=sample_interview_payload,
 headers=auth_headers,
 )
-        assert resp.status_code == 201
+    assert resp.status_code == 201
 data = resp.json()
 assert "id" in data
 assert data["candidate_id"] == sample_interview_payload["candidate_id"]
@@ -246,7 +246,7 @@ resp = client.post(
 json=sample_interview_payload,
 headers=auth_headers,
 )
-        assert resp.status_code == 201
+    assert resp.status_code == 201
 data = resp.json()
 assert data["id"]
 assert isinstance(data["id"], str)
@@ -313,7 +313,7 @@ f"/api/v1/interviews/{interview_id}",
 json=update_payload,
 headers=auth_headers,
 )
-        assert resp.status_code == 200
+    assert resp.status_code == 200
 data = resp.json()
 assert data["id"] == interview_id
 assert data["duration_minutes"] == 90
@@ -329,7 +329,7 @@ f"/api/v1/interviews/{interview_id}",
 json=update_payload,
 headers=auth_headers,
 )
-        assert resp.status_code == 200
+    assert resp.status_code == 200
 data = resp.json()
 assert data["id"] == interview_id
 
@@ -340,7 +340,7 @@ resp = client.put(
 json={"notes": "test"},
 headers=auth_headers,
 )
-        assert resp.status_code == 404
+    assert resp.status_code == 404
 
     def test_update_interview_unauthenticated(self, client, created_interview):
         """PUT without auth returns 401."""
@@ -349,7 +349,7 @@ resp = client.put(
 f"/api/v1/interviews/{interview_id}",
 json={"notes": "test"},
 )
-        assert resp.status_code == 401
+    assert resp.status_code == 401
 
     def test_update_interview_empty_body(self, client, auth_headers, created_interview):
         """PUT with empty body returns 422 or 200 (no-op)."""
@@ -359,7 +359,7 @@ f"/api/v1/interviews/{interview_id}",
 json={},
 headers=auth_headers,
 )
-        assert resp.status_code in (200, 422)
+    assert resp.status_code in (200, 422)
 
     def test_update_interview_invalid_datetime(self, client, auth_headers, created_interview):
         """PUT with invalid datetime returns 422."""
@@ -369,7 +369,7 @@ f"/api/v1/interviews/{interview_id}",
 json={"scheduled_at": "invalid"},
 headers=auth_headers,
 )
-        assert resp.status_code == 422
+    assert resp.status_code == 422
 
     def test_update_interview_change_type(self, client, auth_headers, created_interview):
         """PUT can change interview type."""
@@ -379,7 +379,7 @@ f"/api/v1/interviews/{interview_id}",
 json={"interview_type": "behavioral"},
 headers=auth_headers,
 )
-        assert resp.status_code == 200
+    assert resp.status_code == 200
 data = resp.json()
 assert data["interview_type"] == "behavioral"
 

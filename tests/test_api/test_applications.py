@@ -563,7 +563,7 @@ for status in statuses:
 f"/api/v1/applications/{app_id}",
 json={"status": status},
 )
-            assert response.status_code == 200
+        assert response.status_code == 200
 assert response.json()["status"] == status
 
     def test_update_application_status_preserves_other_fields(self, client, created_application):
@@ -602,13 +602,13 @@ app_id = created_application["id"]
 f"/api/v1/applications/{app_id}",
 json={"status": "accepted"},
 )
-        assert response1.status_code == 200
+    assert response1.status_code == 200
 
         response2 = client.put(
 f"/api/v1/applications/{app_id}",
 json={"status": "accepted"},
 )
-        assert response2.status_code == 200
+    assert response2.status_code == 200
 assert response2.json()["status"] == "accepted"
 
     def test_update_application_status_to_pending(self, client, created_application):
@@ -623,7 +623,7 @@ app_id = created_application["id"]
 f"/api/v1/applications/{app_id}",
 json={"status": "pending"},
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 assert response.json()["status"] == "pending"
 
 
@@ -690,7 +690,7 @@ app_id = created_application["id"]
 f"/api/v1/applications/{app_id}",
 json={"status": "accepted"},
 )
-        assert response.status_code == 404
+    assert response.status_code == 404
 
     def test_delete_one_application_others_remain(self, client, sample_application_payload):
         """Deleting one application should not affect others."""

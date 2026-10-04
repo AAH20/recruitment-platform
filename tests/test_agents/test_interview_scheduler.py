@@ -394,7 +394,7 @@ notification_service=mock_notification_service,
 calendar_service=mock_calendar_service,
 **valid_interview_data,
 )
-            assert result["interview_type"] == itype
+        assert result["interview_type"] == itype
 
 
 # ---------------------------------------------------------------------------

@@ -377,7 +377,7 @@ class TestUpdateInterview:
 updated = Interview(
 **{**sample_interview.__dict__, "notes": "Updated notes", "duration_minutes": 90}
 )
-        mock_repository.update.return_value = updated
+    mock_repository.update.return_value = updated
 
         result = service.update_interview("int-001", notes="Updated notes", duration_minutes=90)
 
@@ -398,7 +398,7 @@ mock_repository.update.return_value = None
 updated = Interview(
 **{**sample_interview.__dict__, "status": InterviewStatus.COMPLETED}
 )
-        mock_repository.update.return_value = updated
+    mock_repository.update.return_value = updated
 
         result = service.update_interview("int-001", status=InterviewStatus.COMPLETED)
 
@@ -417,7 +417,7 @@ new_time = datetime.now(timezone.utc) + timedelta(days=5)
 updated = Interview(
 **{**sample_interview.__dict__, "scheduled_at": new_time}
 )
-        mock_repository.update.return_value = updated
+    mock_repository.update.return_value = updated
 
         result = service.update_interview("int-001", scheduled_at=new_time)
 
@@ -449,7 +449,7 @@ class TestCancelInterview:
 cancelled = Interview(
 **{**sample_interview.__dict__, "status": InterviewStatus.CANCELLED}
 )
-        mock_repository.update.return_value = cancelled
+    mock_repository.update.return_value = cancelled
 
         result = service.cancel_interview("int-001")
 
@@ -462,7 +462,7 @@ mock_repository.update.assert_called_once()
 cancelled = Interview(
 **{**sample_interview.__dict__, "status": InterviewStatus.CANCELLED, "notes": "Candidate unavailable"}
 )
-        mock_repository.update.return_value = cancelled
+    mock_repository.update.return_value = cancelled
 
         result = service.cancel_interview("int-001", reason="Candidate unavailable")
 
@@ -488,7 +488,7 @@ duration_minutes=60,
 interview_type=InterviewType.TECHNICAL,
 status=InterviewStatus.CANCELLED,
 )
-        mock_repository.get_by_id.return_value = already_cancelled
+    mock_repository.get_by_id.return_value = already_cancelled
 
         with pytest.raises(InvalidInterviewStateError):
             service.cancel_interview("int-002")
@@ -506,7 +506,7 @@ duration_minutes=60,
 interview_type=InterviewType.TECHNICAL,
 status=InterviewStatus.COMPLETED,
 )
-        mock_repository.get_by_id.return_value = completed
+    mock_repository.get_by_id.return_value = completed
 
         with pytest.raises(InvalidInterviewStateError):
             service.cancel_interview("int-003")

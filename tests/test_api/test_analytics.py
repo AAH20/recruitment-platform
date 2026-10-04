@@ -123,21 +123,21 @@ assert response.status_code == 404
 response = client.get(
 "/api/v1/analytics?period=30d", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     def test_get_analytics_empty_period(self, client, auth_headers):
         """Should handle empty period query parameter."""
 response = client.get(
 "/api/v1/analytics?period=", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     def test_get_analytics_invalid_period(self, client, auth_headers):
         """Should handle invalid period query parameter gracefully."""
 response = client.get(
 "/api/v1/analytics?period=invalid", headers=auth_headers
 )
-        assert response.status_code in (200, 400, 422)
+    assert response.status_code in (200, 400, 422)
 
     def test_get_analytics_cors_headers(self, client, auth_headers):
         """Should include CORS headers in the response."""
@@ -236,21 +236,21 @@ assert response.status_code == 405
 response = client.get(
 "/api/v1/analytics/pipeline/nonexistent", headers=auth_headers
 )
-        assert response.status_code == 404
+    assert response.status_code == 404
 
     def test_get_pipeline_with_query_params(self, client, auth_headers):
         """Should accept and handle query parameters gracefully."""
 response = client.get(
 "/api/v1/analytics/pipeline?job_id=123", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     def test_get_pipeline_with_stage_filter(self, client, auth_headers):
         """Should handle stage filter query parameter."""
 response = client.get(
 "/api/v1/analytics/pipeline?stage=interview", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     def test_get_pipeline_with_date_range(self, client, auth_headers):
         """Should handle date range query parameters."""
@@ -258,21 +258,21 @@ response = client.get(
 "/api/v1/analytics/pipeline?start_date=2024-01-01&end_date=2024-12-31",
 headers=auth_headers,
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     def test_get_pipeline_empty_job_id(self, client, auth_headers):
         """Should handle empty job_id query parameter."""
 response = client.get(
 "/api/v1/analytics/pipeline?job_id=", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     def test_get_pipeline_invalid_job_id(self, client, auth_headers):
         """Should handle invalid job_id query parameter gracefully."""
 response = client.get(
 "/api/v1/analytics/pipeline?job_id=invalid", headers=auth_headers
 )
-        assert response.status_code in (200, 400, 422)
+    assert response.status_code in (200, 400, 422)
 
     def test_get_pipeline_cors_headers(self, client, auth_headers):
         """Should include CORS headers in the response."""
@@ -299,7 +299,7 @@ class TestGetTimeToHire:
 response = client.get(
 "/api/v1/analytics/time-to-hire", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert isinstance(data, dict)
 
@@ -319,7 +319,7 @@ assert response.status_code == 401
 response = client.get(
 "/api/v1/analytics/time-to-hire", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 expected_keys = [
 "overall_avg_days",
@@ -334,7 +334,7 @@ for key in expected_keys:
 response = client.get(
 "/api/v1/analytics/time-to-hire", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert isinstance(data["overall_avg_days"], (int, float))
 assert isinstance(data["overall_median_days"], (int, float))
@@ -345,7 +345,7 @@ assert isinstance(data["by_role"], list)
 response = client.get(
 "/api/v1/analytics/time-to-hire", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert data["overall_avg_days"] >= 0
 assert data["overall_median_days"] >= 0
@@ -355,7 +355,7 @@ assert data["overall_median_days"] >= 0
 response = client.get(
 "/api/v1/analytics/time-to-hire", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert isinstance(data["by_role"], list)
 
@@ -364,7 +364,7 @@ assert isinstance(data["by_role"], list)
 response = client.get(
 "/api/v1/analytics/time-to-hire", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 assert "application/json" in response.headers.get("content-type", "")
 
     def test_get_time_to_hire_method_not_allowed(self, client, auth_headers):
@@ -372,21 +372,21 @@ assert "application/json" in response.headers.get("content-type", "")
 response = client.post(
 "/api/v1/analytics/time-to-hire", headers=auth_headers
 )
-        assert response.status_code == 405
+    assert response.status_code == 405
 
     def test_get_time_to_hire_not_found_subpath(self, client, auth_headers):
         """Should return 404 for non-existent time-to-hire sub-paths."""
 response = client.get(
 "/api/v1/analytics/time-to-hire/nonexistent", headers=auth_headers
 )
-        assert response.status_code == 404
+    assert response.status_code == 404
 
     def test_get_time_to_hire_with_query_params(self, client, auth_headers):
         """Should accept and handle query parameters gracefully."""
 response = client.get(
 "/api/v1/analytics/time-to-hire?role=engineer", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     def test_get_time_to_hire_with_date_range(self, client, auth_headers):
         """Should handle date range query parameters."""
@@ -394,14 +394,14 @@ response = client.get(
 "/api/v1/analytics/time-to-hire?start_date=2024-01-01&end_date=2024-12-31",
 headers=auth_headers,
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     def test_get_time_to_hire_cors_headers(self, client, auth_headers):
         """Should include CORS headers in the response."""
 response = client.get(
 "/api/v1/analytics/time-to-hire", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 assert "access-control-allow-origin" in response.headers or True
 
     def test_get_time_to_hire_rate_limit_headers(self, client, auth_headers):
@@ -409,7 +409,7 @@ assert "access-control-allow-origin" in response.headers or True
 response = client.get(
 "/api/v1/analytics/time-to-hire", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 
 
 # ---------------------------------------------------------------------------
@@ -425,7 +425,7 @@ class TestGetSourceEffectiveness:
 response = client.get(
 "/api/v1/analytics/source-effectiveness", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert isinstance(data, dict)
 
@@ -440,14 +440,14 @@ headers = {"Authorization": "Bearer invalid-token"}
 response = client.get(
 "/api/v1/analytics/source-effectiveness", headers=headers
 )
-        assert response.status_code == 401
+    assert response.status_code == 401
 
     def test_get_source_effectiveness_response_structure(self, client, auth_headers):
         """Response should contain all expected source effectiveness fields."""
 response = client.get(
 "/api/v1/analytics/source-effectiveness", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 expected_keys = [
 "sources",
@@ -461,7 +461,7 @@ for key in expected_keys:
 response = client.get(
 "/api/v1/analytics/source-effectiveness", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert isinstance(data["sources"], list)
 assert isinstance(data["total_sources"], int)
@@ -473,7 +473,7 @@ self, client, auth_headers
 response = client.get(
 "/api/v1/analytics/source-effectiveness", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert data["total_sources"] >= 0
 
@@ -482,7 +482,7 @@ assert data["total_sources"] >= 0
 response = client.get(
 "/api/v1/analytics/source-effectiveness", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 data = response.json()
 assert isinstance(data["sources"], list)
 
@@ -491,7 +491,7 @@ assert isinstance(data["sources"], list)
 response = client.get(
 "/api/v1/analytics/source-effectiveness", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 assert "application/json" in response.headers.get("content-type", "")
 
     def test_get_source_effectiveness_method_not_allowed(self, client, auth_headers):
@@ -499,7 +499,7 @@ assert "application/json" in response.headers.get("content-type", "")
 response = client.post(
 "/api/v1/analytics/source-effectiveness", headers=auth_headers
 )
-        assert response.status_code == 405
+    assert response.status_code == 405
 
     def test_get_source_effectiveness_not_found_subpath(self, client, auth_headers):
         """Should return 404 for non-existent source-effectiveness sub-paths."""
@@ -507,7 +507,7 @@ response = client.get(
 "/api/v1/analytics/source-effectiveness/nonexistent",
 headers=auth_headers,
 )
-        assert response.status_code == 404
+    assert response.status_code == 404
 
     def test_get_source_effectiveness_with_query_params(self, client, auth_headers):
         """Should accept and handle query parameters gracefully."""
@@ -515,7 +515,7 @@ response = client.get(
 "/api/v1/analytics/source-effectiveness?source=linkedin",
 headers=auth_headers,
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     def test_get_source_effectiveness_with_date_range(self, client, auth_headers):
         """Should handle date range query parameters."""
@@ -523,14 +523,14 @@ response = client.get(
 "/api/v1/analytics/source-effectiveness?start_date=2024-01-01&end_date=2024-12-31",
 headers=auth_headers,
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 
     def test_get_source_effectiveness_cors_headers(self, client, auth_headers):
         """Should include CORS headers in the response."""
 response = client.get(
 "/api/v1/analytics/source-effectiveness", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200
 assert "access-control-allow-origin" in response.headers or True
 
     def test_get_source_effectiveness_rate_limit_headers(self, client, auth_headers):
@@ -538,4 +538,4 @@ assert "access-control-allow-origin" in response.headers or True
 response = client.get(
 "/api/v1/analytics/source-effectiveness", headers=auth_headers
 )
-        assert response.status_code == 200
+    assert response.status_code == 200

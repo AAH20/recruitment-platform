@@ -60,24 +60,24 @@ async with db_pool.acquire() as conn:
 "View Test",
 "view@example.com",
 )
-        cid = await conn.fetchval(
+    cid = await conn.fetchval(
 "SELECT id FROM candidates WHERE email = $1", "view@example.com"
 )
-        await conn.execute(
+    await conn.execute(
 "INSERT INTO jobs (title) VALUES ($1) RETURNING id", "Engineer"
 )
-        jid = await conn.fetchval("SELECT id FROM jobs WHERE title = $1", "Engineer")
+    jid = await conn.fetchval("SELECT id FROM jobs WHERE title = $1", "Engineer")
 await conn.execute(
 "INSERT INTO applications (candidate_id, job_id, status) VALUES ($1, $2, $3)",
 cid,
 jid,
 "screening",
 )
-        await conn.execute("REFRESH MATERIALIZED VIEW mv_candidate_pipeline")
+    await conn.execute("REFRESH MATERIALIZED VIEW mv_candidate_pipeline")
 row = await conn.fetchrow(
 "SELECT * FROM mv_candidate_pipeline WHERE candidate_id = $1", cid
 )
-        assert row["name"] == "View Test"
+    assert row["name"] == "View Test"
 assert row["application_status"] == "screening"
 assert row["job_title"] == "Engineer"
 
@@ -88,20 +88,20 @@ async with db_pool.acquire() as conn:
         jid = await conn.fetchval(
 "INSERT INTO jobs (title) VALUES ($1) RETURNING id", "Designer"
 )
-        for i in range(3):
+    for i in range(3):
             cid = await conn.fetchval(
 "INSERT INTO candidates (name, email) VALUES ($1, $2) RETURNING id",
 f"Cand {i}",
 f"cand{i}@example.com",
 )
-            status = "hired" if i == 0 else "rejected"
+        status = "hired" if i == 0 else "rejected"
 await conn.execute(
 "INSERT INTO applications (candidate_id, job_id, status) VALUES ($1, $2, $3)",
 cid,
 jid,
 status,
 )
-        await conn.execute("REFRESH MATERIALIZED VIEW mv_job_stats")
+    await conn.execute("REFRESH MATERIALIZED VIEW mv_job_stats")
 stats = await conn.fetchrow("SELECT * FROM mv_job_stats WHERE job_id = $1", jid)
 assert stats["total_applications"] == 3
 assert stats["hires"] == 1
@@ -116,23 +116,23 @@ async with db_pool.acquire() as conn:
 "Stale",
 "stale@example.com",
 )
-        cid = await conn.fetchval(
+    cid = await conn.fetchval(
 "SELECT id FROM candidates WHERE email = $1", "stale@example.com"
 )
-        await conn.execute(
+    await conn.execute(
 "INSERT INTO jobs (title) VALUES ($1) RETURNING id", "Manager"
 )
-        jid = await conn.fetchval("SELECT id FROM jobs WHERE title = $1", "Manager")
+    jid = await conn.fetchval("SELECT id FROM jobs WHERE title = $1", "Manager")
 await conn.execute(
 "INSERT INTO applications (candidate_id, job_id, status) VALUES ($1, $2, $3)",
 cid,
 jid,
 "applied",
 )
-        row = await conn.fetchrow(
+    row = await conn.fetchrow(
 "SELECT * FROM mv_candidate_pipeline WHERE candidate_id = $1", cid
 )
-        assert row is None  # Not refreshed yet
+    assert row is None  # Not refreshed yet
 
 
 async def test_concurrent_refresh(db_pool, materialized_views):

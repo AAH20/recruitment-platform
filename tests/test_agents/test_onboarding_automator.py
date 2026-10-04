@@ -182,7 +182,7 @@ mock_query = MagicMock()
 mock_query.filter_by.return_value.first.return_value = MagicMock(
 **sample_onboarding_session
 )
-        mock_db.query.return_value = mock_query
+    mock_db.query.return_value = mock_query
 
         result = automator.get_onboarding_status(session_id=100)
 
@@ -209,7 +209,7 @@ mock_query = MagicMock()
 mock_query.filter_by.return_value.first.return_value = MagicMock(
 **sample_onboarding_session
 )
-        mock_db.query.return_value = mock_query
+    mock_db.query.return_value = mock_query
 
         result = automator.get_onboarding_status(candidate_id=1)
 
@@ -227,7 +227,7 @@ sample_onboarding_session["current_step"] = OnboardingStep.DONE
 mock_query.filter_by.return_value.first.return_value = MagicMock(
 **sample_onboarding_session
 )
-        mock_db.query.return_value = mock_query
+    mock_db.query.return_value = mock_query
 
         result = automator.get_onboarding_status(session_id=100)
 
@@ -249,7 +249,7 @@ mock_query = MagicMock()
 mock_query.filter_by.return_value.first.return_value = MagicMock(
 **sample_onboarding_session
 )
-        mock_db.query.return_value = mock_query
+    mock_db.query.return_value = mock_query
 
         result = automator.get_onboarding_status(session_id=100)
 

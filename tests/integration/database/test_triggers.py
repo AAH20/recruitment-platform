@@ -32,7 +32,7 @@ changed_at TIMESTAMPTZ DEFAULT NOW(),
 old_data JSONB,
 new_data JSONB
 )
-        """)
+    """)
 await conn.execute("TRUNCATE audit_log")
 yield
 async with db_pool.acquire() as conn:
@@ -47,11 +47,11 @@ async with db_pool.acquire() as conn:
 "Test User",
 "test@example.com",
 )
-        audit = await conn.fetchrow(
+    audit = await conn.fetchrow(
 "SELECT * FROM audit_log WHERE table_name = 'candidates' AND record_id = $1",
 result,
 )
-        assert audit is not None
+    assert audit is not None
 assert audit["operation"] == "INSERT"
 assert audit["new_data"]["name"] == "Test User"
 
@@ -64,13 +64,13 @@ async with db_pool.acquire() as conn:
 "Old Name",
 "old@example.com",
 )
-        await conn.execute(
+    await conn.execute(
 "UPDATE candidates SET name = $1 WHERE id = $2", "New Name", cid
 )
-        audit = await conn.fetchrow(
+    audit = await conn.fetchrow(
 "SELECT * FROM audit_log WHERE operation = 'UPDATE' AND record_id = $1", cid
 )
-        assert audit["old_data"]["name"] == "Old Name"
+    assert audit["old_data"]["name"] == "Old Name"
 assert audit["new_data"]["name"] == "New Name"
 
 
@@ -82,11 +82,11 @@ async with db_pool.acquire() as conn:
 "Delete Me",
 "delete@example.com",
 )
-        await conn.execute("DELETE FROM candidates WHERE id = $1", cid)
+    await conn.execute("DELETE FROM candidates WHERE id = $1", cid)
 audit = await conn.fetchrow(
 "SELECT * FROM audit_log WHERE operation = 'DELETE' AND record_id = $1", cid
 )
-        assert audit["old_data"]["email"] == "delete@example.com"
+    assert audit["old_data"]["email"] == "delete@example.com"
 assert audit["new_data"] is None
 
 
@@ -98,11 +98,11 @@ async with db_pool.acquire() as conn:
 "Same",
 "same@example.com",
 )
-        await conn.execute("UPDATE candidates SET name = $1 WHERE id = $2", "Same", cid)
+    await conn.execute("UPDATE candidates SET name = $1 WHERE id = $2", "Same", cid)
 count = await conn.fetchval(
 "SELECT COUNT(*) FROM audit_log WHERE record_id = $1", cid
 )
-        assert count == 1  # Only the INSERT audit
+    assert count == 1  # Only the INSERT audit
 
 
 async def test_audit_timestamp_is_recent(db_pool, audit_table):
@@ -114,5 +114,5 @@ await conn.execute(
 "Time Test",
 "time@example.com",
 )
-        audit = await conn.fetchrow("SELECT changed_at FROM audit_log LIMIT 1")
+    audit = await conn.fetchrow("SELECT changed_at FROM audit_log LIMIT 1")
 assert audit["changed_at"] >= before

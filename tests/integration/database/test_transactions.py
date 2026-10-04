@@ -27,15 +27,15 @@ id SERIAL PRIMARY KEY,
 owner TEXT NOT NULL,
 balance INTEGER NOT NULL DEFAULT 0
 )
-        """)
+    """)
 await conn.execute("TRUNCATE tx_accounts")
 await conn.execute(
 "INSERT INTO tx_accounts (owner, balance) VALUES ($1, $2)", "Alice", 1000
 )
-        await conn.execute(
+    await conn.execute(
 "INSERT INTO tx_accounts (owner, balance) VALUES ($1, $2)", "Bob", 500
 )
-    yield
+yield
 async with db_pool.acquire() as conn:
         await conn.execute("DROP TABLE IF EXISTS tx_accounts")
 
@@ -49,20 +49,20 @@ async with db_pool.acquire() as conn:
 "UPDATE tx_accounts SET balance = balance - 100 WHERE owner = $1",
 "Alice",
 )
-                await conn.execute(
+            await conn.execute(
 "UPDATE tx_accounts SET balance = balance + 100 WHERE owner = $1",
 "Bob",
 )
-                raise ValueError("Simulated failure")
+            raise ValueError("Simulated failure")
 except ValueError:
             pass
 alice = await conn.fetchval(
 "SELECT balance FROM tx_accounts WHERE owner = $1", "Alice"
 )
-        bob = await conn.fetchval(
+    bob = await conn.fetchval(
 "SELECT balance FROM tx_accounts WHERE owner = $1", "Bob"
 )
-        assert alice == 1000
+    assert alice == 1000
 assert bob == 500
 
 
@@ -74,16 +74,16 @@ async with db_pool.acquire() as conn:
 "UPDATE tx_accounts SET balance = balance - 200 WHERE owner = $1",
 "Alice",
 )
-            await conn.execute(
+        await conn.execute(
 "UPDATE tx_accounts SET balance = balance + 200 WHERE owner = $1", "Bob"
 )
-        alice = await conn.fetchval(
+    alice = await conn.fetchval(
 "SELECT balance FROM tx_accounts WHERE owner = $1", "Alice"
 )
-        bob = await conn.fetchval(
+    bob = await conn.fetchval(
 "SELECT balance FROM tx_accounts WHERE owner = $1", "Bob"
 )
-        assert alice == 800
+    assert alice == 800
 assert bob == 700
 
 
@@ -97,10 +97,10 @@ await tx.start()
 await conn1.execute(
 "UPDATE tx_accounts SET balance = 0 WHERE owner = $1", "Alice"
 )
-        bob_balance = await conn2.fetchval(
+    bob_balance = await conn2.fetchval(
 "SELECT balance FROM tx_accounts WHERE owner = $1", "Bob"
 )
-        assert bob_balance == 500
+    assert bob_balance == 500
 await tx.rollback()
 finally:
         db_pool.release(conn1)
@@ -120,20 +120,20 @@ conn.transaction(isolation="serializable"),
                 bal = await conn.fetchval(
 "SELECT balance FROM tx_accounts WHERE owner = $1", "Alice"
 )
-                await asyncio.sleep(0.01)
+            await asyncio.sleep(0.01)
 await conn.execute(
 "UPDATE tx_accounts SET balance = $1 WHERE owner = $2",
 bal - 50,
 "Alice",
 )
-        except Exception as e:
+    except Exception as e:
             errors.append(e)
 
     await asyncio.gather(transfer(), transfer())
 final = await db_pool.fetchval(
 "SELECT balance FROM tx_accounts WHERE owner = $1", "Alice"
 )
-    assert final >= 900
+assert final >= 900
 
 
 async def test_savepoint_partial_rollback(db_pool, tx_table):
@@ -143,19 +143,19 @@ async with db_pool.acquire() as conn:
             await conn.execute(
 "UPDATE tx_accounts SET balance = 999 WHERE owner = $1", "Alice"
 )
-            await conn.execute("SAVEPOINT sp1")
+        await conn.execute("SAVEPOINT sp1")
 await conn.execute(
 "UPDATE tx_accounts SET balance = 888 WHERE owner = $1", "Alice"
 )
-            await conn.execute("ROLLBACK TO SAVEPOINT sp1")
+        await conn.execute("ROLLBACK TO SAVEPOINT sp1")
 await conn.execute(
 "UPDATE tx_accounts SET balance = 777 WHERE owner = $1", "Bob"
 )
-        alice = await conn.fetchval(
+    alice = await conn.fetchval(
 "SELECT balance FROM tx_accounts WHERE owner = $1", "Alice"
 )
-        bob = await conn.fetchval(
+    bob = await conn.fetchval(
 "SELECT balance FROM tx_accounts WHERE owner = $1", "Bob"
 )
-        assert alice == 999
+    assert alice == 999
 assert bob == 777

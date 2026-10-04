@@ -663,10 +663,10 @@ with patch(
 "src.recruitment_platform.agents.recruitment_analytics._fetch_metrics",
 return_value=sample_recruitment_metrics,
 ), patch(
-            "src.recruitment_platform.agents.recruitment_analytics._fetch_funnel",
+        "src.recruitment_platform.agents.recruitment_analytics._fetch_funnel",
 return_value=sample_pipeline_funnel,
 ), patch(
-            "src.recruitment_platform.agents.recruitment_analytics._fetch_sources",
+        "src.recruitment_platform.agents.recruitment_analytics._fetch_sources",
 return_value=sample_source_effectiveness,
 ):
             metrics = get_recruitment_metrics(mock_db_session)
@@ -691,19 +691,19 @@ with patch(
 "src.recruitment_platform.agents.recruitment_analytics._fetch_metrics",
 return_value=sample_recruitment_metrics,
 ), patch(
-            "src.recruitment_platform.agents.recruitment_analytics._fetch_funnel",
+        "src.recruitment_platform.agents.recruitment_analytics._fetch_funnel",
 return_value=sample_pipeline_funnel,
 ), patch(
-            "src.recruitment_platform.agents.recruitment_analytics._fetch_sources",
+        "src.recruitment_platform.agents.recruitment_analytics._fetch_sources",
 return_value=sample_source_effectiveness,
 ):
             get_recruitment_metrics(
 mock_db_session, start_date=start_date, end_date=end_date
 )
-            get_pipeline_funnel(
+        get_pipeline_funnel(
 mock_db_session, start_date=start_date, end_date=end_date
 )
-            get_source_effectiveness(
+        get_source_effectiveness(
 mock_db_session, start_date=start_date, end_date=end_date
 )
 
@@ -715,7 +715,7 @@ with patch(
 "src.recruitment_platform.agents.recruitment_analytics._fetch_metrics",
 return_value=sample_recruitment_metrics,
 ), patch(
-            "src.recruitment_platform.agents.recruitment_analytics._fetch_funnel",
+        "src.recruitment_platform.agents.recruitment_analytics._fetch_funnel",
 return_value=sample_pipeline_funnel,
 ):
             metrics = get_recruitment_metrics(mock_db_session)
@@ -731,7 +731,7 @@ with patch(
 "src.recruitment_platform.agents.recruitment_analytics._fetch_metrics",
 return_value=sample_recruitment_metrics,
 ), patch(
-            "src.recruitment_platform.agents.recruitment_analytics._fetch_funnel",
+        "src.recruitment_platform.agents.recruitment_analytics._fetch_funnel",
 return_value=sample_pipeline_funnel,
 ):
             metrics = get_recruitment_metrics(mock_db_session)
@@ -747,7 +747,7 @@ with patch(
 "src.recruitment_platform.agents.recruitment_analytics._fetch_metrics",
 return_value=sample_recruitment_metrics,
 ), patch(
-            "src.recruitment_platform.agents.recruitment_analytics._fetch_sources",
+        "src.recruitment_platform.agents.recruitment_analytics._fetch_sources",
 return_value=sample_source_effectiveness,
 ):
             metrics = get_recruitment_metrics(mock_db_session)

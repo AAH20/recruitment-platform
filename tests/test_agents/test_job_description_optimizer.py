@@ -100,7 +100,7 @@ return {
 "We are seeking a talented Software Engineer to join our growing team. "
 "In this role, you will design, develop, and maintain high-quality software solutions."
 ),
-        "changes_made": [
+    "changes_made": [
 "Added specific role title",
 "Expanded responsibilities with detail",
 "Improved tone and engagement",
@@ -242,7 +242,7 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 "We are seeking a Software Engineer with 3+ years of experience in Python and JavaScript."
 )
-            result = await optimize_description(sample_job_description)
+        result = await optimize_description(sample_job_description)
 # Key terms should be preserved or enhanced
             assert "Python" in result or "python" in result.lower()
 
@@ -300,7 +300,7 @@ new_callable=AsyncMock,
 "We are seeking a talented Software Engineer to join our growing team. "
 "In this role, you will design, develop, and maintain high-quality software solutions."
 )
-            result = await optimize_description(sample_job_description)
+        result = await optimize_description(sample_job_description)
 assert result != sample_job_description
 
     @pytest.mark.asyncio
@@ -354,7 +354,7 @@ new_callable=AsyncMock,
 result = await optimize_description(
 sample_job_description, target_role="Senior Software Engineer"
 )
-            assert isinstance(result, str)
+        assert isinstance(result, str)
 call_args = mock_llm.call_args
 assert "Senior Software Engineer" in str(call_args)
 
@@ -392,7 +392,7 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 '[{"category": "clarity", "severity": "high", "suggestion": "Add more detail"}]'
 )
-            result = await suggest_improvements(sample_job_description)
+        result = await suggest_improvements(sample_job_description)
 assert len(result) > 0
 
     @pytest.mark.asyncio
@@ -447,7 +447,7 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 '[{"category": "completeness", "severity": "high", "suggestion": "Add more details"}]'
 )
-            result = await suggest_improvements(minimal_job_description)
+        result = await suggest_improvements(minimal_job_description)
 assert isinstance(result, list)
 assert len(result) > 0
 
@@ -476,7 +476,7 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 '[{"category": "clarity", "severity": "high", "suggestion": "Add metrics"}]'
 )
-            result = await suggest_improvements(sample_job_description)
+        result = await suggest_improvements(sample_job_description)
 for suggestion in result:
                 assert "category" in suggestion
 assert "suggestion" in suggestion
@@ -493,10 +493,10 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 '[{"category": "inclusivity", "severity": "medium", "suggestion": "Use inclusive language"}]'
 )
-            result = await suggest_improvements(
+        result = await suggest_improvements(
 sample_job_description, focus_area="inclusivity"
 )
-            assert isinstance(result, list)
+        assert isinstance(result, list)
 call_args = mock_llm.call_args
 assert "inclusivity" in str(call_args).lower()
 
@@ -527,7 +527,7 @@ new_callable=AsyncMock,
 '{"category": "structure", "suggestion": "Use bullets"}, '
 '{"category": "inclusivity", "suggestion": "Remove bias"}]'
 )
-            result = await suggest_improvements(sample_job_description)
+        result = await suggest_improvements(sample_job_description)
 assert len(result) == 3
 
     @pytest.mark.asyncio
@@ -566,7 +566,7 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 '[{"category": "structure", "severity": "medium", "suggestion": "Break into sections"}]'
 )
-            result = await suggest_improvements(long_job_description)
+        result = await suggest_improvements(long_job_description)
 assert isinstance(result, list)
 
     @pytest.mark.asyncio
@@ -582,7 +582,7 @@ new_callable=AsyncMock,
 '[{"category": "clarity", "suggestion": "Add detail"}, '
 '{"category": "structure", "suggestion": "Use bullets"}]'
 )
-            result = await suggest_improvements(sample_job_description, max_suggestions=2)
+        result = await suggest_improvements(sample_job_description, max_suggestions=2)
 assert len(result) <= 2
 
     @pytest.mark.asyncio
@@ -597,7 +597,7 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 '[{"category": "clarity", "severity": "high", "suggestion": "Add specific metrics"}]'
 )
-            result = await suggest_improvements(sample_job_description)
+        result = await suggest_improvements(sample_job_description)
 for suggestion in result:
                 assert len(suggestion.get("suggestion", "")) > 0
 
@@ -622,7 +622,7 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 '{"clarity": 7.5, "inclusivity": 8.0, "structure": 6.5, "overall": 7.0}'
 )
-            result = await score_description(sample_job_description)
+        result = await score_description(sample_job_description)
 assert isinstance(result, dict)
 
     @pytest.mark.asyncio
@@ -637,7 +637,7 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 '{"clarity": 7.5, "inclusivity": 8.0, "structure": 6.5, "overall": 7.0}'
 )
-            result = await score_description(sample_job_description)
+        result = await score_description(sample_job_description)
 for key, value in result.items():
                 assert 0 <= value <= 10, f"Score for {key} is out of range: {value}"
 
@@ -771,7 +771,7 @@ new_callable=AsyncMock,
 '{"clarity": 7.5, "inclusivity": 8.0, "structure": 6.5, '
 '"completeness": 7.0, "engagement": 5.5, "overall": 7.0}'
 )
-            result = await score_description(sample_job_description)
+        result = await score_description(sample_job_description)
 expected_keys = {"clarity", "inclusivity", "structure", "overall"}
 assert expected_keys.issubset(result.keys())
 
@@ -788,7 +788,7 @@ new_callable=AsyncMock,
 result = await score_description(
 sample_job_description, criteria=["clarity", "overall"]
 )
-            assert isinstance(result, dict)
+        assert isinstance(result, dict)
 call_args = mock_llm.call_args
 assert "clarity" in str(call_args).lower()
 
@@ -804,7 +804,7 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 '{"clarity": 8.0, "inclusivity": 6.0, "structure": 10.0, "overall": 8.0}'
 )
-            result = await score_description(sample_job_description)
+        result = await score_description(sample_job_description)
 individual_scores = [
 v for k, v in result.items() if k != "overall"
 ]
@@ -824,7 +824,7 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 '{"clarity": 7.5, "inclusivity": 8.0, "structure": 6.5, "overall": 7.0}'
 )
-            result = await score_description(sample_job_description)
+        result = await score_description(sample_job_description)
 for key, value in result.items():
                 assert isinstance(value, (int, float)), f"Score for {key} is not numeric: {type(value)}"
 
@@ -854,7 +854,7 @@ new_callable=AsyncMock,
             mock_llm.return_value = (
 '{"clarity": 7.5, "overall": 7.5, "feedback": "Good structure but could use more detail"}'
 )
-            result = await score_description(sample_job_description, include_feedback=True)
+        result = await score_description(sample_job_description, include_feedback=True)
 assert isinstance(result, dict)
 call_args = mock_llm.call_args
 assert "feedback" in str(call_args).lower() or "detailed" in str(call_args).lower()

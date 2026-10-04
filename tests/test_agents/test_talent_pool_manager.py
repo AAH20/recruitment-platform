@@ -146,7 +146,7 @@ zip(skills_pool, locations, experience)
 "current_title": f"Engineer {i+1}",
 }
 )
-    return candidates
+return candidates
 
 
 # ---------------------------------------------------------------------------
@@ -180,8 +180,8 @@ datetime.utcnow(),
 datetime.utcnow(),
 0,
 )
-            )
         )
+    )
 
         result = await talent_pool_manager.create_talent_pool(**sample_pool_data)
 
@@ -228,8 +228,8 @@ datetime.utcnow(),
 datetime.utcnow(),
 0,
 )
-            )
         )
+    )
 
         result = await talent_pool_manager.create_talent_pool(**minimal_data)
 
@@ -277,8 +277,8 @@ datetime.utcnow(),
 datetime.utcnow(),
 0,
 )
-            )
         )
+    )
 
         result = await talent_pool_manager.create_talent_pool(**sample_pool_data)
 
@@ -390,8 +390,8 @@ datetime.utcnow(),
 datetime.utcnow(),
 0,
 )
-            )
         )
+    )
 
         result = await talent_pool_manager.create_talent_pool(**sample_pool_data)
 
@@ -423,8 +423,8 @@ datetime.utcnow(),
 datetime.utcnow(),
 0,
 )
-            )
         )
+    )
 
         result = await talent_pool_manager.create_talent_pool(
 name=special_name, created_by="recruiter_001"
@@ -456,8 +456,8 @@ datetime.utcnow(),
 datetime.utcnow(),
 0,
 )
-            )
         )
+    )
 
         result = await talent_pool_manager.create_talent_pool(
 name="Long Desc Pool",
@@ -500,8 +500,8 @@ CandidateStatus.ACTIVE,
 datetime.utcnow(),
 "recruiter_001",
 )
-            )
         )
+    )
 
         result = await talent_pool_manager.add_to_pool(
 pool_id=sample_pool.id,
@@ -542,8 +542,8 @@ CandidateStatus.ACTIVE,
 datetime.utcnow(),
 "recruiter_001",
 )
-            )
         )
+    )
 
         result = await talent_pool_manager.add_to_pool(
 pool_id=sample_pool.id,
@@ -579,8 +579,8 @@ CandidateStatus.ACTIVE,
 datetime.utcnow(),
 "recruiter_001",
 )
-            )
         )
+    )
 
         initial_count = sample_pool.candidate_count
 await talent_pool_manager.add_to_pool(
@@ -620,8 +620,8 @@ MagicMock(
 fetchone=MagicMock(
 return_value=(sample_pool.id, sample_pool.name)
 )
-            ),
-            MagicMock(fetchone=MagicMock(return_value=None)),
+        ),
+        MagicMock(fetchone=MagicMock(return_value=None)),
 ]
 
         with pytest.raises(ValueError, match="Candidate not found"):
@@ -645,13 +645,13 @@ MagicMock(
 fetchone=MagicMock(
 return_value=(sample_pool.id, sample_pool.name)
 )
-            ),
-            MagicMock(
+        ),
+        MagicMock(
 fetchone=MagicMock(
 return_value=(sample_candidate_data["id"],)
 )
-            ),
-        ]
+        ),
+    ]
 
         with pytest.raises(ValueError, match="Candidate already in pool"):
             await talent_pool_manager.add_to_pool(
@@ -674,7 +674,7 @@ mock_db.execute.return_value = MagicMock(
 fetchone=MagicMock(
 return_value=(sample_pool.id, sample_pool.name, PoolStatus.ARCHIVED)
 )
-        )
+    )
 
         with pytest.raises(ValueError, match="Cannot add to inactive pool"):
             await talent_pool_manager.add_to_pool(
@@ -733,8 +733,8 @@ MagicMock(
 fetchone=MagicMock(
 return_value=(sample_pool.id, sample_pool.name)
 )
-            ),
-            MagicMock(fetchone=MagicMock(return_value=(sample_candidate_data["id"],))),
+        ),
+        MagicMock(fetchone=MagicMock(return_value=(sample_candidate_data["id"],))),
 Exception("Insert failed"),
 ]
 
@@ -771,8 +771,8 @@ CandidateStatus.ACTIVE,
 datetime.utcnow(),
 "recruiter_001",
 )
-            )
         )
+    )
 
         await talent_pool_manager.add_to_pool(
 pool_id=sample_pool.id,
@@ -807,8 +807,8 @@ CandidateStatus.SNOOZED,
 datetime.utcnow(),
 "recruiter_001",
 )
-            )
         )
+    )
 
         result = await talent_pool_manager.add_to_pool(
 pool_id=sample_pool.id,
@@ -849,10 +849,10 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in python_candidates
+                for c in python_candidates
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria(skills=["Python"])
 results = await talent_pool_manager.search_pool(
@@ -884,10 +884,10 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in remote_candidates
+                for c in remote_candidates
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria(locations=["Remote"])
 results = await talent_pool_manager.search_pool(
@@ -919,10 +919,10 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in senior_candidates
+                for c in senior_candidates
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria(min_experience_years=5)
 results = await talent_pool_manager.search_pool(
@@ -953,9 +953,9 @@ multiple_candidates[0]["location"],
 multiple_candidates[0]["status"],
 multiple_candidates[0]["current_title"],
 )
-                ]
+            ]
 )
-        )
+    )
 
         criteria = SearchCriteria(name_query="Candidate 1")
 results = await talent_pool_manager.search_pool(
@@ -992,17 +992,17 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in filtered
+                for c in filtered
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria(
 skills=["Python"],
 locations=["Remote"],
 min_experience_years=5,
 )
-        results = await talent_pool_manager.search_pool(
+    results = await talent_pool_manager.search_pool(
 pool_id=sample_pool.id, criteria=criteria
 )
 
@@ -1050,10 +1050,10 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in multiple_candidates
+                for c in multiple_candidates
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria()
 results = await talent_pool_manager.search_pool(
@@ -1082,10 +1082,10 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in multiple_candidates[:2]
+                for c in multiple_candidates[:2]
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria(limit=2, offset=0)
 results = await talent_pool_manager.search_pool(
@@ -1115,10 +1115,10 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in multiple_candidates[offset:]
+                for c in multiple_candidates[offset:]
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria(limit=10, offset=offset)
 results = await talent_pool_manager.search_pool(
@@ -1150,10 +1150,10 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in active_candidates
+                for c in active_candidates
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria(statuses=[CandidateStatus.ACTIVE])
 results = await talent_pool_manager.search_pool(
@@ -1208,7 +1208,7 @@ sample_pool.id,
 CandidateStatus.ACTIVE,
 "Engineer",
 )
-        ]
+    ]
 mock_redis.get.return_value = str(cached_data)
 
         criteria = SearchCriteria()
@@ -1239,10 +1239,10 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in multiple_candidates
+                for c in multiple_candidates
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria(skills=["Python"])
 results = await talent_pool_manager.search_pool(
@@ -1255,10 +1255,10 @@ pool_id=sample_pool.id, criteria=criteria
             first_match_count = len(
 set(results[0].skills) & set(criteria.skills)
 )
-            last_match_count = len(
+        last_match_count = len(
 set(results[-1].skills) & set(criteria.skills)
 )
-            assert first_match_count >= last_match_count
+        assert first_match_count >= last_match_count
 
     @pytest.mark.asyncio
 async def test_search_pool_by_salary_range(
@@ -1279,16 +1279,16 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in multiple_candidates[:3]
+                for c in multiple_candidates[:3]
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria(
 min_salary=50000,
 max_salary=120000,
 )
-        results = await talent_pool_manager.search_pool(
+    results = await talent_pool_manager.search_pool(
 pool_id=sample_pool.id, criteria=criteria
 )
 
@@ -1327,10 +1327,10 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in multiple_candidates
+                for c in multiple_candidates
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria(skills=[])
 results = await talent_pool_manager.search_pool(
@@ -1359,10 +1359,10 @@ c["location"],
 c["status"],
 c["current_title"],
 )
-                    for c in multiple_candidates
+                for c in multiple_candidates
 ]
 )
-        )
+    )
 
         criteria = SearchCriteria(limit=1000)
 results = await talent_pool_manager.search_pool(
