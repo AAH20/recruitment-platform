@@ -101,6 +101,7 @@ jobs:
         if: always()
         with:
           sarif_file: "trivy-results.sarif"
+        continue-on-error: true
 
   # ─── Deploy to Staging ────────────────────────────────────────────────────
   deploy-staging:
