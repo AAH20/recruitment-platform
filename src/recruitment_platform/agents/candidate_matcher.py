@@ -323,7 +323,7 @@ WEIGHTS: dict[str, float] = {
 
 def _normalize_skill(skill: str) -> str:
     """Normalize a skill name for comparison."""
-    (return skill.strip().lower().replace("-", "").replace("_", "").replace(" ", ""))
+    return skill.strip().lower().replace("-", "").replace("_", "").replace(" ", "")
 
 
 def _skill_overlap(candidate_skills: list[str], job_skills: list[str]) -> float:
