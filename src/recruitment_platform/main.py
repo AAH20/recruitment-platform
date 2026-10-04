@@ -15,6 +15,9 @@ from recruitment_platform.config.settings import get_settings
 from recruitment_platform.monitoring.metrics import MetricsMiddleware
 from recruitment_platform.monitoring.tracing import setup_tracing
 from recruitment_platform.security.middleware import (
+    AuthMiddleware,
+    InputSanitizationMiddleware,
+    RateLimitMiddleware,
     RequestIDMiddleware,
     SecurityHeadersMiddleware,
 )
@@ -43,10 +46,13 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Security middleware
+    # Security middleware (order matters - last added runs first)
     app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(RequestIDMiddleware)
     app.add_middleware(MetricsMiddleware)
+    app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(InputSanitizationMiddleware)
+    app.add_middleware(AuthMiddleware)
 
     # CORS
     app.add_middleware(

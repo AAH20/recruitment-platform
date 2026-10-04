@@ -11,6 +11,11 @@ from recruitment_platform.notifications.notification_service import (
     NotificationPriority,
     notification_service,
 )
+from recruitment_platform.security.auth import sanitize_input
+    NotificationChannel,
+    NotificationPriority,
+    notification_service,
+)
 
 router = APIRouter()
 
@@ -29,8 +34,8 @@ async def send_notification(
         results = await notification_service.notify(
             channels=channels,
             recipients=recipients,
-            subject=subject,
-            message=message,
+            subject=sanitize_input(subject),
+            message=sanitize_input(message),
             priority=priority,
             data=data,
         )
@@ -47,7 +52,7 @@ async def send_email(
     html_body: str | None = None,
 ) -> dict[str, Any]:
     """Send an email notification."""
-    result = await notification_service.send_email(to, subject, body, html_body)
+    result = await notification_service.send_email(to, sanitize_input(subject), sanitize_input(body), html_body)
     return result
 
 
@@ -57,7 +62,7 @@ async def send_sms(
     message: str,
 ) -> dict[str, Any]:
     """Send an SMS notification."""
-    result = await notification_service.send_sms(to, message)
+    result = await notification_service.send_sms(to, sanitize_input(message))
     return result
 
 
@@ -69,5 +74,5 @@ async def send_push(
     data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Send a push notification."""
-    result = await notification_service.send_push(user_id, title, body, data)
+    result = await notification_service.send_push(user_id, sanitize_input(title), sanitize_input(body), data)
     return result

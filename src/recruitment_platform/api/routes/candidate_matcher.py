@@ -6,6 +6,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
+from recruitment_platform.security.sanitization import sanitize_dict
+
 router = APIRouter()
 
 
@@ -20,6 +22,7 @@ async def match_candidates(data: dict[str, Any]) -> dict[str, Any]:
         Ranked candidate matches.
     """
     try:
+        data = sanitize_dict(data)
         from recruitment_platform.agents.candidate_matcher.bias_aware_ranker import (
             BiasAwareRanker,
         )
@@ -41,6 +44,7 @@ async def explain_match(data: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Match explanation.
     """
+    data = sanitize_dict(data)
     from recruitment_platform.agents.candidate_matcher.match_explainer import (
         MatchExplainer,
     )
@@ -60,6 +64,7 @@ async def analyze_gap(data: dict[str, Any]) -> dict[str, Any]:
     Returns:
         Gap analysis results.
     """
+    data = sanitize_dict(data)
     from recruitment_platform.agents.candidate_matcher.skills_gap_analyzer import (
         SkillsGapAnalyzer,
     )

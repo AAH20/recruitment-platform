@@ -6,6 +6,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
+from recruitment_platform.security.auth import sanitize_input
+
 router = APIRouter()
 
 
@@ -24,6 +26,8 @@ async def analyze_language(data: dict[str, Any]) -> dict[str, Any]:
             LanguageBiasDetector,
         )
 
+        if "text" in data and isinstance(data["text"], str):
+            data["text"] = sanitize_input(data["text"])
         agent = LanguageBiasDetector()
         result = await agent.process(data)
         return {"success": True, "data": result}

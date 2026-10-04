@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Query
 
 from recruitment_platform.search.search_service import search_service
+from recruitment_platform.security.auth import sanitize_input
 
 router = APIRouter()
 
@@ -18,7 +19,7 @@ async def search_jobs(
     offset: int = Query(0, ge=0),
 ) -> dict[str, Any]:
     """Search jobs."""
-    return await search_service.search_jobs(q, limit=limit, offset=offset)
+    return await search_service.search_jobs(sanitize_input(q), limit=limit, offset=offset)
 
 
 @router.get("/search/candidates")
@@ -28,7 +29,7 @@ async def search_candidates(
     offset: int = Query(0, ge=0),
 ) -> dict[str, Any]:
     """Search candidates."""
-    return await search_service.search_candidates(q, limit=limit, offset=offset)
+    return await search_service.search_candidates(sanitize_input(q), limit=limit, offset=offset)
 
 
 @router.get("/search/skills")
@@ -37,7 +38,7 @@ async def search_skills(
     limit: int = Query(20, ge=1, le=100),
 ) -> list[dict[str, Any]]:
     """Search skills with autocomplete."""
-    return await search_service.search_skills(q, limit=limit)
+    return await search_service.search_skills(sanitize_input(q), limit=limit)
 
 
 @router.get("/search/autocomplete")
@@ -47,4 +48,4 @@ async def autocomplete(
     limit: int = Query(10, ge=1, le=50),
 ) -> list[dict[str, Any]]:
     """Autocomplete suggestions."""
-    return await search_service.autocomplete(q, entity_type, limit=limit)
+    return await search_service.autocomplete(sanitize_input(q), sanitize_input(entity_type), limit=limit)

@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from recruitment_platform.security.auth import (
     create_access_token,
     get_password_hash,
+    sanitize_input,
     verify_password,
 )
 
@@ -71,9 +72,10 @@ class AuthResponse(BaseModel):
 
 @router.post("/login", response_model=AuthResponse)
 async def login(request: LoginRequest) -> AuthResponse:
+    email = sanitize_input(request.email)
     conn = _get_db()
     row = conn.execute(
-        "SELECT * FROM users WHERE email = ?", (request.email,)
+        "SELECT * FROM users WHERE email = ?", (email,)
     ).fetchone()
     conn.close()
 
@@ -95,9 +97,11 @@ async def login(request: LoginRequest) -> AuthResponse:
 
 @router.post("/register", response_model=AuthResponse)
 async def register(request: RegisterRequest) -> AuthResponse:
+    name = sanitize_input(request.name)
+    email = sanitize_input(request.email)
     conn = _get_db()
     existing = conn.execute(
-        "SELECT id FROM users WHERE email = ?", (request.email,)
+        "SELECT id FROM users WHERE email = ?", (email,)
     ).fetchone()
     if existing:
         conn.close()
@@ -109,7 +113,7 @@ async def register(request: RegisterRequest) -> AuthResponse:
     password_hash = get_password_hash(request.password)
     cursor = conn.execute(
         "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)",
-        (request.name, request.email, password_hash, "recruiter"),
+        (name, email, password_hash, "recruiter"),
     )
     user_id = str(cursor.lastrowid)
     conn.commit()
@@ -117,9 +121,9 @@ async def register(request: RegisterRequest) -> AuthResponse:
 
     user = {
         "id": user_id,
-        "name": request.name,
-        "email": request.email,
+        "name": name,
+        "email": email,
         "role": "recruiter",
     }
-    token = create_access_token({"sub": user_id, "email": request.email})
+    token = create_access_token({"sub": user_id, "email": email})
     return AuthResponse(user=user, token=token)

@@ -6,6 +6,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
+from recruitment_platform.security.auth import sanitize_input
+
 router = APIRouter()
 
 
@@ -24,6 +26,8 @@ async def check_ats(data: dict[str, Any]) -> dict[str, Any]:
             ATSCompatibility,
         )
 
+        if "job_description" in data and isinstance(data["job_description"], str):
+            data["job_description"] = sanitize_input(data["job_description"])
         agent = ATSCompatibility()
         result = await agent.process(data)
         return {"success": True, "data": result}
@@ -45,6 +49,8 @@ async def remove_bias(data: dict[str, Any]) -> dict[str, Any]:
         BiasRemover,
     )
 
+    if "job_description" in data and isinstance(data["job_description"], str):
+        data["job_description"] = sanitize_input(data["job_description"])
     agent = BiasRemover()
     result = await agent.process(data)
     return {"success": True, "data": result}
@@ -64,6 +70,8 @@ async def optimize_keywords(data: dict[str, Any]) -> dict[str, Any]:
         KeywordOptimizer,
     )
 
+    if "job_description" in data and isinstance(data["job_description"], str):
+        data["job_description"] = sanitize_input(data["job_description"])
     agent = KeywordOptimizer()
     result = await agent.process(data)
     return {"success": True, "data": result}
@@ -83,6 +91,8 @@ async def optimize_seo(data: dict[str, Any]) -> dict[str, Any]:
         SEOOptimizer,
     )
 
+    if "job_description" in data and isinstance(data["job_description"], str):
+        data["job_description"] = sanitize_input(data["job_description"])
     agent = SEOOptimizer()
     result = await agent.process(data)
     return {"success": True, "data": result}
@@ -102,6 +112,8 @@ async def analyze_tone(data: dict[str, Any]) -> dict[str, Any]:
         ToneAnalyzer,
     )
 
+    if "job_description" in data and isinstance(data["job_description"], str):
+        data["job_description"] = sanitize_input(data["job_description"])
     agent = ToneAnalyzer()
     result = await agent.process(data)
     return {"success": True, "data": result}

@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException
 from recruitment_platform.agents.resume_parser.resume_parser_agent import (
     ResumeParserAgent,
 )
+from recruitment_platform.security.auth import sanitize_input
 
 router = APIRouter()
 _agent = ResumeParserAgent()
@@ -28,6 +29,8 @@ async def parse_resume(data: dict[str, Any]) -> dict[str, Any]:
         HTTPException: If parsing fails.
     """
     try:
+        if "text" in data and isinstance(data["text"], str):
+            data["text"] = sanitize_input(data["text"])
         result = await _agent.process(data)
         return {"success": True, "data": result}
     except Exception as e:
@@ -48,6 +51,8 @@ async def extract_contact(data: dict[str, Any]) -> dict[str, Any]:
         ContactExtractorAgent,
     )
 
+    if "text" in data and isinstance(data["text"], str):
+        data["text"] = sanitize_input(data["text"])
     agent = ContactExtractorAgent()
     result = await agent.process(data)
     return {"success": True, "data": result}
@@ -67,6 +72,8 @@ async def extract_skills(data: dict[str, Any]) -> dict[str, Any]:
         SkillsExtractorAgent,
     )
 
+    if "text" in data and isinstance(data["text"], str):
+        data["text"] = sanitize_input(data["text"])
     agent = SkillsExtractorAgent()
     result = await agent.process(data)
     return {"success": True, "data": result}
