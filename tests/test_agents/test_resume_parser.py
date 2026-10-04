@@ -1,0 +1,70 @@
+"""Tests for resume parser agent."""
+
+import pytest
+from unittest.mock import MagicMock, patch
+
+
+class TestResumeParserAgent:
+    """Test resume parser agent functionality."""
+
+    def test_parse_resume_basic(self):
+        """Test basic resume parsing."""
+        from recruitment_platform.agents.resume_parser import ResumeParserAgent
+        
+        agent = ResumeParserAgent()
+        assert agent is not None
+        assert hasattr(agent, "parse_resume")
+
+    def test_parse_resume_with_text(self):
+        """Test parsing resume from text."""
+        from recruitment_platform.agents.resume_parser import ResumeParserAgent
+        
+        agent = ResumeParserAgent()
+        resume_text = """
+        John Doe
+        Software Engineer
+        Skills: Python, JavaScript, SQL
+        Experience: 5 years
+        """
+        
+        result = agent.parse_resume(resume_text)
+        assert result is not None
+
+    def test_score_resume(self):
+        """Test resume scoring."""
+        from recruitment_platform.agents.resume_parser import ResumeParserAgent
+        
+        agent = ResumeParserAgent()
+        resume_text = "Python developer with 5 years experience"
+        job_requirements = ["Python", "5 years"]
+        
+        score = agent.score_resume(resume_text, job_requirements)
+        assert isinstance(score, (int, float))
+        assert 0 <= score <= 100
+
+    def test_extract_skills(self):
+        """Test skill extraction from resume."""
+        from recruitment_platform.agents.resume_parser import ResumeParserAgent
+        
+        agent = ResumeParserAgent()
+        resume_text = "Experienced in Python, FastAPI, PostgreSQL, Docker"
+        
+        skills = agent.extract_skills(resume_text)
+        assert isinstance(skills, list)
+        assert len(skills) > 0
+
+    def test_parse_resume_empty_input(self):
+        """Test parsing empty resume."""
+        from recruitment_platform.agents.resume_parser import ResumeParserAgent
+        
+        agent = ResumeParserAgent()
+        result = agent.parse_resume("")
+        assert result is not None
+
+    def test_parse_resume_invalid_input(self):
+        """Test parsing invalid resume input."""
+        from recruitment_platform.agents.resume_parser import ResumeParserAgent
+        
+        agent = ResumeParserAgent()
+        result = agent.parse_resume(None)
+        assert result is not None
