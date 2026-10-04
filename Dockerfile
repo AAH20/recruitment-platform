@@ -46,6 +46,9 @@ WORKDIR /app
 # Copy application code
 COPY --chown=app:app . .
 
+# Install the package itself
+RUN pip install --no-cache-dir -e .
+
 # Switch to non-root user
 USER app
 
