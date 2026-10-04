@@ -46,7 +46,6 @@ def create_application(db_session, data: dict) -> Application:
     application = Application(
         job_id=data["job_id"],
         candidate_id=data["candidate_id"],
-        cover_letter=data.get("cover_letter"),
         status=data.get("status", "pending"),
     )
     db_session.add(application)

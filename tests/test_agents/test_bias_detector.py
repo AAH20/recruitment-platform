@@ -21,7 +21,7 @@ class TestBiasDetectorAgent:
         detector = LanguageBiasDetector()
         text = "He is a strong leader. She is nurturing."
         
-        result = detector.detect(text)
+        result = detector.process(text)
         assert result is not None
 
     def test_detect_age_bias(self):
@@ -31,7 +31,7 @@ class TestBiasDetectorAgent:
         detector = LanguageBiasDetector()
         text = "Young and energetic team"
         
-        result = detector.detect(text)
+        result = detector.process(text)
         assert result is not None
 
     def test_detect_no_bias(self):
@@ -41,7 +41,7 @@ class TestBiasDetectorAgent:
         detector = LanguageBiasDetector()
         text = "The candidate has strong technical skills"
         
-        result = detector.detect(text)
+        result = detector.process(text)
         assert result is not None
 
     def test_fairness_scorer(self):

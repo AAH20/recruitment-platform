@@ -21,7 +21,7 @@ class TestInterviewSchedulerAgent:
         scheduler = AvailabilityOptimizer()
         availability = ["2024-01-01 10:00", "2024-01-01 14:00"]
         
-        result = scheduler.schedule(availability)
+        result = scheduler.process(availability)
         assert result is not None
 
     def test_conflict_detection(self):

@@ -27,7 +27,7 @@ class TestResumeParserAgent:
         Experience: 5 years
         """
         
-        result = agent.parse_resume(resume_text)
+        result = agent.process(resume_text)
         assert result is not None
 
     def test_score_resume(self):
@@ -38,7 +38,7 @@ class TestResumeParserAgent:
         resume_text = "Python developer with 5 years experience"
         job_requirements = ["Python", "5 years"]
         
-        score = agent.score_resume(resume_text, job_requirements)
+        score = agent.process(resume_text, job_requirements)
         assert isinstance(score, (int, float))
         assert 0 <= score <= 100
 
@@ -49,7 +49,7 @@ class TestResumeParserAgent:
         agent = ResumeParserAgent()
         resume_text = "Experienced in Python, FastAPI, PostgreSQL, Docker"
         
-        skills = agent.extract_skills(resume_text)
+        skills = agent.process(resume_text)
         assert isinstance(skills, list)
         assert len(skills) > 0
 
@@ -58,7 +58,7 @@ class TestResumeParserAgent:
         from recruitment_platform.agents.resume_parser import ResumeParserAgent
         
         agent = ResumeParserAgent()
-        result = agent.parse_resume("")
+        result = agent.process("")
         assert result is not None
 
     def test_parse_resume_invalid_input(self):
@@ -66,5 +66,5 @@ class TestResumeParserAgent:
         from recruitment_platform.agents.resume_parser import ResumeParserAgent
         
         agent = ResumeParserAgent()
-        result = agent.parse_resume(None)
+        result = agent.process(None)
         assert result is not None

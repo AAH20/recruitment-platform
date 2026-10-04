@@ -22,7 +22,7 @@ class TestCandidateMatcherAgent:
         job_requirements = ["Python", "FastAPI", "PostgreSQL"]
         candidate_skills = ["Python", "FastAPI", "Docker"]
         
-        score = matcher.match(candidate_skills, job_requirements)
+        score = matcher.process(candidate_skills, job_requirements)
         assert isinstance(score, (int, float))
         assert 0 <= score <= 100
 
@@ -31,7 +31,7 @@ class TestCandidateMatcherAgent:
         from recruitment_platform.agents.candidate_matcher import SemanticMatcher
         
         matcher = SemanticMatcher()
-        score = matcher.match(["Python"], [])
+        score = matcher.process(["Python"], [])
         assert isinstance(score, (int, float))
 
     def test_match_candidates_no_match(self):
@@ -39,7 +39,7 @@ class TestCandidateMatcherAgent:
         from recruitment_platform.agents.candidate_matcher import SemanticMatcher
         
         matcher = SemanticMatcher()
-        score = matcher.match(["Python"], ["Java", "C++"])
+        score = matcher.process(["Python"], ["Java", "C++"])
         assert isinstance(score, (int, float))
 
     def test_bias_aware_ranking(self):
