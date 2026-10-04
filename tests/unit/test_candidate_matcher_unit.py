@@ -4,7 +4,7 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-from recruitment_platform.agents.candidate_matcher import CandidateMatcher, MatchResult
+from recruitment_platform.agents.candidate_matcher import BiasAwareRanker, MatchResult
 
 
 # ---------------------------------------------------------------------------

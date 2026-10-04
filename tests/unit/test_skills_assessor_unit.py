@@ -62,7 +62,7 @@ def sample_learning_resources():
 @pytest.fixture
 def mock_assessor():
     """Return a mock skills assessor for isolated testing."""
-    from recruitment_platform.agents.skills_assessor import SkillsAssessor
+    from recruitment_platform.agents.skills_assessor import GapAnalyzer
     assessor = MagicMock(spec=SkillsAssessor)
     return assessor
 
@@ -70,7 +70,7 @@ def mock_assessor():
 @pytest.fixture
 def assessor_instance():
     """Return a real SkillsAssessor instance with mocked dependencies."""
-    from recruitment_platform.agents.skills_assessor import SkillsAssessor
+    from recruitment_platform.agents.skills_assessor import GapAnalyzer
     with patch.object(SkillsAssessor, '__init__', lambda self: None):
         instance = SkillsAssessor()
         instance.db = MagicMock()

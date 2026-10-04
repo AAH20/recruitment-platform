@@ -14,7 +14,7 @@ import pytest
 @pytest.fixture
 def scheduler():
     """Return a fresh InterviewScheduler instance."""
-    from recruitment_platform.agents.interview_scheduler import InterviewScheduler
+    from recruitment_platform.agents.interview_scheduler import AvailabilityOptimizer
 
     return InterviewScheduler()
 

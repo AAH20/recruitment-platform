@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from pathlib import Path
 
-from recruitment_platform.agents.resume_parser import ResumeParser, ParsedResume, ResumeScore
+from recruitment_platform.agents.resume_parser import ContactExtractorAgent, ParsedResume, ResumeScore
 
 
 # ---------------------------------------------------------------------------
