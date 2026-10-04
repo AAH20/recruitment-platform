@@ -7,7 +7,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from recruitment_platform.main import app
-from recruitment_platform.database import Base, get_db
+from recruitment_platform.models import Base
+from recruitment_platform.api.dependencies import get_db
 
 
 # Test database
