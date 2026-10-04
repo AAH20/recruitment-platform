@@ -9,7 +9,7 @@ from sqlalchemy import DateTime, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from recruitment_platform.db.base import Base
+from recruitment_platform.models import Base
 
 
 class Employer(Base):

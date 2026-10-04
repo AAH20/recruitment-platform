@@ -61,12 +61,24 @@ def create_app() -> FastAPI:
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 
     # Include API routes
-    app.include_router(api_router, prefix="/api/v1")
+    app.include_router(api_router, prefix="/api")
 
     return app
 
 
 app = create_app()
+
+
+@app.get("/")
+async def root() -> dict:
+    """Root endpoint."""
+    return {"message": "Recruitment Platform API", "version": settings.app_version}
+
+
+@app.get("/health")
+async def health() -> dict:
+    """Health check endpoint."""
+    return {"status": "healthy", "service": "recruitment-platform"}
 
 
 def main() -> None:

@@ -2,20 +2,68 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
     from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 T = TypeVar("T")
 
 
-class BaseSchema(BaseModel[T]):
+class BaseSchema(BaseModel, Generic[T]):
     """Base schema with common configuration."""
 
     model_config = {"from_attributes": True}
+
+
+# ---------------------------------------------------------------------------
+# Core entity create schemas (used by tests)
+# ---------------------------------------------------------------------------
+
+
+class EmployerCreate(BaseSchema):
+    """Schema for creating a new employer."""
+
+    name: str = Field(..., min_length=1, max_length=255)
+    industry: str | None = None
+    size: str | None = None
+    location: str | None = None
+    website: str | None = None
+    description: str | None = None
+
+
+class CandidateCreate(BaseSchema):
+    """Schema for creating a new candidate."""
+
+    name: str = Field(..., min_length=1)
+    email: EmailStr
+    phone: str | None = None
+    skills: list[str] = Field(default_factory=list)
+    experience_years: int | None = None
+    education: str | None = None
+
+
+class JobCreate(BaseSchema):
+    """Schema for creating a new job."""
+
+    title: str = Field(..., min_length=1, max_length=500)
+    description: str | None = None
+    requirements: list[str] = Field(default_factory=list)
+    salary_min: float | None = Field(default=None, ge=0)
+    salary_max: float | None = Field(default=None, ge=0)
+    location: str | None = None
+    employer_id: int | None = None
+
+
+class ApplicationCreate(BaseSchema):
+    """Schema for creating a new application."""
+
+    job_id: int
+    candidate_id: int
+    cover_letter: str | None = None
+    status: str = Field(default="pending")
 
 
 class HealthResponse(BaseSchema):

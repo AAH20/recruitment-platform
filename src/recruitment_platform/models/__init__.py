@@ -21,6 +21,14 @@ from sqlalchemy.orm import (
     relationship,
 )
 
+# Re-export Pydantic schemas for convenient imports
+from recruitment_platform.models.schemas import (
+    ApplicationCreate,
+    CandidateCreate,
+    EmployerCreate,
+    JobCreate,
+)
+
 
 class Base(DeclarativeBase):
     """Base class for all ORM models."""

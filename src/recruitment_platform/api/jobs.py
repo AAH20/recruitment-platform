@@ -7,7 +7,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 
-router = APIRouter(prefix="/api/v1/jobs", tags=["jobs"])
+router = APIRouter(prefix="/jobs", tags=["jobs"])
 
 
 # ---------------------------------------------------------------------------
