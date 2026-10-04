@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from recruitment_platform.models import Employer
+from recruitment_platform.models.employer import Employer
 
 logger = logging.getLogger(__name__)
 

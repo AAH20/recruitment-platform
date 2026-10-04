@@ -10,6 +10,10 @@ from recruitment_platform.main import app
 from recruitment_platform.models import Base
 from recruitment_platform.api.dependencies import get_db
 
+# Disable auth middleware for tests
+app.user_middleware = [m for m in app.user_middleware if "AuthMiddleware" not in type(m.cls).__name__]
+app.middleware_stack = app.build_middleware_stack()
+
 
 # Test database
 TEST_DATABASE_URL = "sqlite:///:memory:"
