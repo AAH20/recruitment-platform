@@ -12,10 +12,6 @@ from recruitment_platform.notifications.notification_service import (
     notification_service,
 )
 from recruitment_platform.security.auth import sanitize_input
-    NotificationChannel,
-    NotificationPriority,
-    notification_service,
-)
 
 router = APIRouter()
 

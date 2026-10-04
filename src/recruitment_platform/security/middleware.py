@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Any
 from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from recruitment_platform.security.auth import verify_token
 from recruitment_platform.security.rate_limit import rate_limiter
 
 if TYPE_CHECKING:
@@ -93,6 +92,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             )
 
         token = auth_header.split(" ", 1)[1]
+        from recruitment_platform.security.auth import verify_token
         payload = verify_token(token)
 
         # Attach user info to request state
