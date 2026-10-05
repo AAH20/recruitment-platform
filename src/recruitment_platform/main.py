@@ -46,13 +46,25 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Security middleware (order matters - last added runs first)
-    app.add_middleware(SecurityHeadersMiddleware)
+    # Security middleware.
+    #
+    # Starlette PREPENDS on add_middleware(): user_middleware[0] is the
+    # OUTERMOST layer, the LAST call ends up innermost.
+    #
+    # Security headers must appear on EVERY response, including the ones that
+    # short-circuit below (401 Auth, 429 RateLimit, 413 InputSanitization).
+    # BaseHTTPMiddleware only decorates responses that flow back through it, so
+    # relying on add_middleware ordering is fragile: CORS and TrustedHost are
+    # registered after this block and therefore sit OUTSIDE the header layer.
+    #
+    # SecurityHeadersMiddleware is therefore installed last, after CORS and
+    # TrustedHost, which makes it the OUTERMOST layer - the only position that
+    # guarantees every response, including early rejections, carries headers.
     app.add_middleware(RequestIDMiddleware)
     app.add_middleware(MetricsMiddleware)
+    app.add_middleware(AuthMiddleware)
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(InputSanitizationMiddleware)
-    app.add_middleware(AuthMiddleware)
 
     # CORS
     app.add_middleware(
@@ -65,6 +77,9 @@ def create_app() -> FastAPI:
 
     # Trusted hosts
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+
+    # Added last => outermost. See note above.
+    app.add_middleware(SecurityHeadersMiddleware)
 
     # Include API routes
     app.include_router(api_router, prefix="/api")

@@ -70,9 +70,21 @@ class AuthResponse(BaseModel):
     token: str
 
 
+def _normalize_email(email: str) -> str:
+    """Normalize an email for storage/lookup.
+
+    Note: InputSanitizationMiddleware has already HTML-escaped string values in
+    the request body by the time a route runs. Escaping is a transport-level
+    defence for HTML contexts, not a storage encoding - re-escaping here (or
+    escaping twice) corrupts real addresses into "&#x27;"-style garbage, so
+    we only normalise case/whitespace and never re-escape.
+    """
+    return email.strip().lower()
+
+
 @router.post("/login", response_model=AuthResponse)
 async def login(request: LoginRequest) -> AuthResponse:
-    email = sanitize_input(request.email)
+    email = _normalize_email(request.email)
     conn = _get_db()
     row = conn.execute(
         "SELECT * FROM users WHERE email = ?", (email,)
@@ -91,14 +103,20 @@ async def login(request: LoginRequest) -> AuthResponse:
         "email": row["email"],
         "role": row["role"],
     }
-    token = create_access_token({"sub": row["id"], "email": row["email"]})
+    # The `sub` claim MUST be a string: python-jose rejects non-string subjects
+    # ("Subject must be a string"), so a token minted from the raw SQLite row id
+    # (an int) is signed successfully but fails validation on every request.
+    # register() already stringifies its id - keep login consistent with it.
+    token = create_access_token({"sub": str(row["id"]), "email": row["email"]})
     return AuthResponse(user=user, token=token)
 
 
 @router.post("/register", response_model=AuthResponse)
 async def register(request: RegisterRequest) -> AuthResponse:
+    # Name is rendered in HTML contexts, so keep escaping it. Email is an
+    # identifier used for lookup/login - normalise it instead of escaping.
     name = sanitize_input(request.name)
-    email = sanitize_input(request.email)
+    email = _normalize_email(request.email)
     conn = _get_db()
     existing = conn.execute(
         "SELECT id FROM users WHERE email = ?", (email,)

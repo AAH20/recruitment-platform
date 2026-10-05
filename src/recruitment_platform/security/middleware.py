@@ -7,12 +7,28 @@ import uuid
 from typing import TYPE_CHECKING, Any
 
 from fastapi import HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from recruitment_platform.security.rate_limit import rate_limiter
 
 if TYPE_CHECKING:
     from fastapi import Response
+
+
+def _json_error(
+    status_code: int, detail: str, headers: dict[str, str] | None = None
+) -> JSONResponse:
+    """Build an error JSONResponse.
+
+    Middleware must RETURN errors rather than raise them: an HTTPException
+    raised inside BaseHTTPMiddleware.dispatch propagates above Starlette's
+    ExceptionMiddleware (which only wraps the router), so it surfaces as an
+    unhandled 500 instead of the intended status code.
+    """
+    return JSONResponse(
+        status_code=status_code, content={"detail": detail}, headers=headers or {}
+    )
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -60,40 +76,82 @@ class AuthMiddleware(BaseHTTPMiddleware):
     """Authentication middleware - enforces JWT token validation on protected routes.
 
     Public routes (no auth required):
-    - /health, /ready (health checks)
+    - /health, /ready, /health/live, /health/ready, /health/startup (probes)
+    - /api/health, /api/ready (health router is mounted under the /api prefix)
     - /api/auth/login, /api/auth/register (authentication)
     - /docs, /redoc, /openapi.json (API documentation)
     - / (root)
     """
 
-    PUBLIC_PATHS = {
-        "/",
-        "/health",
-        "/ready",
-        "/docs",
-        "/redoc",
-        "/openapi.json",
-        "/api/auth/login",
-        "/api/auth/register",
-    }
+    PUBLIC_PATHS = frozenset(
+        {
+            "/",
+            "/health",
+            "/ready",
+            # Deployment manifests probe these (k8s/base, k8s/, helm/values.yaml).
+            # Without them every liveness/readiness/startup probe fails and the
+            # pod never becomes ready.
+            "/health/live",
+            "/health/ready",
+            "/health/startup",
+            "/live",
+            "/readyz",
+            "/livez",
+            # The health router is included with prefix="/api" (see api/router.py),
+            # so its real paths are /api/health and /api/ready.
+            "/api/health",
+            "/api/ready",
+            "/api/v1/health",
+            "/api/v1/ready",
+            "/api/v1/health/live",
+            "/api/v1/health/ready",
+            # Docs and schema.
+            "/docs",
+            "/docs/oauth2-redirect",
+            "/redoc",
+            "/openapi.json",
+            "/favicon.ico",
+            # Auth entrypoints - these cannot require a token.
+            "/api/auth/login",
+            "/api/auth/register",
+        }
+    )
+
+    @classmethod
+    def is_public(cls, path: str) -> bool:
+        """Return True if the path may be reached without authentication."""
+        if path in cls.PUBLIC_PATHS:
+            return True
+        # Also allow prefix variants so versioned/proxied probe paths
+        # (e.g. /api/v1/health/live) stay public.
+        return path.rstrip("/") in cls.PUBLIC_PATHS
 
     async def dispatch(self, request: Request, call_next: Any) -> Response:
         # Allow public paths
-        if request.url.path in self.PUBLIC_PATHS:
+        if self.is_public(request.url.path):
             return await call_next(request)
 
         # Extract and validate JWT token
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required",
-                headers={"WWW-Authenticate": "Bearer"},
+            return _json_error(
+                status.HTTP_401_UNAUTHORIZED,
+                "Authentication required",
+                {"WWW-Authenticate": "Bearer"},
             )
 
         token = auth_header.split(" ", 1)[1]
         from recruitment_platform.security.auth import verify_token
-        payload = verify_token(token)
+
+        try:
+            payload = verify_token(token)
+        except HTTPException as exc:
+            # Return (do not raise) so the client gets 401, not an opaque 500.
+            return _json_error(
+                exc.status_code,
+                exc.detail,
+                dict(exc.headers or {}) or None,
+            )
 
         # Attach user info to request state
         request.state.user = {
@@ -106,14 +164,44 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Rate limiting middleware - applies sliding window rate limiting per client IP."""
+    """Rate limiting middleware - applies sliding window rate limiting per client IP.
+
+    Health/readiness endpoints are exempt so orchestrator probes are never
+    throttled. The health router is mounted under the /api prefix, so both the
+    bare and prefixed paths must be exempt.
+    """
+
+    EXEMPT_PATHS = frozenset(
+        {
+            "/health",
+            "/ready",
+            "/health/live",
+            "/health/ready",
+            "/health/startup",
+            "/livez",
+            "/readyz",
+            "/api/health",
+            "/api/ready",
+            "/api/v1/health",
+            "/api/v1/ready",
+        }
+    )
 
     async def dispatch(self, request: Request, call_next: Any) -> Response:
         # Skip rate limiting for health checks
-        if request.url.path in {"/health", "/ready"}:
+        path = request.url.path
+        if path in self.EXEMPT_PATHS or path.rstrip("/") in self.EXEMPT_PATHS:
             return await call_next(request)
 
-        await rate_limiter.check_rate_limit(request)
+        try:
+            await rate_limiter.check_rate_limit(request)
+        except HTTPException as exc:
+            # Return (do not raise) so clients get a real 429 with Retry-After.
+            return _json_error(
+                exc.status_code,
+                exc.detail,
+                dict(exc.headers or {}) or None,
+            )
         return await call_next(request)
 
 
@@ -133,9 +221,9 @@ class InputSanitizationMiddleware(BaseHTTPMiddleware):
         if request.method in ("POST", "PUT", "PATCH"):
             content_length = request.headers.get("content-length")
             if content_length and int(content_length) > self.MAX_BODY_SIZE:
-                raise HTTPException(
-                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                    detail="Request body too large",
+                return _json_error(
+                    status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    "Request body too large",
                 )
 
             content_type = request.headers.get("content-type", "")

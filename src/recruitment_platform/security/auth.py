@@ -8,34 +8,62 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import bcrypt
 from fastapi import HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from recruitment_platform.config.settings import get_settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security_bearer = HTTPBearer(auto_error=False)
+
+# bcrypt has a hard 72-byte limit on input and rejects longer input outright.
+# Truncate once, consistently, on both hash and verify so the operation is
+# reversible and hashes stay comparable across calls.
+BCRYPT_MAX_BYTES = 72
+
+
+def _prepare_password(password: str) -> bytes:
+    """Encode and truncate a password to bcrypt's 72-byte input limit."""
+    return password.encode("utf-8")[:BCRYPT_MAX_BYTES]
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+    if not hashed_password:
+        return False
+    try:
+        return bcrypt.checkpw(
+            _prepare_password(plain_password),
+            hashed_password.encode("utf-8"),
+        )
+    except (ValueError, TypeError):
+        # Malformed/unsupported hash - treat as a failed match, never a crash.
+        return False
 
 
 def get_password_hash(password: str) -> str:
     """Hash a password."""
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(
+        _prepare_password(password),
+        bcrypt.gensalt(rounds=12),
+    ).decode("utf-8")
 
 
 def create_access_token(
     data: dict[str, Any],
     expires_delta: timedelta | None = None,
 ) -> str:
-    """Create a JWT access token."""
+    """Create a JWT access token.
+
+    The `sub` claim is normalised to a string: JWT requires it and python-jose
+    raises "Subject must be a string" on decode, so an int subject produces a
+    token that is signed but permanently rejected at verification time.
+    """
     settings = get_settings()
     to_encode = data.copy()
+    if "sub" in to_encode and not isinstance(to_encode["sub"], str):
+        to_encode["sub"] = str(to_encode["sub"])
     expire = datetime.now(UTC) + (
         expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
     )
@@ -47,6 +75,8 @@ def create_refresh_token(data: dict[str, Any]) -> str:
     """Create a JWT refresh token with longer expiry."""
     settings = get_settings()
     to_encode = data.copy()
+    if "sub" in to_encode and not isinstance(to_encode["sub"], str):
+        to_encode["sub"] = str(to_encode["sub"])
     expire = datetime.now(UTC) + timedelta(days=7)
     to_encode.update({"exp": expire, "iat": datetime.now(UTC), "type": "refresh"})
     return jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
