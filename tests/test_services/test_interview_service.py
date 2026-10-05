@@ -22,9 +22,12 @@ class TestInterviewService:
 
     def test_get_interview(self, db_session):
         """Test getting an interview."""
-        from recruitment_platform.services.interview_service import get_interview
+        from recruitment_platform.services.interview_service import get_interview, schedule_interview
         
-        result = get_interview(db_session, 1)
+        interview_data = {"application_id": 1, "interviewer_id": 1, "scheduled_at": "2024-01-01T10:00:00"}
+        created = schedule_interview(db_session, interview_data)
+        
+        result = get_interview(db_session, created.id)
         assert result is not None
 
     def test_list_interviews(self, db_session):
@@ -36,15 +39,21 @@ class TestInterviewService:
 
     def test_update_interview(self, db_session):
         """Test updating an interview."""
-        from recruitment_platform.services.interview_service import update_interview
+        from recruitment_platform.services.interview_service import update_interview, schedule_interview
+        
+        interview_data = {"application_id": 1, "interviewer_id": 1, "scheduled_at": "2024-01-01T10:00:00"}
+        created = schedule_interview(db_session, interview_data)
         
         update_data = {"status": "completed"}
-        result = update_interview(db_session, 1, update_data)
+        result = update_interview(db_session, created.id, update_data)
         assert result is not None
 
     def test_cancel_interview(self, db_session):
         """Test canceling an interview."""
-        from recruitment_platform.services.interview_service import cancel_interview
+        from recruitment_platform.services.interview_service import cancel_interview, schedule_interview
         
-        result = cancel_interview(db_session, 1)
+        interview_data = {"application_id": 1, "interviewer_id": 1, "scheduled_at": "2024-01-01T10:00:00"}
+        created = schedule_interview(db_session, interview_data)
+        
+        result = cancel_interview(db_session, created.id)
         assert result is True

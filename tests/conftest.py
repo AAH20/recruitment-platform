@@ -16,6 +16,10 @@ from recruitment_platform.main import app
 from recruitment_platform.models import Base
 from recruitment_platform.api.dependencies import get_db
 
+# Import all models so they register with Base.metadata
+from recruitment_platform.models.employer import Employer
+from recruitment_platform.models.skill import Skill
+
 # Rebuild middleware stack with patched dispatch
 app.middleware_stack = app.build_middleware_stack()
 

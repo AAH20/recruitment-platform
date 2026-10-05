@@ -18,9 +18,12 @@ class TestTalentPoolService:
 
     def test_get_talent_pool(self, db_session):
         """Test getting a talent pool."""
-        from recruitment_platform.services.talent_pool_service import get_talent_pool
+        from recruitment_platform.services.talent_pool_service import get_talent_pool, create_talent_pool
         
-        result = get_talent_pool(db_session, 1)
+        pool_data = {"name": "Test Pool", "description": "Test"}
+        created = create_talent_pool(db_session, pool_data)
+        
+        result = get_talent_pool(db_session, created["id"])
         assert result is not None
 
     def test_list_talent_pools(self, db_session):
@@ -32,15 +35,21 @@ class TestTalentPoolService:
 
     def test_update_talent_pool(self, db_session):
         """Test updating a talent pool."""
-        from recruitment_platform.services.talent_pool_service import update_talent_pool
+        from recruitment_platform.services.talent_pool_service import update_talent_pool, create_talent_pool
+        
+        pool_data = {"name": "Test Pool", "description": "Test"}
+        created = create_talent_pool(db_session, pool_data)
         
         update_data = {"name": "Updated Pool"}
-        result = update_talent_pool(db_session, 1, update_data)
+        result = update_talent_pool(db_session, created["id"], update_data)
         assert result is not None
 
     def test_delete_talent_pool(self, db_session):
         """Test deleting a talent pool."""
-        from recruitment_platform.services.talent_pool_service import delete_talent_pool
+        from recruitment_platform.services.talent_pool_service import delete_talent_pool, create_talent_pool
         
-        result = delete_talent_pool(db_session, 1)
+        pool_data = {"name": "Test Pool", "description": "Test"}
+        created = create_talent_pool(db_session, pool_data)
+        
+        result = delete_talent_pool(db_session, created["id"])
         assert result is True

@@ -22,9 +22,12 @@ class TestAssessmentService:
 
     def test_get_assessment(self, db_session):
         """Test getting an assessment."""
-        from recruitment_platform.services.assessment_service import get_assessment
+        from recruitment_platform.services.assessment_service import get_assessment, create_assessment
         
-        result = get_assessment(db_session, 1)
+        assessment_data = {"application_id": 1, "type": "technical", "score": 85}
+        created = create_assessment(db_session, assessment_data)
+        
+        result = get_assessment(db_session, created.id)
         assert result is not None
 
     def test_list_assessments(self, db_session):
@@ -36,15 +39,21 @@ class TestAssessmentService:
 
     def test_update_assessment(self, db_session):
         """Test updating an assessment."""
-        from recruitment_platform.services.assessment_service import update_assessment
+        from recruitment_platform.services.assessment_service import update_assessment, create_assessment
+        
+        assessment_data = {"application_id": 1, "type": "technical", "score": 85}
+        created = create_assessment(db_session, assessment_data)
         
         update_data = {"score": 90}
-        result = update_assessment(db_session, 1, update_data)
+        result = update_assessment(db_session, created.id, update_data)
         assert result is not None
 
     def test_delete_assessment(self, db_session):
         """Test deleting an assessment."""
-        from recruitment_platform.services.assessment_service import delete_assessment
+        from recruitment_platform.services.assessment_service import delete_assessment, create_assessment
         
-        result = delete_assessment(db_session, 1)
+        assessment_data = {"application_id": 1, "type": "technical", "score": 85}
+        created = create_assessment(db_session, assessment_data)
+        
+        result = delete_assessment(db_session, created.id)
         assert result is True

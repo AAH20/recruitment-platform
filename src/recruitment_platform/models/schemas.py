@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 if TYPE_CHECKING:
     from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 T = TypeVar("T")
 
@@ -64,6 +64,14 @@ class ApplicationCreate(BaseSchema):
     candidate_id: int
     cover_letter: str | None = None
     status: str = Field(default="pending")
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, v: str) -> str:
+        valid = {"pending", "accepted", "rejected", "withdrawn"}
+        if v not in valid:
+            raise ValueError(f"status must be one of {valid}")
+        return v
 
 
 class HealthResponse(BaseSchema):

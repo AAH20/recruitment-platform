@@ -34,11 +34,10 @@ def create_employer(db_session, data: dict) -> Employer:
     """Create a new employer."""
     employer = Employer(
         name=data["name"],
+        description=data.get("description"),
+        website=data.get("website"),
         industry=data.get("industry"),
         size=data.get("size"),
-        location=data.get("location"),
-        website=data.get("website"),
-        description=data.get("description"),
     )
     db_session.add(employer)
     db_session.commit()

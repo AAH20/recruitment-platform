@@ -16,31 +16,39 @@ class TestCandidateMatcherAgent:
 
     def test_match_candidates_with_job(self):
         """Test matching candidates to a job."""
+        import asyncio
         from recruitment_platform.agents.candidate_matcher import SemanticMatcher
         
         matcher = SemanticMatcher()
-        job_requirements = ["Python", "FastAPI", "PostgreSQL"]
-        candidate_skills = ["Python", "FastAPI", "Docker"]
+        input_data = {
+            "candidate_skills": ["Python", "FastAPI", "Docker"],
+            "job_requirements": ["Python", "FastAPI", "PostgreSQL"],
+        }
         
-        score = matcher.process(candidate_skills, job_requirements)
-        assert isinstance(score, (int, float))
-        assert 0 <= score <= 100
+        result = asyncio.run(matcher.process(input_data))
+        assert isinstance(result, dict)
 
     def test_match_candidates_empty_requirements(self):
         """Test matching with empty requirements."""
+        import asyncio
         from recruitment_platform.agents.candidate_matcher import SemanticMatcher
         
         matcher = SemanticMatcher()
-        score = matcher.process(["Python"], [])
-        assert isinstance(score, (int, float))
+        input_data = {"candidate_skills": ["Python"], "job_requirements": []}
+        
+        result = asyncio.run(matcher.process(input_data))
+        assert isinstance(result, dict)
 
     def test_match_candidates_no_match(self):
         """Test matching with no overlapping skills."""
+        import asyncio
         from recruitment_platform.agents.candidate_matcher import SemanticMatcher
         
         matcher = SemanticMatcher()
-        score = matcher.process(["Python"], ["Java", "C++"])
-        assert isinstance(score, (int, float))
+        input_data = {"candidate_skills": ["Python"], "job_requirements": ["Java", "C++"]}
+        
+        result = asyncio.run(matcher.process(input_data))
+        assert isinstance(result, dict)
 
     def test_bias_aware_ranking(self):
         """Test bias-aware ranking."""

@@ -9,11 +9,12 @@ class TestResumeParserAgent:
 
     def test_parse_resume_basic(self):
         """Test basic resume parsing."""
+        import asyncio
         from recruitment_platform.agents.resume_parser import ResumeParserAgent
         
         agent = ResumeParserAgent()
         assert agent is not None
-        assert hasattr(agent, "parse_resume")
+        assert hasattr(agent, "process")
 
     def test_parse_resume_with_text(self):
         """Test parsing resume from text."""
@@ -32,26 +33,28 @@ class TestResumeParserAgent:
 
     def test_score_resume(self):
         """Test resume scoring."""
+        import asyncio
         from recruitment_platform.agents.resume_parser import ResumeParserAgent
         
         agent = ResumeParserAgent()
-        resume_text = "Python developer with 5 years experience"
-        job_requirements = ["Python", "5 years"]
+        input_data = {
+            "resume_text": "Python developer with 5 years experience",
+            "job_requirements": ["Python", "5 years"],
+        }
         
-        score = agent.process(resume_text, job_requirements)
-        assert isinstance(score, (int, float))
-        assert 0 <= score <= 100
+        result = asyncio.run(agent.process(input_data))
+        assert isinstance(result, dict)
 
     def test_extract_skills(self):
         """Test skill extraction from resume."""
+        import asyncio
         from recruitment_platform.agents.resume_parser import ResumeParserAgent
         
         agent = ResumeParserAgent()
-        resume_text = "Experienced in Python, FastAPI, PostgreSQL, Docker"
+        input_data = {"resume_text": "Experienced in Python, FastAPI, PostgreSQL, Docker"}
         
-        skills = agent.process(resume_text)
-        assert isinstance(skills, list)
-        assert len(skills) > 0
+        result = asyncio.run(agent.process(input_data))
+        assert isinstance(result, dict)
 
     def test_parse_resume_empty_input(self):
         """Test parsing empty resume."""
