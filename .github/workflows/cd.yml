@@ -109,12 +109,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: build-and-push
-    if: github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging'
+    # Real deployment needs AWS/EKS secrets. Without them the job would fail
+    # at configure-aws-credentials ("Input required and not supplied:
+    # aws-region"); skip with a notice instead so CD stays green until
+    # infrastructure credentials are configured.
+    if: >-
+      (github.ref == 'refs/heads/main' || github.event.inputs.environment == 'staging')
+      && vars.AWS_DEPLOY_ENABLED == 'true'
     environment:
       name: staging
       url: https://staging.recruitment-platform.example.com
     steps:
       - uses: actions/checkout@v4
+
+      - name: Deploy notice (skipped — no credentials)
+        if: vars.AWS_DEPLOY_ENABLED != 'true'
+        run: |
+          echo "::notice::AWS deploy skipped: set repository variable AWS_DEPLOY_ENABLED=true and the AWS/EKS secrets to enable real deployment. Image build & push succeeded."
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -150,12 +161,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [build-and-push, deploy-staging]
-    if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production'
+    # Same credential gate as staging: skip cleanly until AWS/EKS secrets and
+    # the AWS_DEPLOY_ENABLED variable are configured.
+    if: >-
+      (startsWith(github.ref, 'refs/tags/v') || github.event.inputs.environment == 'production')
+      && vars.AWS_DEPLOY_ENABLED == 'true'
     environment:
       name: production
       url: https://recruitment-platform.example.com
     steps:
       - uses: actions/checkout@v4
+
+      - name: Deploy notice (skipped — no credentials)
+        if: vars.AWS_DEPLOY_ENABLED != 'true'
+        run: |
+          echo "::notice::AWS deploy skipped: set repository variable AWS_DEPLOY_ENABLED=true and the AWS/EKS secrets to enable real deployment."
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
