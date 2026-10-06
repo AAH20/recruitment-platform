@@ -88,7 +88,6 @@ jobs:
       - name: Scan image for vulnerabilities
         uses: aquasecurity/trivy-action@master
         continue-on-error: true
-        continue-on-error: true
         with:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           format: "sarif"
@@ -103,7 +102,6 @@ jobs:
         if: always()
         with:
           sarif_file: "trivy-results.sarif"
-        continue-on-error: true
 
   # ─── Deploy to Staging ────────────────────────────────────────────────────
   deploy-staging:
