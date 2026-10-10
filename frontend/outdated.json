@@ -1,0 +1,72 @@
+{
+  "@types/node": {
+    "current": "20.19.43",
+    "wanted": "20.19.43",
+    "latest": "26.6.5",
+    "dependent": "frontend",
+    "location": "/home/runner/work/recruitment-platform/recruitment-platform/frontend/node_modules/@types/node"
+  },
+  "@types/react": {
+    "current": "18.3.31",
+    "wanted": "18.3.31",
+    "latest": "19.3.0",
+    "dependent": "frontend",
+    "location": "/home/runner/work/recruitment-platform/recruitment-platform/frontend/node_modules/@types/react"
+  },
+  "@types/react-dom": {
+    "current": "18.3.7",
+    "wanted": "18.3.7",
+    "latest": "19.3.0",
+    "dependent": "frontend",
+    "location": "/home/runner/work/recruitment-platform/recruitment-platform/frontend/node_modules/@types/react-dom"
+  },
+  "lucide-react": {
+    "current": "0.454.0",
+    "wanted": "0.454.0",
+    "latest": "1.55.0",
+    "dependent": "frontend",
+    "location": "/home/runner/work/recruitment-platform/recruitment-platform/frontend/node_modules/lucide-react"
+  },
+  "next": {
+    "current": "16.3.8",
+    "wanted": "16.4.0",
+    "latest": "16.4.0",
+    "dependent": "frontend",
+    "location": "/home/runner/work/recruitment-platform/recruitment-platform/frontend/node_modules/next"
+  },
+  "postcss": {
+    "current": "8.5.28",
+    "wanted": "8.5.29",
+    "latest": "8.5.29",
+    "dependent": "frontend",
+    "location": "/home/runner/work/recruitment-platform/recruitment-platform/frontend/node_modules/postcss"
+  },
+  "react": {
+    "current": "18.3.1",
+    "wanted": "18.3.1",
+    "latest": "19.3.0",
+    "dependent": "frontend",
+    "location": "/home/runner/work/recruitment-platform/recruitment-platform/frontend/node_modules/react"
+  },
+  "react-dom": {
+    "current": "18.3.1",
+    "wanted": "18.3.1",
+    "latest": "19.3.0",
+    "dependent": "frontend",
+    "location": "/home/runner/work/recruitment-platform/recruitment-platform/frontend/node_modules/react-dom"
+  },
+  "tailwind-merge": {
+    "current": "2.6.1",
+    "wanted": "2.6.1",
+    "latest": "3.7.0",
+    "dependent": "frontend",
+    "location": "/home/runner/work/recruitment-platform/recruitment-platform/frontend/node_modules/tailwind-merge"
+  },
+  "typescript": {
+    "current": "5.9.3",
+    "wanted": "5.9.3",
+    "latest": "7.0.2",
+    "dependent": "frontend",
+    "location": "/home/runner/work/recruitment-platform/recruitment-platform/frontend/node_modules/typescript"
+  }
+}
