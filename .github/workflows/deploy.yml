@@ -106,7 +106,7 @@ jobs:
     name: Deploy to Production
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: smoke-tests
+    needs: [build, smoke-tests]
     environment:
       name: production
       url: https://recruitment-platform.example.com

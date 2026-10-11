@@ -49,11 +49,14 @@ jobs:
         id: outdated
         run: |
           pip list --outdated --format=json > outdated.json || true
-          echo "count=$(cat outdated.json | python -c 'import sys,json; print(len(json.load(sys.stdin)))')" >> $GITHUB_OUTPUT
+          echo "count=$(cat outdated.json | python -c 'import sys,json; print(len(json.load(sys.stdin)))')" >> "$GITHUB_OUTPUT"
 
       - name: Create update PR
         if: steps.outdated.outputs.count > 0
         uses: peter-evans/create-pull-request@v6
+        # Degrade cleanly when Settings -> Actions -> General -> Workflow permissions
+        # -> "Allow GitHub Actions to create and approve pull requests" is disabled.
+        continue-on-error: true
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(deps): update Python dependencies"
@@ -107,7 +110,7 @@ jobs:
         id: outdated
         run: |
           npm outdated --json > outdated.json || true
-          echo "count=$(cat outdated.json | python -c 'import sys,json; print(len(json.load(sys.stdin)))')" >> $GITHUB_OUTPUT
+          echo "count=$(cat outdated.json | python -c 'import sys,json; print(len(json.load(sys.stdin)))')" >> "$GITHUB_OUTPUT"
 
       - name: Update dependencies
         if: steps.outdated.outputs.count > 0
@@ -118,6 +121,9 @@ jobs:
       - name: Create update PR
         if: steps.outdated.outputs.count > 0
         uses: peter-evans/create-pull-request@v6
+        # Degrade cleanly when Settings -> Actions -> General -> Workflow permissions
+        # -> "Allow GitHub Actions to create and approve pull requests" is disabled.
+        continue-on-error: true
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(deps): update Node dependencies"
@@ -183,6 +189,9 @@ jobs:
       - name: Create update PR
         if: steps.check.outputs.count > 0
         uses: peter-evans/create-pull-request@v6
+        # Degrade cleanly when Settings -> Actions -> General -> Workflow permissions
+        # -> "Allow GitHub Actions to create and approve pull requests" is disabled.
+        continue-on-error: true
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(deps): update GitHub Actions"
@@ -217,10 +226,10 @@ jobs:
         id: check
         run: |
           if [ -f Dockerfile ]; then
-            echo "found=true" >> $GITHUB_OUTPUT
+            echo "found=true" >> "$GITHUB_OUTPUT"
             grep '^FROM' Dockerfile
           else
-            echo "found=false" >> $GITHUB_OUTPUT
+            echo "found=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Update base image
@@ -233,6 +242,9 @@ jobs:
       - name: Create update PR
         if: steps.check.outputs.found == 'true'
         uses: peter-evans/create-pull-request@v6
+        # Degrade cleanly when Settings -> Actions -> General -> Workflow permissions
+        # -> "Allow GitHub Actions to create and approve pull requests" is disabled.
+        continue-on-error: true
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "chore(deps): update Docker base image"

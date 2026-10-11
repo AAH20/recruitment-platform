@@ -67,7 +67,7 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:${{ matrix.language }}"
-          upload-results: true
+          upload: true
 
   # ─── Autofix (optional) ───────────────────────────────────────────────────
   autofix:
