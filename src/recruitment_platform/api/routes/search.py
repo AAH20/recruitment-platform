@@ -12,7 +12,7 @@ from recruitment_platform.security.auth import sanitize_input
 router = APIRouter()
 
 
-@router.get("/search/jobs")
+@router.get("/jobs")
 async def search_jobs(
     q: str = Query(..., description="Search query"),
     limit: int = Query(20, ge=1, le=100),
@@ -22,7 +22,7 @@ async def search_jobs(
     return await search_service.search_jobs(sanitize_input(q), limit=limit, offset=offset)
 
 
-@router.get("/search/candidates")
+@router.get("/candidates")
 async def search_candidates(
     q: str = Query(..., description="Search query"),
     limit: int = Query(20, ge=1, le=100),
@@ -32,7 +32,7 @@ async def search_candidates(
     return await search_service.search_candidates(sanitize_input(q), limit=limit, offset=offset)
 
 
-@router.get("/search/skills")
+@router.get("/skills")
 async def search_skills(
     q: str = Query(..., description="Search query"),
     limit: int = Query(20, ge=1, le=100),
@@ -41,7 +41,7 @@ async def search_skills(
     return await search_service.search_skills(sanitize_input(q), limit=limit)
 
 
-@router.get("/search/autocomplete")
+@router.get("/autocomplete")
 async def autocomplete(
     q: str = Query(..., description="Search query"),
     entity_type: str = Query("job", description="Entity type"),

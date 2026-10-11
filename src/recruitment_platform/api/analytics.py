@@ -119,7 +119,7 @@ class AnalyticsDashboardResponse(BaseModel):
 
 
 @router.get(
-    "/api/v1/analytics",
+    "/v1/analytics",
     response_model=AnalyticsDashboardResponse,
     status_code=status.HTTP_200_OK,
     summary="Get recruitment analytics dashboard",
@@ -148,7 +148,7 @@ async def get_analytics_dashboard() -> AnalyticsDashboardResponse:
 
 
 @router.get(
-    "/api/v1/analytics/pipeline",
+    "/v1/analytics/pipeline",
     response_model=PipelineMetricsResponse,
     status_code=status.HTTP_200_OK,
     summary="Get pipeline metrics",
@@ -174,7 +174,7 @@ async def get_pipeline_metrics() -> PipelineMetricsResponse:
 
 
 @router.get(
-    "/api/v1/analytics/time-to-hire",
+    "/v1/analytics/time-to-hire",
     response_model=TimeToHireResponse,
     status_code=status.HTTP_200_OK,
     summary="Get time-to-hire metrics",
@@ -200,7 +200,7 @@ async def get_time_to_hire_metrics() -> TimeToHireResponse:
 
 
 @router.get(
-    "/api/v1/analytics/source-effectiveness",
+    "/v1/analytics/source-effectiveness",
     response_model=SourceEffectivenessResponse,
     status_code=status.HTTP_200_OK,
     summary="Get source effectiveness metrics",

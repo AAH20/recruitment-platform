@@ -16,7 +16,7 @@ from recruitment_platform.security.auth import sanitize_input
 router = APIRouter()
 
 
-@router.post("/notifications/send")
+@router.post("/send")
 async def send_notification(
     channels: list[NotificationChannel],
     recipients: dict[str, str],
@@ -40,7 +40,7 @@ async def send_notification(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.post("/notifications/email")
+@router.post("/email")
 async def send_email(
     to: str,
     subject: str,
@@ -52,7 +52,7 @@ async def send_email(
     return result
 
 
-@router.post("/notifications/sms")
+@router.post("/sms")
 async def send_sms(
     to: str,
     message: str,
@@ -62,7 +62,7 @@ async def send_sms(
     return result
 
 
-@router.post("/notifications/push")
+@router.post("/push")
 async def send_push(
     user_id: str,
     title: str,

@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/api/v1/reports", tags=["reports"])
+router = APIRouter(prefix="/v1/reports", tags=["reports"])
 
 
 # ---------------------------------------------------------------------------

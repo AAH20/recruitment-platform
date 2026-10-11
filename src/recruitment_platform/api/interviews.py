@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-router = APIRouter(prefix="/api/v1/interviews", tags=["interviews"])
+router = APIRouter(prefix="/v1/interviews", tags=["interviews"])
 
 
 # ---------------------------------------------------------------------------

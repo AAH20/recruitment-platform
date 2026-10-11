@@ -10,7 +10,7 @@ from recruitment_platform.export.export_service import export_service
 router = APIRouter()
 
 
-@router.get("/export/csv")
+@router.get("/csv")
 async def export_csv(
     data: str = Query(..., description="JSON-encoded data to export"),
     fields: str = Query("", description="Comma-separated field names"),
@@ -31,7 +31,7 @@ async def export_csv(
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.get("/export/json")
+@router.get("/json")
 async def export_json(
     data: str = Query(..., description="JSON-encoded data to export"),
 ) -> Response:
@@ -50,7 +50,7 @@ async def export_json(
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.get("/export/xml")
+@router.get("/xml")
 async def export_xml(
     data: str = Query(..., description="JSON-encoded data to export"),
     root_element: str = Query("records", description="Root XML element name"),

@@ -258,8 +258,18 @@ def _get_timestamp() -> str:
 
 
 def _generate_id() -> str:
-    """Generate a new assessment ID."""
-    return f"assess_{len(MOCK_ASSESSMENTS) + 1:03d}"
+    """Generate a new assessment ID.
+
+    Based on the highest existing numeric suffix rather than ``len() + 1`` so
+    the generated id stays unique after a record has been deleted.
+    """
+    max_n = 0
+    for assessment in MOCK_ASSESSMENTS:
+        try:
+            max_n = max(max_n, int(assessment["id"].rsplit("_", 1)[1]))
+        except (IndexError, ValueError):
+            continue
+    return f"assess_{max_n + 1:03d}"
 
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────

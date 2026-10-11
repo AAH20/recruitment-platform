@@ -6,7 +6,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator
 
-router = APIRouter(prefix="/api/v1/skills", tags=["skills"])
+router = APIRouter(prefix="/v1/skills", tags=["skills"])
 
 # ---------------------------------------------------------------------------
 # Mock data store

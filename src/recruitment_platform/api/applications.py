@@ -193,6 +193,22 @@ VALID_SOURCES = {
     "other",
 }
 
+
+def _next_application_id() -> str:
+    """Return the next free ``app_NNN`` id.
+
+    Deriving the id from ``len(MOCK_APPLICATIONS) + 1`` is unsafe: deleting any
+    record shrinks the list, so the next generated id can collide with a record
+    that still exists.  Base it on the highest existing numeric suffix instead.
+    """
+    max_n = 0
+    for app in MOCK_APPLICATIONS:
+        try:
+            max_n = max(max_n, int(app["id"].rsplit("_", 1)[1]))
+        except (IndexError, ValueError):
+            continue
+    return f"app_{max_n + 1:03d}"
+
 # ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
@@ -300,7 +316,7 @@ async def create_application(payload: ApplicationCreate):
                 detail="Candidate has already applied for this position",
             )
 
-    new_id = f"app_{len(MOCK_APPLICATIONS) + 1:03d}"
+    new_id = _next_application_id()
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     new_application = {
