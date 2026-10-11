@@ -35,6 +35,13 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# src-layout: the package lives in src/recruitment_platform, so pytest must put
+# src/ on sys.path. Without this, a clean checkout plus `pip install -r
+# requirements.txt` cannot import the package at all (tests/conftest.py does
+# `from recruitment_platform.main import app`), and the suite dies at
+# collection with ModuleNotFoundError. CI masked this because it runs
+# `pip install -e ".[dev]"`. Matches gated-communities' pytest config.
+pythonpath = ["src"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
