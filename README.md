@@ -2,10 +2,10 @@
 
 # Recruitment Platform
 
-[![CI](https://img.shields.io/badge/CI-passing-brightgreen)](https://github.com/your-org/recruitment-platform/actions)
+[![CI](https://img.shields.io/badge/CI-passing-brightgreen)](https://github.com/AAH20/recruitment-platform/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12+-blue)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-teal)](https://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-teal)](https://fastapi.tiangolo.com)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 > Unified AI-powered recruitment automation platform with 50 specialized agents across 10 domains.
@@ -26,7 +26,6 @@
 - [Development](#development)
 - [Contributing](#contributing)
 - [License](#license)
-- [Changelog](#changelog)
 
 ---
 
@@ -148,7 +147,7 @@ docker-compose up --build
 ### Base URL
 
 ```
-http://localhost:8000/api/v1
+http://localhost:8000/api
 ```
 
 ### Authentication
@@ -163,7 +162,7 @@ Authorization: Bearer <your-api-token>
 
 | Module | Prefix | Endpoints |
 |--------|--------|-----------|
-| Health | `/health` | 2 |
+| Health | `/health`, `/api/health`, `/api/ready` | 3 |
 | Resume Parser | `/resume-parser` | 3 |
 | Candidate Matcher | `/candidate-matcher` | 3 |
 | Interview Scheduler | `/interview-scheduler` | 3 |
@@ -175,12 +174,12 @@ Authorization: Bearer <your-api-token>
 | Job Description | `/job-description` | 5 |
 | Employer Branding | `/employer-branding` | 5 |
 
-**Total: 42 API endpoints**
+**Total: 102 operations across 79 paths** (the API router is mounted at `/api`; several routers also expose a legacy `/api/v1` segment, e.g. `/api/api/v1/...`)
 
 ### Example: Parse a Resume
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/resume-parser/parse \
+curl -X POST http://localhost:8000/api/resume-parser/parse \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"resume_text": "John Doe\nSoftware Engineer\n5 years experience..."}'
@@ -202,22 +201,36 @@ curl -X POST http://localhost:8000/api/v1/resume-parser/parse \
 ### Docker Compose (Production)
 
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+# The production compose file lives under docker/
+docker compose -f docker/docker-compose.prod.yml up -d
 ```
 
 ### Kubernetes
 
 ```bash
-kubectl apply -f k8s/base/
-kubectl apply -f k8s/overlays/production/
+# k8s/base and k8s/overlays/* are kustomize directories
+kubectl apply -k k8s/overlays/production/
 ```
+
+### Continuous Delivery (GitHub Actions)
+
+`.github/workflows/cd.yml` builds and pushes the image, then deploys to
+staging and production. **Real deployment is gated behind a repository
+variable:** the `deploy-staging` and `deploy-production` jobs only run when
+`vars.AWS_DEPLOY_ENABLED == 'true'` (and the AWS/EKS secrets are set). Until
+that variable is set, the workflow builds and pushes the image, emits a
+`::notice::` that the deploy was skipped, and finishes green — no deploy
+happens. To enable real deploys, set repository variable
+`AWS_DEPLOY_ENABLED=true` plus secrets `AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `EKS_CLUSTER_NAME` and a
+`KUBECONFIG`/`SLACK_WEBHOOK_URL` as needed.
 
 ### Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `REDIS_URL` | Yes | Redis connection string |
+| `DATABASE_URL` | No | SQLAlchemy URL (default `sqlite:///./recruitment.db`) |
+| `REDIS_URL` | No | Redis URL (default `redis://localhost:6379/0`) |
 | `SECRET_KEY` | Yes | JWT signing secret |
 | `OPENAI_API_KEY` | No | AI agent features |
 | `OPENAI_MODEL` | No | Model selection (default: gpt-4) |
@@ -238,7 +251,8 @@ recruitment-platform/
 │   ├── integrations/         # External service clients
 │   ├── models/               # Pydantic schemas
 │   ├── services/             # Business logic layer
-│   └── tests/                # Test suite
+│   └── ...                   # db.py, main.py, middleware/, security/, websockets/
+├── tests/                    # Test suite (pytest testpath)
 ├── k8s/                      # Kubernetes manifests
 ├── .github/workflows/        # CI/CD pipelines
 ├── docs/                     # Documentation
@@ -292,45 +306,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 ## License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
----
-
-## Changelog
-
-### [1.2.0] - 2026-10-01
-
-#### Added
-- AI-powered candidate matching with skill gap analysis
-- Multi-channel job distribution
-- Real-time collaboration features
-
-#### Changed
-- Upgraded to Python 3.12
-- Improved vector search performance by 40%
-
-#### Fixed
-- Interview timezone conversion bug
-- Candidate duplicate detection edge case
-
-### [1.1.0] - 2026-08-15
-
-#### Added
-- Kanban pipeline view
-- Google Calendar integration
-- Advanced analytics dashboard
-
-#### Changed
-- Refactored authentication to use JWT with refresh tokens
-
-#### Fixed
-- Resume parsing for PDF files with embedded fonts
-
-### [1.0.0] - 2026-06-01
-
-#### Added
-- Initial release with core recruitment features
-- 50 AI agents across 10 domains
-- REST API with OpenAPI documentation
 
 ---
 

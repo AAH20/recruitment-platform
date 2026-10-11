@@ -3,7 +3,7 @@
 ## Base URL
 
 ```
-http://localhost:8000/api/v1
+http://localhost:8000/api
 ```
 
 ## Authentication
@@ -1242,7 +1242,7 @@ List endpoints support pagination via query parameters:
 The API uses URL path versioning. The current version is `v1`.
 
 ```
-/api/v1/resume-parser/parse
+/api/resume-parser/parse
 ```
 
 ## SDK Examples
@@ -1252,7 +1252,7 @@ The API uses URL path versioning. The current version is `v1`.
 ```python
 import httpx
 
-async with httpx.AsyncClient(base_url="http://localhost:8000/api/v1") as client:
+async with httpx.AsyncClient(base_url="http://localhost:8000/api") as client:
     # Parse a resume
     response = await client.post("/resume-parser/parse", json={
         "text": "John Doe\njohn@example.com\nPython, AWS"
@@ -1272,15 +1272,15 @@ async with httpx.AsyncClient(base_url="http://localhost:8000/api/v1") as client:
 
 ```bash
 # Health check
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/health
 
 # Parse resume
-curl -X POST http://localhost:8000/api/v1/resume-parser/parse \
+curl -X POST http://localhost:8000/api/resume-parser/parse \
   -H "Content-Type: application/json" \
   -d '{"text": "John Doe\nPython, AWS"}'
 
 # Match candidates
-curl -X POST http://localhost:8000/api/v1/candidate-matcher/match \
+curl -X POST http://localhost:8000/api/candidate-matcher/match \
   -H "Content-Type: application/json" \
   -d '{
     "candidates": [{"id": "1", "skills": ["Python"]}],
@@ -1291,7 +1291,7 @@ curl -X POST http://localhost:8000/api/v1/candidate-matcher/match \
 ### JavaScript
 
 ```javascript
-const baseUrl = 'http://localhost:8000/api/v1';
+const baseUrl = 'http://localhost:8000/api';
 
 // Parse resume
 const response = await fetch(`${baseUrl}/resume-parser/parse`, {

@@ -220,7 +220,7 @@ kubectl get hpa -n recruitment-platform-production
 ```bash
 # Update the image
 kubectl set image deployment/recruitment-platform \
-  api=ghcr.io/your-org/recruitment-platform:v1.1.0 \
+  api=ghcr.io/AAH20/recruitment-platform:v1.1.0 \
   -n recruitment-platform-production
 
 # Watch the rollout
@@ -292,10 +292,10 @@ OPENAI_MODEL=gpt-4
 
 ```bash
 # Liveness probe
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/health
 
 # Readiness probe
-curl http://localhost:8000/api/v1/ready
+curl http://localhost:8000/api/ready
 ```
 
 ### Prometheus Metrics

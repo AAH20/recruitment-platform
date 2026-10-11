@@ -22,9 +22,9 @@ The Recruitment Platform API provides programmatic access to 42 AI-powered endpo
 
 | Environment | URL |
 |-------------|-----|
-| Local Development | `http://localhost:8000/api/v1` |
-| Staging | `https://staging-api.example.com/api/v1` |
-| Production | `https://api.example.com/api/v1` |
+| Local Development | `http://localhost:8000/api` |
+| Staging | `https://staging-api.example.com/api` |
+| Production | `https://api.example.com/api` |
 
 ### Response Envelope
 
@@ -60,7 +60,7 @@ All endpoints return a standard JSON envelope:
 The API uses URL path versioning. Current version: **v1**.
 
 ```
-/api/v1/resume-parser/parse
+/api/resume-parser/parse
 ```
 
 ---
@@ -97,9 +97,9 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
 servers:
-  - url: http://localhost:8000/api/v1
+  - url: http://localhost:8000/api
     description: Local development server
-  - url: https://api.example.com/api/v1
+  - url: https://api.example.com/api
     description: Production server
 tags:
   - name: health
@@ -178,7 +178,7 @@ export RECRUITMENT_API_KEY="your-api-key-here"
 ```bash
 curl -H "Authorization: Bearer $RECRUITMENT_API_KEY" \
      -H "Content-Type: application/json" \
-     http://localhost:8000/api/v1/health
+     http://localhost:8000/api/health
 ```
 
 **Python:**
@@ -187,14 +187,14 @@ import httpx
 
 async with httpx.AsyncClient() as client:
     response = await client.get(
-        "http://localhost:8000/api/v1/health",
+        "http://localhost:8000/api/health",
         headers={"Authorization": "Bearer your-api-key-here"}
     )
 ```
 
 **JavaScript:**
 ```javascript
-const response = await fetch('http://localhost:8000/api/v1/health', {
+const response = await fetch('http://localhost:8000/api/health', {
   headers: {
     'Authorization': 'Bearer your-api-key-here',
     'Content-Type': 'application/json'
@@ -952,16 +952,16 @@ print(sentiment.scores)
 
 ```bash
 # Health check
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/health
 
 # Parse resume
-curl -X POST http://localhost:8000/api/v1/resume-parser/parse \
+curl -X POST http://localhost:8000/api/resume-parser/parse \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $RECRUITMENT_API_KEY" \
   -d '{"text": "John Doe\nPython, AWS, Kubernetes"}'
 
 # Match candidates
-curl -X POST http://localhost:8000/api/v1/candidate-matcher/match \
+curl -X POST http://localhost:8000/api/candidate-matcher/match \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $RECRUITMENT_API_KEY" \
   -d '{
@@ -970,7 +970,7 @@ curl -X POST http://localhost:8000/api/v1/candidate-matcher/match \
   }'
 
 # Analyze bias
-curl -X POST http://localhost:8000/api/v1/bias-detector/analyze-language \
+curl -X POST http://localhost:8000/api/bias-detector/analyze-language \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $RECRUITMENT_API_KEY" \
   -d '{"text": "We need a young and energetic candidate"}'
@@ -979,7 +979,7 @@ curl -X POST http://localhost:8000/api/v1/bias-detector/analyze-language \
 ### JavaScript Examples
 
 ```javascript
-const baseUrl = 'http://localhost:8000/api/v1';
+const baseUrl = 'http://localhost:8000/api';
 const headers = {
   'Content-Type': 'application/json',
   'Authorization': 'Bearer your-api-key'
@@ -1379,98 +1379,98 @@ def test_match_candidates(client):
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/v1/health` | Health check |
-| GET | `/api/v1/ready` | Readiness check |
+| GET | `/api/health` | Health check |
+| GET | `/api/ready` | Readiness check |
 
 ### Resume Parser (3 endpoints)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/v1/resume-parser/parse` | Parse resume into structured data |
-| POST | `/api/v1/resume-parser/extract-contact` | Extract contact information |
-| POST | `/api/v1/resume-parser/extract-skills` | Extract skills from text |
+| POST | `/api/resume-parser/parse` | Parse resume into structured data |
+| POST | `/api/resume-parser/extract-contact` | Extract contact information |
+| POST | `/api/resume-parser/extract-skills` | Extract skills from text |
 
 ### Candidate Matcher (3 endpoints)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/v1/candidate-matcher/match` | Match candidates to job |
-| POST | `/api/v1/candidate-matcher/explain` | Explain match decision |
-| POST | `/api/v1/candidate-matcher/gap-analysis` | Analyze skills gap |
+| POST | `/api/candidate-matcher/match` | Match candidates to job |
+| POST | `/api/candidate-matcher/explain` | Explain match decision |
+| POST | `/api/candidate-matcher/gap-analysis` | Analyze skills gap |
 
 ### Interview Scheduler (3 endpoints)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/v1/interview-scheduler/optimize-slots` | Find optimal interview slots |
-| POST | `/api/v1/interview-scheduler/detect-conflicts` | Detect scheduling conflicts |
-| POST | `/api/v1/interview-scheduler/send-reminder` | Send interview reminder |
+| POST | `/api/interview-scheduler/optimize-slots` | Find optimal interview slots |
+| POST | `/api/interview-scheduler/detect-conflicts` | Detect scheduling conflicts |
+| POST | `/api/interview-scheduler/send-reminder` | Send interview reminder |
 
 ### Skills Assessor (3 endpoints)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/v1/skills-assessor/assess` | Assess candidate skills |
-| POST | `/api/v1/skills-assessor/learning-path` | Recommend learning path |
-| POST | `/api/v1/skills-assessor/validate-skills` | Validate claimed skills |
+| POST | `/api/skills-assessor/assess` | Assess candidate skills |
+| POST | `/api/skills-assessor/learning-path` | Recommend learning path |
+| POST | `/api/skills-assessor/validate-skills` | Validate claimed skills |
 
 ### Bias Detector (4 endpoints)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/v1/bias-detector/analyze-language` | Detect biased language |
-| POST | `/api/v1/bias-detector/fairness-score` | Compute fairness metrics |
-| POST | `/api/v1/bias-detector/demographic-analysis` | Analyze demographics |
-| POST | `/api/v1/bias-detector/recommendations` | Get mitigation recommendations |
+| POST | `/api/bias-detector/analyze-language` | Detect biased language |
+| POST | `/api/bias-detector/fairness-score` | Compute fairness metrics |
+| POST | `/api/bias-detector/demographic-analysis` | Analyze demographics |
+| POST | `/api/bias-detector/recommendations` | Get mitigation recommendations |
 
 ### Talent Pool Manager (4 endpoints)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/v1/talent-pool/source` | Source candidates from pool |
-| POST | `/api/v1/talent-pool/analyze-pool` | Analyze pool health |
-| POST | `/api/v1/talent-pool/recommend` | Recommend talent |
-| POST | `/api/v1/talent-pool/track-engagement` | Track engagement |
+| POST | `/api/talent-pool/source` | Source candidates from pool |
+| POST | `/api/talent-pool/analyze-pool` | Analyze pool health |
+| POST | `/api/talent-pool/recommend` | Recommend talent |
+| POST | `/api/talent-pool/track-engagement` | Track engagement |
 
 ### Recruitment Analytics (5 endpoints)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/v1/analytics/cost-analysis` | Analyze recruitment costs |
-| POST | `/api/v1/analytics/funnel-analysis` | Analyze funnel conversion |
-| POST | `/api/v1/analytics/diversity-metrics` | Get diversity metrics |
-| POST | `/api/v1/analytics/predict` | Generate hiring predictions |
-| POST | `/api/v1/analytics/source-effectiveness` | Analyze source effectiveness |
+| POST | `/api/analytics/cost-analysis` | Analyze recruitment costs |
+| POST | `/api/analytics/funnel-analysis` | Analyze funnel conversion |
+| POST | `/api/analytics/diversity-metrics` | Get diversity metrics |
+| POST | `/api/analytics/predict` | Generate hiring predictions |
+| POST | `/api/analytics/source-effectiveness` | Analyze source effectiveness |
 
 ### Onboarding Automator (5 endpoints)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/v1/onboarding/check-compliance` | Check compliance |
-| POST | `/api/v1/onboarding/generate-documents` | Generate documents |
-| POST | `/api/v1/onboarding/track-progress` | Track progress |
-| POST | `/api/v1/onboarding/schedule-tasks` | Schedule tasks |
-| POST | `/api/v1/onboarding/welcome-message` | Generate welcome message |
+| POST | `/api/onboarding/check-compliance` | Check compliance |
+| POST | `/api/onboarding/generate-documents` | Generate documents |
+| POST | `/api/onboarding/track-progress` | Track progress |
+| POST | `/api/onboarding/schedule-tasks` | Schedule tasks |
+| POST | `/api/onboarding/welcome-message` | Generate welcome message |
 
 ### Job Description Optimizer (5 endpoints)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/v1/job-description/check-ats` | Check ATS compatibility |
-| POST | `/api/v1/job-description/remove-bias` | Remove biased language |
-| POST | `/api/v1/job-description/optimize-keywords` | Optimize keywords |
-| POST | `/api/v1/job-description/optimize-seo` | Optimize for SEO |
-| POST | `/api/v1/job-description/analyze-tone` | Analyze tone |
+| POST | `/api/job-description/check-ats` | Check ATS compatibility |
+| POST | `/api/job-description/remove-bias` | Remove biased language |
+| POST | `/api/job-description/optimize-keywords` | Optimize keywords |
+| POST | `/api/job-description/optimize-seo` | Optimize for SEO |
+| POST | `/api/job-description/analyze-tone` | Analyze tone |
 
 ### Employer Branding (5 endpoints)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/v1/employer-branding/brand-strategy` | Develop brand strategy |
-| POST | `/api/v1/employer-branding/generate-content` | Generate content |
-| POST | `/api/v1/employer-branding/manage-reputation` | Manage reputation |
-| POST | `/api/v1/employer-branding/analyze-reviews` | Analyze reviews |
-| POST | `/api/v1/employer-branding/analyze-sentiment` | Analyze sentiment |
+| POST | `/api/employer-branding/brand-strategy` | Develop brand strategy |
+| POST | `/api/employer-branding/generate-content` | Generate content |
+| POST | `/api/employer-branding/manage-reputation` | Manage reputation |
+| POST | `/api/employer-branding/analyze-reviews` | Analyze reviews |
+| POST | `/api/employer-branding/analyze-sentiment` | Analyze sentiment |
 
 ---
 
@@ -1500,7 +1500,7 @@ def test_match_candidates(client):
 - **API Status**: https://status.example.com
 - **Developer Portal**: https://portal.example.com
 - **Email**: support@example.com
-- **Issues**: https://github.com/example/recruitment-platform/issues
+- **Issues**: https://github.com/AAH20/recruitment-platform/issues
 
 ---
 

@@ -222,7 +222,7 @@ sequenceDiagram
     participant I as Integration
     participant D as Database
 
-    C->>API: POST /api/v1/resume-parser/parse
+    C->>API: POST /api/resume-parser/parse
     API->>AR: get("resume_parser")
     AR->>A: execute(resume_data)
     A->>I: parse_file(resume.pdf)

@@ -77,11 +77,11 @@ python -m recruitment_platform.main
 
 ```bash
 # Check health
-curl http://localhost:8000/api/v1/health
+curl http://localhost:8000/api/health
 # Expected: {"status": "healthy", "service": "recruitment-platform"}
 
 # Check readiness
-curl http://localhost:8000/api/v1/ready
+curl http://localhost:8000/api/ready
 # Expected: {"status": "ready"}
 ```
 
@@ -173,7 +173,7 @@ sequenceDiagram
 **Step 1: Parse a Resume**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/resume-parser/parse \
+curl -X POST http://localhost:8000/api/resume-parser/parse \
   -H "Content-Type: application/json" \
   -d '{
     "text": "John Doe\njohn.doe@email.com\n(555) 123-4567\n\nEducation:\nBachelor of Science in Computer Science\nStanford University, 2018\n\nExperience:\nSenior Software Engineer at Google\nJan 2020 - Present\n\nSkills: Python, Java, AWS, Kubernetes"
@@ -183,7 +183,7 @@ curl -X POST http://localhost:8000/api/v1/resume-parser/parse \
 **Step 2: Match Candidates to a Job**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/candidate-matcher/match \
+curl -X POST http://localhost:8000/api/candidate-matcher/match \
   -H "Content-Type: application/json" \
   -d '{
     "candidates": [
@@ -206,7 +206,7 @@ curl -X POST http://localhost:8000/api/v1/candidate-matcher/match \
 **Step 3: Analyze Skills Gap**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/candidate-matcher/gap-analysis \
+curl -X POST http://localhost:8000/api/candidate-matcher/gap-analysis \
   -H "Content-Type: application/json" \
   -d '{
     "candidate_skills": ["Python", "AWS"],
@@ -242,7 +242,7 @@ sequenceDiagram
 **Step 1: Optimize Interview Slots**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/interview-scheduler/optimize-slots \
+curl -X POST http://localhost:8000/api/interview-scheduler/optimize-slots \
   -H "Content-Type: application/json" \
   -d '{
     "participants": [
@@ -269,7 +269,7 @@ curl -X POST http://localhost:8000/api/v1/interview-scheduler/optimize-slots \
 **Step 2: Detect Conflicts**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/interview-scheduler/detect-conflicts \
+curl -X POST http://localhost:8000/api/interview-scheduler/detect-conflicts \
   -H "Content-Type: application/json" \
   -d '{
     "proposed_slot": {
@@ -289,7 +289,7 @@ curl -X POST http://localhost:8000/api/v1/interview-scheduler/detect-conflicts \
 **Step 3: Send Reminders**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/interview-scheduler/send-reminder \
+curl -X POST http://localhost:8000/api/interview-scheduler/send-reminder \
   -H "Content-Type: application/json" \
   -d '{
     "interview": {
@@ -328,7 +328,7 @@ sequenceDiagram
 **Step 1: Check ATS Compatibility**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/job-description/check-ats \
+curl -X POST http://localhost:8000/api/job-description/check-ats \
   -H "Content-Type: application/json" \
   -d '{
     "job_description": "We are looking for a Senior Software Engineer with 5+ years of experience in Python and AWS."
@@ -338,7 +338,7 @@ curl -X POST http://localhost:8000/api/v1/job-description/check-ats \
 **Step 2: Remove Bias**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/job-description/remove-bias \
+curl -X POST http://localhost:8000/api/job-description/remove-bias \
   -H "Content-Type: application/json" \
   -d '{
     "job_description": "We need a young, energetic salesman who can work long hours"
@@ -348,7 +348,7 @@ curl -X POST http://localhost:8000/api/v1/job-description/remove-bias \
 **Step 3: Optimize Keywords**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/job-description/optimize-keywords \
+curl -X POST http://localhost:8000/api/job-description/optimize-keywords \
   -H "Content-Type: application/json" \
   -d '{
     "job_description": "Looking for a software engineer to build web applications",
@@ -388,7 +388,7 @@ sequenceDiagram
 **Step 1: Check Compliance**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/onboarding/check-compliance \
+curl -X POST http://localhost:8000/api/onboarding/check-compliance \
   -H "Content-Type: application/json" \
   -d '{
     "employee_data": {
@@ -403,7 +403,7 @@ curl -X POST http://localhost:8000/api/v1/onboarding/check-compliance \
 **Step 2: Generate Documents**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/onboarding/generate-documents \
+curl -X POST http://localhost:8000/api/onboarding/generate-documents \
   -H "Content-Type: application/json" \
   -d '{
     "employee": {
@@ -421,7 +421,7 @@ curl -X POST http://localhost:8000/api/v1/onboarding/generate-documents \
 **Step 3: Schedule Tasks**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/onboarding/schedule-tasks \
+curl -X POST http://localhost:8000/api/onboarding/schedule-tasks \
   -H "Content-Type: application/json" \
   -d '{
     "employee": {"name": "Jane Smith", "role": "Software Engineer"},
@@ -432,7 +432,7 @@ curl -X POST http://localhost:8000/api/v1/onboarding/schedule-tasks \
 **Step 4: Generate Welcome Message**
 
 ```bash
-curl -X POST http://localhost:8000/api/v1/onboarding/welcome-message \
+curl -X POST http://localhost:8000/api/onboarding/welcome-message \
   -H "Content-Type: application/json" \
   -d '{
     "employee": {"name": "Jane Smith", "role": "Software Engineer"},
@@ -444,7 +444,7 @@ curl -X POST http://localhost:8000/api/v1/onboarding/welcome-message \
 
 ```bash
 # Cost analysis
-curl -X POST http://localhost:8000/api/v1/analytics/cost-analysis \
+curl -X POST http://localhost:8000/api/analytics/cost-analysis \
   -H "Content-Type: application/json" \
   -d '{
     "hiring_data": {"total_hires": 50, "total_applications": 1000},
@@ -452,7 +452,7 @@ curl -X POST http://localhost:8000/api/v1/analytics/cost-analysis \
   }'
 
 # Funnel analysis
-curl -X POST http://localhost:8000/api/v1/analytics/funnel-analysis \
+curl -X POST http://localhost:8000/api/analytics/funnel-analysis \
   -H "Content-Type: application/json" \
   -d '{
     "funnel_data": {
@@ -462,7 +462,7 @@ curl -X POST http://localhost:8000/api/v1/analytics/funnel-analysis \
   }'
 
 # Diversity metrics
-curl -X POST http://localhost:8000/api/v1/analytics/diversity-metrics \
+curl -X POST http://localhost:8000/api/analytics/diversity-metrics \
   -H "Content-Type: application/json" \
   -d '{
     "pipeline_data": {"stages": ["applied", "hired"], "counts": [1000, 50]},
@@ -544,5 +544,5 @@ docker-compose logs api
 
 - **API Documentation**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
-- **Health Check**: http://localhost:8000/api/v1/health
-- **GitHub Issues**: https://github.com/your-org/recruitment-platform/issues
+- **Health Check**: http://localhost:8000/api/health
+- **GitHub Issues**: https://github.com/AAH20/recruitment-platform/issues

@@ -309,7 +309,7 @@ async def client():
 
 @pytest.mark.asyncio
 async def test_my_endpoint(client):
-    response = await client.post("/api/v1/my-endpoint", json={"key": "value"})
+    response = await client.post("/api/my-endpoint", json={"key": "value"})
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True
