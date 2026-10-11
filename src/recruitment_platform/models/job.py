@@ -1,41 +1,23 @@
-"""Job model for the recruitment platform."""
+"""Compatibility shim for the canonical ``Job`` model.
+
+``Job`` is defined once, in ``recruitment_platform.models`` (the package
+``__init__``), which the service layer imports
+(``from recruitment_platform.models import Job``).
+
+This module previously declared a *second, incompatible* ``Job`` carrying the
+same ``__tablename__ = "jobs"`` — a uuid primary key and extra columns
+(department, location, salary_range) with a ``Uuid`` FK to ``employers.id``,
+versus the package's int-keyed version. Importing both the package and this
+module therefore registered the ``jobs`` table twice on one ``MetaData`` and
+raised ``InvalidRequestError: Table 'jobs' is already defined``.
+
+It now re-exports the canonical class, so
+``from recruitment_platform.models.job import Job`` keeps working without
+duplicating the table.
+"""
 
 from __future__ import annotations
 
-import uuid
-from datetime import datetime
-from typing import Any
+from recruitment_platform.models import Job
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Text, Uuid
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from recruitment_platform.models.base import Base
-
-
-class Job(Base):
-    """Represents a job posting by an employer."""
-
-    __tablename__ = "jobs"
-
-    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    title: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=False)
-    department: Mapped[str] = mapped_column(String(100), nullable=False)
-    location: Mapped[str] = mapped_column(String(255), nullable=False)
-    salary_range: Mapped[str] = mapped_column(String(100), nullable=True)
-    requirements: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default="open")
-    employer_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("employers.id"), nullable=False
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=datetime.utcnow
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
-    )
-
-    employer = relationship("Employer", back_populates="jobs")
+__all__ = ["Job"]

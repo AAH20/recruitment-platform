@@ -1,58 +1,22 @@
-"""Application model for recruitment platform."""
+"""Compatibility shim for the canonical ``Application`` model.
+
+``Application`` is defined once, in ``recruitment_platform.models`` (the package
+``__init__``), which the service layer imports
+(``from recruitment_platform.models import Application``).
+
+This module previously declared a *second, incompatible* ``Application`` with
+the same ``__tablename__ = "applications"`` — uuid keys, uuid FKs and a
+cover_letter column, versus the package's int-keyed version. Importing both the
+package and this module registered the table twice on one ``MetaData`` and
+raised ``InvalidRequestError: Table 'applications' is already defined``.
+
+It now re-exports the canonical class, so
+``from recruitment_platform.models.application import Application`` keeps
+working without duplicating the table.
+"""
 
 from __future__ import annotations
 
-import uuid
-from datetime import datetime
+from recruitment_platform.models import Application
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.sql import func
-
-from recruitment_platform.models.base import Base
-
-
-class Application(Base):
-    """Represents a job application submitted by a candidate."""
-
-    __tablename__ = "applications"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    )
-    candidate_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("candidates.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    job_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("jobs.id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    status: Mapped[str] = mapped_column(
-        String(50),
-        nullable=False,
-        default="pending",
-    )
-    cover_letter: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True,
-    )
-    applied_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-    )
-
-    candidate = relationship("Candidate", back_populates="applications")
-    job = relationship("Job", back_populates="applications")
+__all__ = ["Application"]

@@ -15,7 +15,6 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import (
-    DeclarativeBase,
     Mapped,
     mapped_column,
     relationship,
@@ -29,9 +28,11 @@ from recruitment_platform.models.schemas import (
     JobCreate,
 )
 
-
-class Base(DeclarativeBase):
-    """Base class for all ORM models."""
+# Single canonical declarative base. Every ORM module - including job.py and
+# interview.py, which import recruitment_platform.models.base directly -
+# resolves to this one Base, so all tables share a single MetaData. Declaring
+# a second Base here would split the MetaData and duplicate every __tablename__.
+from recruitment_platform.models.base import Base  # noqa: E402
 
 
 class Candidate(Base):

@@ -1,52 +1,23 @@
-"""Candidate model for the recruitment platform."""
+"""Compatibility shim for the canonical ``Candidate`` model.
+
+``Candidate`` is defined once, in ``recruitment_platform.models`` (the package
+``__init__``), which the service layer imports
+(``from recruitment_platform.models import Candidate``).
+
+This module previously declared a *second, incompatible* ``Candidate`` with the
+same ``__tablename__ = "candidates"`` — a uuid primary key plus first_name /
+last_name / resume_url / JSON skills columns, versus the package's int-keyed
+version. Importing both the package and this module registered the table twice
+on one ``MetaData`` and raised
+``InvalidRequestError: Table 'candidates' is already defined``.
+
+It now re-exports the canonical class, so
+``from recruitment_platform.models.candidate import Candidate`` keeps working
+without duplicating the table.
+"""
 
 from __future__ import annotations
 
-import uuid
-from datetime import datetime
-from typing import Any
+from recruitment_platform.models import Candidate
 
-from sqlalchemy import JSON, DateTime, String, func
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
-
-from recruitment_platform.models import Base
-
-
-class Candidate(Base):
-    """Represents a job candidate in the recruitment platform."""
-
-    __tablename__ = "candidates"
-
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
-    )
-    first_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    last_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    email: Mapped[str] = mapped_column(
-        String(255), nullable=False, unique=True, index=True
-    )
-    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    resume_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    skills: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(
-        JSON, nullable=True
-    )
-    experience: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(
-        JSON, nullable=True
-    )
-    education: Mapped[dict[str, Any] | list[Any] | None] = mapped_column(
-        JSON, nullable=True
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
-    )
+__all__ = ["Candidate"]
