@@ -1,0 +1,18 @@
+diff --git a/src/recruitment_platform/models/base.py b/src/recruitment_platform/models/base.py
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/src/recruitment_platform/models/base.py
+@@ -0,0 +1,12 @@
++"""Shared SQLAlchemy declarative base for recruitment_platform models.
++
++Model modules (job, interview, application, ...) import ``Base`` from here.
++"""
++
++from __future__ import annotations
++
++from sqlalchemy.orm import DeclarativeBase
++
++
++class Base(DeclarativeBase):
++    """Base class for all ORM models."""
